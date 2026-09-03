@@ -277,6 +277,8 @@ When two sides disagree about a file, `status` names it and these three
 settle it:
 
 ```sh
+autobahn issues                     # everything that needs you, grouped by cause
+autobahn issues werk autobahn     # ...under one folder
 autobahn conflicts                  # every conflict, with what each side holds
 autobahn conflicts ~/project        # ...for whatever group syncs that folder
 autobahn conflicts werk autobahn  # ...to one folder inside the group
