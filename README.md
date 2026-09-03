@@ -290,8 +290,8 @@ autobahn resolve ./src/main.rs --keep alpha       # my version wins, everywhere
 autobahn resolve project src/main.rs --keep lager # lager's version wins, everywhere
 autobahn resolve project src/main.rs --keep both  # keep alpha's; the loser is
                                                   # renamed aside as main.rs.lager
-autobahn resolve ~/project --all --keep lager     # every conflict in the group,
-                                                  # after showing the list and asking
+autobahn resolve werk autobahn --keep alpha     # every conflict under one folder
+autobahn resolve ~/project --all --keep lager     # every conflict in the group
 ```
 
 A winner is named as `status` names it: `alpha`, or a destination's host
