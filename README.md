@@ -346,7 +346,9 @@ one keypress settles a whole directory or a single file.
 ```
   ┌──────────────────────────────────────────────────────────────┐
   │ the counter  werk → halle.steinbach.de            3 waiting  │
-  │ ▸ 1 conflict                        both sides changed these │
+  │ ▾ 2 conflicts                       both sides changed these │
+  │     happy                                    deleted on ours │
+  │     getriebe                                 deleted on ours │
   │ ▸ 1 blocked on alpha                       unicode collision │
   │ ▾ 20 blocked on beta            Permission denied (os error) │
   │   ▾ motor/backend/.ruff_cache/0.9.10/                     16 │
