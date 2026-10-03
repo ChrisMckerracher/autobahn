@@ -11,11 +11,14 @@
 # a change that fails formatting, lints or tests there is broken anyway —
 # and a newer push cancels an older run of the same branch before it
 # spends a runner on stale code. For a change that cannot touch macOS,
-# it always runs. It is the longest job at about fifteen minutes, but it
-# starts after Linux and nothing waits on it: linux, linux-arm and spec
-# are all done around eight minutes whether it runs or not, so skipping
-# it would buy runner time, and runner time is free on a public
-# repository.
+# it runs unless asked not to. It is the longest job at about fifteen
+# minutes, but it starts after Linux and nothing waits on it: linux,
+# linux-arm and spec are all done around eight minutes whether it runs
+# or not. So the default is on — runner time is free on a public
+# repository, and a job nobody skipped is a result a release can rely
+# on — and [skip mac], [mac skip] or [no mac] in the head commit's
+# message (or a pull request's title) turns it off for one push, the
+# way [skip ci] turns off everything.
 #
 # A release requires every job here — linux, linux-arm, mac and spec — to
 # have succeeded on the tagged commit (release.yml's version job), so
@@ -122,7 +125,18 @@ jobs:
         run: AUTOBAHN_TLC=1 cargo test --release --locked --test spec_replay --test spec_p2p_replay -- --include-ignored
 
   mac:
+    # The message and the title read as one string, so each spelling is
+    # one clause instead of two. A manual run has neither, which leaves
+    # an empty string, which contains no marker — so `gh workflow run`
+    # always produces the mac result a release asks for.
     needs: linux
+    if: >-
+      ${{ !contains(format('{0} {1}', github.event.head_commit.message,
+                           github.event.pull_request.title), '[skip mac]')
+          && !contains(format('{0} {1}', github.event.head_commit.message,
+                              github.event.pull_request.title), '[mac skip]')
+          && !contains(format('{0} {1}', github.event.head_commit.message,
+                              github.event.pull_request.title), '[no mac]') }}
     runs-on: macos-15
     timeout-minutes: 45
     steps:
