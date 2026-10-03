@@ -1,4 +1,5 @@
-# Builds the app for people to try, on every push to its branch.
+# Builds the app for people to try, on every push to main that touches
+# it.
 #
 # Separate from release.yml, which ships the command on a tag and signs
 # and notarises everything. Nothing here is signed: these are builds to
@@ -19,7 +20,7 @@ name: App
 
 on:
   push:
-    branches: [desk-kit]
+    branches: [main]
     paths:
       - 'src/**'
       - 'assets/**'
