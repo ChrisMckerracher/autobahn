@@ -17,7 +17,7 @@ A standard release publishes three independent artifacts:
 Pushing a version tag (`v*`) triggers `.github/workflows/release.yml`:
 1. **Gate Verification:** Compares the tag against `version` in `Cargo.toml` and confirms that all required CI matrix jobs (`linux`, `linux-arm`, `mac`, `spec`) passed on the tagged commit.
 2. **Binary Compilation:** Compiles static musl binaries for Linux (`x86_64`, `aarch64`) and native macOS binaries.
-3. **macOS Notarization:** Imports Developer ID certificates, signs the application bundle, and submits to Apple's notarization service.
+3. **macOS Notarization:** Imports Developer ID certificates, signs the command-line binaries and both application bundles, and submits each to Apple's notarization service.
 4. **Cryptographic Signing:** Generates `SHA256SUMS` across all assets and signs the checksum manifest using `minisign` (`SHA256SUMS.minisig`) against the release key.
 5. **Publishing:** Publishes binary archives, agent tarballs, signatures, and installation scripts via GitHub Releases.
 
@@ -86,7 +86,7 @@ apps/tray/release.sh --sign-only "apps/app/Autobahn Dash.app"
 
 It signs whatever bundle it is given: the executable to check and to sign is the one `CFBundleExecutable` names, not a fixed `autobahn`. Any other Mach-O in `Contents/MacOS` is signed first, inner out — signing a bundle reaches its main executable and its resources and nothing else, and notarisation refuses the bundle for an unsigned neighbour.
 
-`--sign-only` compiles nothing: it takes a bundle from `build.sh --unsigned` and signs it. That split is what CI uses, so every build happens before the signing identity exists.
+`--sign-only` compiles nothing: it takes a bundle either `build.sh` already assembled and signs it, replacing whatever signature was there. That split is what CI uses, so every build happens before the signing identity exists.
 
 On a laptop it signs with the Developer ID certificate in your keychain and notarises with credentials stored once:
 
@@ -119,7 +119,7 @@ The certificate can sign anything as you, so it is kept where it can do the leas
 
 If the certificate ever leaks, revoke it in your Apple Developer account.
 
-The app is Apple Silicon only; the command-line binaries cover Intel as well. A command-line binary cannot be stapled, so Gatekeeper checks its notarisation online the first time it runs. The runner's default Xcode may be older than 26, whose `actool` is the only one that compiles the Icon Composer bundle; the job picks Xcode 26 when the runner has it, and otherwise `build.sh` uses the committed `assets/autobahn.icns`, the same icon without the macOS 26 variants.
+Both apps are Apple Silicon only; the command-line binaries cover Intel as well. A command-line binary cannot be stapled, so Gatekeeper checks its notarisation online the first time it runs. The runner's default Xcode may be older than 26, whose `actool` is the only one that compiles the Icon Composer bundle; the job picks Xcode 26 when the runner has it, and otherwise `build.sh` uses the committed `assets/autobahn.icns`, the same icon without the macOS 26 variants.
 
 ## See also
 
@@ -127,4 +127,4 @@ The app is Apple Silicon only; the command-line binaries cover Intel as well. A 
 - [Commands](./commands.md) — `update`, the in-place upgrade
 - [The state root](./state.md) — the agent bundle, and how a remote host gets one
 - [The menu bar item](./tray.md) — the bundle these sign and notarise
-- [Autobahn Dash](./app.md) — the unsigned channel, and why it is separate
+- [Autobahn Dash](./app.md) — signed on a tag, unsigned on `app-latest`

@@ -67,7 +67,7 @@ cargo +1.98.0 build --release --locked --features app --bin autobahn-app --targe
 
 Build the CLI separately and place it beside Dash or in a supported installation path.
 
-On macOS, `apps/app/build.sh` creates an ad-hoc-signed bundle. It includes `target/release/autobahn` if present.
+On macOS, `apps/app/build.sh` creates an ad-hoc-signed bundle. No copy of `autobahn` goes inside it: the window finds the command beside itself first, so a bundled one would override the installed copy the supervisor is actually running. A release replaces the ad-hoc signature with a Developer ID one — see [Releases](./releases.md#signing-and-notarising-macos).
 
 Linux build packages appear in `.github/workflows/app.yml`. Runtime also requires a display server and Vulkan driver. See [Autobahn Dash](./app.md).
 
