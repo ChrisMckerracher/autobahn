@@ -66,7 +66,11 @@ Autobahn's safety invariants are verified through automated testing pipelines:
 
 Guarantees operate within explicit physical and software constraints:
 - **Local Filesystem Requirement:** Network filesystems (NFS/SMB) with aggressive client-side attribute caching may mask external modifications.
-- **Timestamp Preservation:** Tools that rewrite files while deliberately preserving size and modification timestamps (`touch -r`) evade metadata-based change detection. Use `autobahn verify` to detect these changes.
+- **Timestamp Preservation:** Tools that rewrite files while deliberately preserving size and modification timestamps — reproducible build tooling, `touch -r` — evade metadata-based change detection. `autobahn verify` makes the next cycle read every byte. Put it on a timer if your trees hold build output:
+
+  ```
+  0 3 * * 0  autobahn verify
+  ```
 - **Host Trust Model:** Protocols assume both endpoints execute genuine, authenticated Autobahn binaries. While a compromised agent cannot access paths outside its root (I11), it could emit falsified scan data within its designated root.
 
 ## See also

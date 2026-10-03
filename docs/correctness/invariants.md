@@ -108,7 +108,7 @@ Supply also checks alternate paths before serving content under a shared digest.
 
 Disabling the receive digest gate causes the corrupt-frame test to publish corruption and fail.
 
-**Boundary.** Snapshot digests can be reused when metadata matches. Deliberately restored metadata can conceal a rewrite. See [accepted-risks §5](./accepted-risks.md#5-forged-timestamps-beyond-the-verify-verb).
+**Boundary.** Snapshot digests can be reused when metadata matches. Deliberately restored metadata can conceal a rewrite. See [accepted-risks §5](./accepted-risks.md#5-content-changed-without-its-metadata-moving).
 
 `a_same_granule_rewrite_is_reread_not_trusted` covers accidental timestamp-granule collisions. `a_verified_scan_sees_what_metadata_hides` covers explicit content verification.
 

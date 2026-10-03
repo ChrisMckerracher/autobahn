@@ -58,15 +58,27 @@ Closing it properly means locking endpoints rather than pairs, on every host inv
 
 **Possible fix.** Add advisory locks keyed by resolved endpoint identity under the endpoint host’s default state root. Use shared locks for read-only one-way primaries and exclusive locks for writable endpoints. Retain the existing pair lock.
 
-## 5. Forged timestamps beyond the verify verb
+## 5. Content changed without its metadata moving
 
-**Risk.** A same-length rewrite with a restored mtime and unchanged inode evades metadata detection, including full scans. Racy-timestamp handling covers accidental same-granule edits, not deliberate restoration through `touch -r`, reproducible builds, or hostile writes.
+**Risk.** A scan reuses a file's recorded checksum when its modification time, size, inode, and type all match what was recorded (`src/scan/mod.rs`). A rewrite that keeps the length and restores the timestamp, in place, matches all four — so the new content is invisible, to a full scan as much as an incremental one.
 
-**Reason retained.** Metadata reuse avoids reading every byte on each scan, as in rsync, Git’s index, and Mutagen. `autobahn verify` forces content reads and logs detected mismatches.
+Three things do this. Reproducible build tooling pins timestamps on purpose, so byte-different output can land looking identical. `touch -r` copies a timestamp across deliberately. And a writer who wants to hide a change can do both.
 
-**Reason to revisit.** Verification logs that show real divergence, or a deployment whose threat model includes deliberate metadata restoration.
+The racy-timestamp margin covers accidental same-granule edits. This is the deliberate case, which it does not.
 
-**Possible fix.** Add scheduled background verification that gradually rehashes files during idle cycles. This can bound digest age without hashing the whole tree on every scan.
+**Reason retained.** Reusing metadata is why a scan does not read every byte of every file, which is most of what makes autobahn fast. rsync, Git's index, and Mutagen all make the same trade.
+
+**Reason to revisit.** Reports of build output that quietly failed to travel, or a deployment whose threat model includes deliberate metadata restoration.
+
+**Possible fix.** `autobahn verify` already forces content reads on the next cycle. Run it on a timer rather than when it occurs to you — cron, a systemd timer, or a launchd job:
+
+```
+0 3 * * 0  autobahn verify
+```
+
+Weekly bounds how long a change can hide. There is nothing to build for this, and a setting to do it internally would only move the schedule inside the configuration.
+
+Two things to know before relying on it. `verify` turns off checksum reuse and nothing else: what it finds reconciles as an ordinary change, and nothing marks it as having been hidden. So a verification that discovers a *tampered* file propagates it to the other side like any edit — containment is a side effect of not having looked. That is a reason to treat this as a correctness measure for build output, and not as tamper detection.
 
 ## See also
 
