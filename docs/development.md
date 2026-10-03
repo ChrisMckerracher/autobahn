@@ -29,7 +29,11 @@ CI runs on pushes to `main` and pull requests. It skips changes limited to Markd
 
 The macOS job runs the suite and builds an ad-hoc-signed tray app. Release certificates are unavailable to ordinary CI. New pushes cancel older runs on the same branch.
 
-The macOS job waits for Linux to pass. For a change that cannot affect macOS, `[skip mac]` in the head commit message or PR title skips that job. Only the final commit of a push is checked.
+The macOS job waits for Linux to pass, and takes about fifteen minutes against six for everything else — so it is opt-in: `[mac]` in the head commit message or PR title runs it. The app build is opt-in the same way, with `[app]`; it is eight minutes across three runners and most changes to `src/` are the command's.
+
+Only the **final** commit of a push is read, so a marker on an earlier one in the same push does nothing. A manual run ignores markers and always builds: `gh workflow run ci.yml` or `gh workflow run app.yml`.
+
+A release needs `mac` to have passed on the tagged commit, so tag a commit that asked for it, or run CI on the tag by hand — `release.yml` says which when it refuses.
 
 ## Targeted tests
 

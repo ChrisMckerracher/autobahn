@@ -1,5 +1,8 @@
-# Builds the app for people to try, on every push to main that touches
-# it.
+# Builds the app for people to try, when a push to main asks for one:
+# put [app] in the head commit's message. Opt in rather than out — it
+# is eight minutes on three runners, and most changes to src/ are the
+# command's rather than the window's. A manual run always builds:
+#   gh workflow run app.yml
 #
 # Separate from release.yml, which ships the command on a tag and signs
 # and notarises everything. Nothing here is signed: these are builds to
@@ -33,6 +36,14 @@ on:
 permissions:
   contents: write
 
+# One build at a time per branch. Without this, two pushes in the eight
+# minutes a build takes leave two `publish` jobs racing to delete and
+# recreate the same release — which is not one operation, so the loser
+# can leave `app-latest` short a platform or without its tag.
+concurrency:
+  group: app-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   # The kit needs a newer compiler than the repository's own pin.
@@ -41,6 +52,12 @@ env:
 jobs:
   build:
     name: ${{ matrix.platform }}
+    # `workflow_dispatch` carries no commit message, so the marker can
+    # never be found on one; naming the event is what makes a manual
+    # run build without one.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+          || contains(github.event.head_commit.message, '[app]') }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
       # One platform failing should not hide whether the others work,
@@ -166,8 +183,10 @@ jobs:
     name: Publish app-latest
     needs: build
     # A platform that failed should not stop the ones that worked from
-    # reaching the person waiting to try them.
-    if: always() && !cancelled()
+    # reaching the person waiting to try them — but a build nobody asked
+    # for produces nothing, and `always()` would otherwise send this to
+    # replace the release with an empty one.
+    if: always() && !cancelled() && needs.build.result != 'skipped'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

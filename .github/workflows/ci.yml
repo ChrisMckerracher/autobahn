@@ -11,8 +11,13 @@
 # a change that fails formatting, lints or tests there is broken anyway —
 # and a newer push cancels an older run of the same branch before it
 # spends a runner on stale code. For a change that cannot touch macOS,
-# put [skip mac] in the head commit's message (or a pull request's title)
-# and the macOS job is skipped; everything else still runs.
+# put [mac] in the head commit's message (or a pull request's title) and
+# the macOS job runs; without it, it does not. Opt in rather than out,
+# because it is fifteen minutes and the rest of CI is six, and most
+# changes cannot reach it.
+#
+# A manual run always includes it, whatever the message says — which is
+# what makes `gh workflow run ci.yml --ref <tag>` below a way out.
 #
 # A release requires every job here — linux, linux-arm, mac and spec — to
 # have succeeded on the tagged commit (release.yml's version job), so
@@ -120,11 +125,16 @@ jobs:
 
   mac:
     # A job with `needs` runs only if what it needs succeeded, and that
-    # still holds with an `if` of its own: this adds the skip marker to it.
+    # still holds with an `if` of its own: this adds the marker to it.
+    #
+    # `workflow_dispatch` carries no commit message, so the marker can
+    # never be found on one. Naming the event is what keeps a manual run
+    # able to produce the mac result a release asks for.
     needs: linux
     if: >-
-      ${{ !contains(github.event.head_commit.message, '[skip mac]')
-          && !contains(github.event.pull_request.title, '[skip mac]') }}
+      ${{ github.event_name == 'workflow_dispatch'
+          || contains(github.event.head_commit.message, '[mac]')
+          || contains(github.event.pull_request.title, '[mac]') }}
     runs-on: macos-15
     timeout-minutes: 45
     steps:
