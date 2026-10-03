@@ -12,6 +12,8 @@ curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh |
 
 Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or see [the app](docs/app.md) for the experimental desktop interface above.
 
+Want to use Autobahn free of AGPLv3? Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
+
 ## The Problem
 
 - Browsing files over SSH or NFS is clunky.
