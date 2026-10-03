@@ -167,3 +167,12 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 - **Supported Platforms:** Linux (`x86_64`, `aarch64`) and macOS (`Apple Silicon`).
 - **Filesystems:** Requires local POSIX filesystems. Network filesystems (NFS, SMB, CIFS) receive best-effort support only.
 - **Editor Saves on macOS:** On macOS, atomic save operations (write-temporary and rename) lack immediate completion events from the kernel, occasionally requiring an extra polling cycle compared to Linux. Details are available in [How Autobahn Works](docs/how-it-works.md).
+
+## License
+
+Autobahn is dual licensed: `AGPL-3.0-or-later OR LicenseRef-Commercial`. You may use it under either, and you choose which.
+
+- **[AGPL-3.0-or-later](LICENSE)** — free for any use, including in a business. Its condition is reciprocity: if you convey a modified version, or let others use one over a network, those users are entitled to its source under the same terms.
+- **[Commercial](COMMERCIAL-LICENSE.md)** — for building on Autobahn without that condition.
+
+Using Autobahn to sync your own files places you under neither obligation; the AGPL's network clause is about offering a modified Autobahn to others, not about the files it carries.
