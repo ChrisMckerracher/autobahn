@@ -100,7 +100,7 @@ pub(crate) fn hint_besides(showing: &str) -> &'static str {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|since| since.subsec_nanos() as usize)
         .unwrap_or(0);
-    *choosing[now % choosing.len()]
+    choosing[now % choosing.len()]
 }
 
 /// The line for a key, with `{name}` replaced by what is given.

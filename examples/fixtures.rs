@@ -136,7 +136,7 @@ fn write(fixture: &Fixture, at: &Path, now: u64) -> Result<Vec<String>> {
         };
         status.group = plan.group.clone();
         status.host = plan.host.clone();
-        status.beta = plan.beta_spec();
+        status.replica = plan.replica_spec();
         status.mode = plan.mode_name().to_owned();
         status.updated_at = now.saturating_sub(3);
         let path = state
@@ -273,8 +273,8 @@ fn calm(_now: u64) -> BTreeMap<&'static str, SessionStatus> {
             SessionStatus {
                 state: "synchronized".into(),
                 cycles,
-                alpha_entries: entries,
-                beta_entries: entries,
+                primary_entries: entries,
+                replica_entries: entries,
                 moved_files: files,
                 moved_bytes: bytes,
                 // The p2p session is the only one with a role and a
@@ -305,14 +305,14 @@ fn trouble(now: u64) -> BTreeMap<&'static str, SessionStatus> {
             conflict_details: vec![
                 ConflictDetail {
                     path: "api/src/config.rs".into(),
-                    alpha: ConflictSide {
+                    primary: ConflictSide {
                         present: true,
                         kind: "file".into(),
                         size: 11_204,
                         mtime_seconds: now.saturating_sub(640) as i64,
                         unsynchronizable: None,
                     },
-                    beta: ConflictSide {
+                    replica: ConflictSide {
                         present: true,
                         kind: "file".into(),
                         size: 10_880,
@@ -322,18 +322,18 @@ fn trouble(now: u64) -> BTreeMap<&'static str, SessionStatus> {
                 },
                 ConflictDetail {
                     path: "web/package.json".into(),
-                    alpha: ConflictSide {
+                    primary: ConflictSide {
                         present: true,
                         kind: "file".into(),
                         size: 2_914,
                         mtime_seconds: now.saturating_sub(120) as i64,
                         unsynchronizable: None,
                     },
-                    beta: ConflictSide::default(),
+                    replica: ConflictSide::default(),
                 },
             ],
-            alpha_entries: 61_902,
-            beta_entries: 61_898,
+            primary_entries: 61_902,
+            replica_entries: 61_898,
             moved_files: 402_440,
             moved_bytes: 94_228_118_004,
             ..Default::default()
@@ -345,18 +345,18 @@ fn trouble(now: u64) -> BTreeMap<&'static str, SessionStatus> {
             state: "blocked".into(),
             cycles: 18_206,
             blocked: vec![
-                "beta api/.venv/bin/python: broken symlink".into(),
-                "alpha web/.next/cache: permission denied".into(),
+                "replica api/.venv/bin/python: broken symlink".into(),
+                "primary web/.next/cache: permission denied".into(),
             ],
             conflict_details: vec![ConflictDetail {
                 path: "api/data".into(),
-                alpha: ConflictSide {
+                primary: ConflictSide {
                     present: true,
                     kind: "directory".into(),
                     mtime_seconds: now.saturating_sub(40) as i64,
                     ..Default::default()
                 },
-                beta: ConflictSide {
+                replica: ConflictSide {
                     present: true,
                     kind: "directory".into(),
                     mtime_seconds: now.saturating_sub(44) as i64,
@@ -368,8 +368,8 @@ fn trouble(now: u64) -> BTreeMap<&'static str, SessionStatus> {
                     ..Default::default()
                 },
             }],
-            alpha_entries: 61_902,
-            beta_entries: 61_899,
+            primary_entries: 61_902,
+            replica_entries: 61_899,
             moved_files: 398_220,
             moved_bytes: 93_886_004_552,
             ..Default::default()
@@ -379,12 +379,12 @@ fn trouble(now: u64) -> BTreeMap<&'static str, SessionStatus> {
         "backup@/Volumes/Backup/Workspace",
         SessionStatus {
             // The disk that was unplugged, which is the ordinary way a
-            // one-way group stops: the beta is simply not there.
+            // one-way group stops: the replica is simply not there.
             state: "halted".into(),
             cycles: 304,
-            error: Some("beta /Volumes/Backup/Workspace is not a directory any more".into()),
+            error: Some("replica /Volumes/Backup/Workspace is not a directory any more".into()),
             alert_after_seconds: Some(900),
-            alpha_entries: 61_880,
+            primary_entries: 61_880,
             moved_files: 221_440,
             moved_bytes: 90_114_002_118,
             ..Default::default()
@@ -399,8 +399,8 @@ fn trouble(now: u64) -> BTreeMap<&'static str, SessionStatus> {
             cycles: 9_121,
             role: "follower".into(),
             term: 9,
-            alpha_entries: 2_046,
-            beta_entries: 2_046,
+            primary_entries: 2_046,
+            replica_entries: 2_046,
             moved_files: 14_910,
             moved_bytes: 408_440_002,
             ..Default::default()
@@ -442,8 +442,8 @@ interval = 5
 # Work, on the box with the cores. Both ends edit it — an agent over
 # there, me over here — so a clash is reported and nothing is touched.
 [groups.work]
-alpha = "~/Workspace"
-betas = [
+primary = "~/Workspace"
+replicas = [
   "dev@build.audi.de:/home/dev/workspace",
   "laptop.bmw.de",
 ]
@@ -453,9 +453,9 @@ ignores = ["target", "node_modules", ".venv", ".next", "*.sqlite"]
 # is made identical: a backup that can push a deletion back is not one.
 # Slower, because nothing is waiting on it.
 [groups.backup]
-mode = "one-way-alpha"
-alpha = "~/Workspace"
-betas = ["/Volumes/Backup/Workspace"]
+mode = "one-way-primary"
+primary = "~/Workspace"
+replicas = ["/Volumes/Backup/Workspace"]
 interval = 300
 
 # Notes, where either machine may be the one that is awake. The lease a
@@ -463,15 +463,15 @@ interval = 300
 # cannot go past half of that.
 [groups.notes]
 mode = "p2p-conflict-dangerously-experimental"
-alpha = "~/Documents/Notes"
-betas = ["laptop.bmw.de"]
+primary = "~/Documents/Notes"
+replicas = ["laptop.bmw.de"]
 interval = 10
 
 # The photo library onto the NAS. Off since the NAS started refusing
 # connections; turn it back on when that is sorted.
 [groups.photos]
-alpha = "~/Pictures/Lightroom"
-betas = ["nas.porsche.de:/volume1/photos"]
+primary = "~/Pictures/Lightroom"
+replicas = ["nas.porsche.de:/volume1/photos"]
 disabled = true
 "#;
 
@@ -484,7 +484,7 @@ const LOG_QUIET: &str = "\
 const LOG_CALM: &str = "\
 2026-10-02 09:14:02 info  autobahn 0.4.0 starting
 2026-10-02 09:14:02 info  read 4 groups (1 disabled), 4 sessions
-2026-10-02 09:14:03 info  work@build.audi.de scanning alpha
+2026-10-02 09:14:03 info  work@build.audi.de scanning primary
 2026-10-02 09:14:03 info  work@build.audi.de 61880 entries, 0 changed
 2026-10-02 09:14:04 info  work@laptop.bmw.de 61880 entries, 0 changed
 2026-10-02 09:14:04 info  notes@laptop.bmw.de leader for term 7
@@ -498,14 +498,14 @@ const LOG_CALM: &str = "\
 const LOG_TROUBLE: &str = "\
 2026-10-02 09:14:02 info  autobahn 0.4.0 starting
 2026-10-02 09:14:02 info  read 4 groups (1 disabled), 4 sessions
-2026-10-02 09:14:03 info  work@build.audi.de scanning alpha
+2026-10-02 09:14:03 info  work@build.audi.de scanning primary
 2026-10-02 09:14:04 warn  work@build.audi.de conflict at api/src/config.rs
 2026-10-02 09:14:04 warn  work@build.audi.de conflict at web/package.json
-2026-10-02 09:14:05 error work@laptop.bmw.de beta api/.venv/bin/python: broken symlink
-2026-10-02 09:14:05 error work@laptop.bmw.de alpha web/.next/cache: permission denied
+2026-10-02 09:14:05 error work@laptop.bmw.de replica api/.venv/bin/python: broken symlink
+2026-10-02 09:14:05 error work@laptop.bmw.de primary web/.next/cache: permission denied
 2026-10-02 09:14:05 warn  work@laptop.bmw.de 2 paths could not be carried
 2026-10-02 09:14:06 info  notes@laptop.bmw.de lease lost, follower for term 9
-2026-10-02 09:18:02 error backup@/Volumes/Backup/Workspace beta is not a directory any more
+2026-10-02 09:18:02 error backup@/Volumes/Backup/Workspace replica is not a directory any more
 2026-10-02 09:18:02 error backup@/Volumes/Backup/Workspace halted, will not retry
 2026-10-02 09:23:02 warn  heartbeat: 1 conflicts, 1 blocked, 1 halted
 ";
