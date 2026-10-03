@@ -1,10 +1,16 @@
-# Known advisories against the dependencies, from the RustSec database:
-# `cargo deny check advisories`, configured by deny.toml, which also lists
-# the accepted ones. Weekly, on any change to Cargo.lock or deny.toml, and
-# by hand:
+# What the dependencies carry, from the RustSec database and their own
+# manifests: `cargo deny check advisories licenses`, both configured by
+# deny.toml. Weekly, on any change to Cargo.lock or deny.toml, and by
+# hand:
 #   gh workflow run audit.yml
 # Not part of the per-push CI, so an advisory published today doesn't
 # block unrelated work; the weekly run is what reports it.
+#
+# The two fail for different reasons. An advisory appears without
+# anything here changing, which is why this is not a push gate. A
+# licence changes only when a dependency does, so that half is a gate
+# on Cargo.lock: what ships under Autobahn's own licence should never
+# move without somebody saying so.
 name: Audit
 
 on:
@@ -50,3 +56,7 @@ jobs:
           install "$RUNNER_TEMP/$name/cargo-deny" ~/.cargo/bin/cargo-deny
       - name: Advisories
         run: cargo deny --locked check advisories
+      # Separate step, so the log says which of the two failed without
+      # anybody opening it.
+      - name: Licences
+        run: cargo deny --locked check licenses
