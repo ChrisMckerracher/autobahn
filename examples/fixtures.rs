@@ -42,6 +42,7 @@ struct Fixture {
 fn main() -> Result<()> {
     let mut out: Option<String> = None;
     let mut keys = false;
+    let mut serve = false;
     for argument in std::env::args().skip(1) {
         match argument.as_str() {
             "--list" => {
@@ -56,6 +57,11 @@ fn main() -> Result<()> {
             // generation because a `file:` entry is only resolvable once
             // the fixture's own ignore directory is on disk.
             "--keys" => keys = true,
+            // Stand in for a supervisor against one fixture, until
+            // killed. The footer reads the control socket, not a file,
+            // so this is the only way to photograph the app with one
+            // running.
+            "--serve" => serve = true,
             other => out = Some(other.to_owned()),
         }
     }
@@ -68,6 +74,9 @@ fn main() -> Result<()> {
             .context("unable to say where this is running")?
             .join(out),
     };
+    if serve {
+        return supervise(&out);
+    }
     // Built fresh every time: a fixture half from this build and half
     // from the last one is a bug that looks like a drawing bug.
     if out.exists() {
@@ -94,10 +103,16 @@ fn main() -> Result<()> {
 
 /// Builds one fixture on disk.
 fn write(fixture: &Fixture, at: &Path, now: u64) -> Result<Vec<String>> {
-    let state = at.join("state");
+    // A whole home, not a directory of parts. Every path the app draws
+    // goes through `tilde`, which shortens against HOME — so a fixture
+    // that keeps its command in `.local/bin` and its state in
+    // `.autobahn` is photographed saying `~/.local/bin/autobahn`, the
+    // way an installed one would, instead of naming a checkout.
+    let home = at.join("home");
+    let state = home.join(".autobahn");
     std::fs::create_dir_all(state.join("status")).context("unable to make the state root")?;
     std::fs::create_dir_all(state.join("ignores")).context("unable to make the ignores")?;
-    let config = at.join("autobahn.toml");
+    let config = state.join("config.toml");
     std::fs::write(&config, fixture.config).context("unable to write the configuration")?;
     // A `file:` entry is read from the state root's `ignores`, not from
     // beside the configuration, and the configuration is refused without
@@ -109,9 +124,24 @@ fn write(fixture: &Fixture, at: &Path, now: u64) -> Result<Vec<String>> {
         autobahn::config::ESSENTIAL_IGNORES,
     )
     .context("unable to write the essential ignores")?;
-    // `AUTOBAHN_HOME` is the state root everything else derives from —
-    // the ignores above, and the locks and caches nothing here touches.
-    // `--state-root` tells the app; this tells the library underneath it.
+    // `init` writes this too, and the configuration names it. Without
+    // it the loader is right to complain, and the complaint is the
+    // first thing the configuration pane draws.
+    let hook = state.join("on-alert.sh");
+    std::fs::write(&hook, autobahn::config::ON_ALERT_EXAMPLE)
+        .context("unable to write the example hook")?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&hook, std::fs::Permissions::from_mode(0o755))
+            .context("unable to make the hook runnable")?;
+    }
+    // Both roots, before a plan is made from the configuration. A
+    // session's identifier is derived from its roots, and a root
+    // written `~/Workspace` is expanded against HOME — so a status
+    // filed under this machine's home is a status the app, running
+    // under the fixture's, will never find.
+    std::env::set_var("HOME", &home);
     std::env::set_var("AUTOBAHN_HOME", &state);
     std::fs::write(state.join("service.log"), fixture.log).context("unable to write the log")?;
 
@@ -156,7 +186,7 @@ fn write(fixture: &Fixture, at: &Path, now: u64) -> Result<Vec<String>> {
     // A shim rather than the real command: a fixture that could run
     // `autobahn clean` against a made-up state root is a fixture that
     // can do damage. This one says what it was asked and stops.
-    let shim = at.join("bin").join("autobahn");
+    let shim = home.join(".local").join("bin").join("autobahn");
     if fixture.installed {
         std::fs::create_dir_all(shim.parent().expect("bin has a parent"))
             .context("unable to make the shim directory")?;
@@ -172,16 +202,13 @@ fn write(fixture: &Fixture, at: &Path, now: u64) -> Result<Vec<String>> {
     // What `views.sh` exports. An uninstalled fixture points at a path
     // that is not there, which is the answer "no command" rather than
     // "carry on looking in the usual places".
-    let told = match fixture.installed {
-        true => shim,
-        false => at.join("bin").join("autobahn"),
-    };
     std::fs::write(
         at.join("env"),
         format!(
-            "AUTOBAHN_HOME={}\nAUTOBAHN_BIN={}\nAUTOBAHN_SERVICE_STATE={}\n",
+            "HOME={}\nAUTOBAHN_HOME={}\nAUTOBAHN_BIN={}\nAUTOBAHN_SERVICE_STATE={}\n",
+            home.display(),
             state.display(),
-            told.display(),
+            shim.display(),
             fixture.service,
         ),
     )
@@ -195,10 +222,31 @@ const SHIM: &str = r#"#!/bin/sh
 # the app believes the command is installed, and answers plausibly when a
 # button shells out to it.
 case "$1" in
-  --version) echo "autobahn 0.4.0 (fixture)" ;;
+  --version) echo "autobahn 1.0.0+e1 (fixture)" ;;
   status)    echo "3 sessions, 1 needs you" ;;
   clean)     echo "nothing to clean" ;;
   resolve)   echo "resolved (fixture: nothing moved)" ;;
+  # `diff <group> <path>`, as the window runs it. The real one shells
+  # out to `diff -u` with the two sides as labels; this prints what
+  # that would, so the pane is photographed with a diff in it.
+  diff)
+    cat <<DIFF
+--- primary/$3
++++ laptop.bmw.de/$3
+@@ -14,9 +14,9 @@
+     /// How long to wait before giving up on a host.
+-    pub timeout: Duration,
++    pub timeout: Option<Duration>,
+     /// Where the agent bundle is kept.
+     pub bundle: PathBuf,
+-    /// Whether to follow symbolic links out of the root.
+-    pub follow_links: bool,
++    /// Whether to follow symbolic links out of the root. Off by
++    /// default: a link out of the root is not part of the root.
++    pub follow_links: Option<bool>,
+ }
+DIFF
+    ;;
   *)         echo "fixture autobahn: $*" ;;
 esac
 "#;
@@ -476,13 +524,13 @@ disabled = true
 "#;
 
 const LOG_QUIET: &str = "\
-2026-10-02 09:14:02 info  autobahn 0.4.0 starting
+2026-10-02 09:14:02 info  autobahn 1.0.0 starting
 2026-10-02 09:14:02 info  read 4 groups (1 disabled), 4 sessions
 2026-10-02 09:14:02 info  no session has run yet
 ";
 
 const LOG_CALM: &str = "\
-2026-10-02 09:14:02 info  autobahn 0.4.0 starting
+2026-10-02 09:14:02 info  autobahn 1.0.0 starting
 2026-10-02 09:14:02 info  read 4 groups (1 disabled), 4 sessions
 2026-10-02 09:14:03 info  work@build.audi.de scanning primary
 2026-10-02 09:14:03 info  work@build.audi.de 61880 entries, 0 changed
@@ -496,7 +544,7 @@ const LOG_CALM: &str = "\
 ";
 
 const LOG_TROUBLE: &str = "\
-2026-10-02 09:14:02 info  autobahn 0.4.0 starting
+2026-10-02 09:14:02 info  autobahn 1.0.0 starting
 2026-10-02 09:14:02 info  read 4 groups (1 disabled), 4 sessions
 2026-10-02 09:14:03 info  work@build.audi.de scanning primary
 2026-10-02 09:14:04 warn  work@build.audi.de conflict at api/src/config.rs
@@ -509,3 +557,97 @@ const LOG_TROUBLE: &str = "\
 2026-10-02 09:18:02 error backup@/Volumes/Backup/Workspace halted, will not retry
 2026-10-02 09:23:02 warn  heartbeat: 1 conflicts, 1 blocked, 1 halted
 ";
+
+/// Answers like a supervisor, against one fixture, until killed.
+///
+/// The app decides whether a supervisor is running by connecting to a
+/// socket in the state root and asking — not by reading a file — so a
+/// fixture cannot say yes on its own. This says it: enough of the
+/// control protocol to answer the two questions the window asks, and
+/// nothing else. It runs no sessions and touches no files.
+///
+/// Both answers matter. `Progress` is what turns the footer green, and
+/// `Sessions` is what `shown_plans` filters the configured plans
+/// against once a supervisor answers — so a server that answered only
+/// the first would light the footer and empty every pane.
+fn supervise(at: &Path) -> Result<()> {
+    use autobahn::supervisor::control::{
+        socket_path, ControlRequest, ControlResponse, Inventory, SessionKey, SessionSummary,
+    };
+
+    let home = at.join("home");
+    let state = home.join(".autobahn");
+    // The same roots the app will use. A `file:` entry resolves against
+    // AUTOBAHN_HOME, so without this the configuration is read against
+    // the real ~/.autobahn and refused for an ignore file not there.
+    std::env::set_var("HOME", &home);
+    std::env::set_var("AUTOBAHN_HOME", &state);
+    let config = state.join("config.toml");
+    let text = std::fs::read_to_string(&config).context("the fixture has no configuration")?;
+    let loaded = Config::load(&config).context("the fixture's configuration does not load")?;
+    let plans = loaded.plans().context("the configuration makes no plans")?;
+    let sessions: Vec<SessionSummary> = plans
+        .iter()
+        .map(|plan| SessionSummary {
+            identifier: SessionKey::of(plan),
+            display: format!("{}@{}", plan.group, plan.host),
+            mode: plan.mode_name().to_owned(),
+            state: "synchronized".to_owned(),
+        })
+        .collect();
+
+    let path = socket_path(&state);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).context("unable to make the socket's directory")?;
+    }
+    // A socket file left by a killed run is not a running server.
+    let _ = std::fs::remove_file(&path);
+    let listener =
+        std::os::unix::net::UnixListener::bind(&path).context("unable to bind the socket")?;
+    println!("{}", path.display());
+
+    for stream in listener.incoming() {
+        let Ok(stream) = stream else { continue };
+        let Ok(mut reader) = stream.try_clone() else {
+            continue;
+        };
+        let mut writer = stream;
+        let Ok(request) =
+            autobahn::transport::receive_control_frame::<_, ControlRequest>(&mut reader)
+        else {
+            continue;
+        };
+        // Everything arrives wrapped in the sender's build. Answering a
+        // different one with `Mismatch` is what the real supervisor
+        // does, and the window draws it as another build running.
+        let ControlRequest::Versioned { version, request } = request else {
+            continue;
+        };
+        if version != autobahn::protocol::version() {
+            let _ = autobahn::transport::send_control_frame(
+                &mut writer,
+                &ControlResponse::Mismatch {
+                    supervisor: autobahn::protocol::version(),
+                },
+            );
+            continue;
+        }
+        let answer = match autobahn::wire::decode::<ControlRequest>(&request) {
+            // Nothing is cycling, so every session is simply waiting:
+            // the footer goes green and no pane grows a progress bar.
+            Ok(ControlRequest::Progress) => ControlResponse::Progress(Vec::new()),
+            Ok(ControlRequest::Sessions) => ControlResponse::Sessions(Inventory {
+                sessions: sessions.clone(),
+                configuration: Some(text.clone()),
+                notice: None,
+                logging_failed: false,
+            }),
+            // A button was pressed. Say it applied to nothing rather
+            // than pretending to have done work.
+            Ok(_) => ControlResponse::Applied { sessions: 0 },
+            Err(_) => ControlResponse::Error("the fixture did not understand that".to_owned()),
+        };
+        let _ = autobahn::transport::send_control_frame(&mut writer, &answer);
+    }
+    Ok(())
+}

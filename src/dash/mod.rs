@@ -214,16 +214,25 @@ fn open_window(
     };
     let window = cx
         .open_window(options, |window, cx| {
+            // `config:defaults` opens the configuration on one of its
+            // sections, and `conflicts:diff` opens the first conflict
+            // with its difference already read — the only way a picture
+            // of either is taken without a hand on the mouse.
+            //
+            // Split before the window is built, because `Dash::new`
+            // reads the fleet once, and `conflicts:diff` has to be
+            // true by then or that first reading passes it by.
+            let asked = pane.as_deref().map(|pane| match pane.split_once(':') {
+                Some((pane, section)) => (pane.to_owned(), Some(section.to_owned())),
+                None => (pane.to_owned(), None),
+            });
+            let first_diff = asked
+                .as_ref()
+                .is_some_and(|(_, section)| section.as_deref() == Some("diff"));
             let dash = cx.new(|cx| {
-                let mut dash = Dash::new(config, state_root, speaks, cx);
-                if let Some(pane) = pane.as_deref() {
-                    // `config:defaults` opens the configuration on one of
-                    // its sections, which is the only way a picture of a
-                    // section can be taken without a hand on the mouse.
-                    let (pane, section) = match pane.split_once(':') {
-                        Some((pane, section)) => (pane, Some(section)),
-                        None => (pane, None),
-                    };
+                let mut dash = Dash::new(config, state_root, speaks, first_diff, cx);
+                if let Some((pane, section)) = asked.as_ref() {
+                    let (pane, section) = (pane.as_str(), section.as_deref());
                     dash.pane = match pane {
                         "welcome" => Pane::Welcome,
                         "conflicts" => Pane::Conflicts,
@@ -233,7 +242,7 @@ fn open_window(
                         "hosts" => Pane::Hosts,
                         _ => Pane::Groups,
                     };
-                    if let Some(section) = section {
+                    if let Some(section) = section.filter(|_| !first_diff) {
                         dash.section = match section {
                             "defaults" => Section::Defaults,
                             "experimental" => Section::Advanced,
@@ -421,6 +430,10 @@ pub struct Dash {
     presence: crate::preferences::Presence,
     /// Whether this machine wants the app to raise notifications.
     notify: bool,
+    /// Asked for with `--pane conflicts:diff`: select the first
+    /// conflict and read its difference, once there is a report to
+    /// take one from.
+    open_first_diff: bool,
     /// Whether `on_alert` is set, which is what makes the app's own
     /// notifications a second voice saying the same thing. Read on the
     /// poll and not at startup, so a hook added while the app is open
@@ -620,6 +633,7 @@ impl Dash {
         config: Option<PathBuf>,
         state_root: PathBuf,
         speaks: bool,
+        open_first_diff: bool,
         cx: &mut Context<Self>,
     ) -> Self {
         let names = cx.text_system().all_font_names();
@@ -689,6 +703,7 @@ impl Dash {
             form: ScrollHandle::new(),
             presence,
             notify: settings.notify,
+            open_first_diff,
             hook_set: false,
             notifier,
             naming: None,
@@ -826,6 +841,14 @@ impl Dash {
         // The dock icon carries what needs a person, so a glance at it
         // answers the question the window was opened to answer.
         crate::dock::badge(self.waiting());
+        // The first report is the first chance to pick a conflict.
+        if self.open_first_diff {
+            if let Some(first) = self.waiting_list().into_iter().find(|item| !item.blocked) {
+                self.open_conflict(first.clone());
+                self.read_diff(&first);
+                self.open_first_diff = false;
+            }
+        }
         // And the notification, when no menu bar item is raising it.
         // The same report, the same rules; the notifier was told at
         // startup whether it is the one speaking.
@@ -1025,7 +1048,10 @@ impl Dash {
                             .text_size(px(10.5))
                             .text_color(rgb(FAINT))
                             .truncate()
-                            .child(self.state_root.display().to_string()),
+                            // Shortened, like every other path the app
+                            // draws: a home directory spelled out takes
+                            // the width the interesting half needs.
+                            .child(tilde(&self.state_root.display().to_string())),
                     ),
             )
             .into_any_element()

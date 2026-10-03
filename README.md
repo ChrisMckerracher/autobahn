@@ -4,11 +4,13 @@
 
 Keep your files in sync as fast as you or an agent edits them across a fleet of machines.
 
+<img src="assets/screenshots/groups.png" alt="Autobahn Dash showing three sync groups across four sessions, all synchronized" width="900">
+
 ```sh
 curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh | sh
 ```
 
-Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or see [Autobahn Dash](docs/app.md) for the experimental desktop app.
+Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or see [the app](docs/app.md) for the experimental desktop interface above.
 
 ## The Problem
 

@@ -31,6 +31,8 @@ It is a way to launch `autobahn tray`, not a second implementation — the same 
 
 ## First run
 
+![The welcome screen, offering to install the autobahn command](../assets/screenshots/welcome.png)
+
 The app needs the `autobahn` command. It looks beside itself first, then in `~/.local/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, and your PATH.
 
 If it finds none, a welcome screen offers to run the installer for you or to copy the shell command and run it yourself. Installer output goes to `install.log` under the state root, and the Log pane shows it as it happens.
@@ -40,6 +42,8 @@ Then configure a group before starting the service — see [Installation](../INS
 Keep the command matched to the running supervisor. A version mismatch is reported in the status area rather than left to surprise you.
 
 ## The window
+
+![The Groups pane: three groups across four sessions, all synchronized](../assets/screenshots/groups.png)
 
 | Pane | What it does |
 |---|---|
@@ -51,6 +55,10 @@ Keep the command matched to the running supervisor. A version mismatch is report
 | **Config** | Top-level settings, defaults, and groups, which can be added, renamed, or removed. |
 
 Conflict actions run the same operations as the command line — see [Conflicts](./conflicts.md). The app never merges file contents. A conflict can be about a file's executable bit, a symbolic link, or a directory, so there is not always a text difference to show.
+
+**Diff** puts the two sides underneath, labelled by side rather than by the files actually compared:
+
+![The Conflicts pane with a unified diff open between the primary and a replica](../assets/screenshots/conflicts.png)
 
 ## The menu bar
 
@@ -71,6 +79,8 @@ Choices are queued rather than run where you click. They go to a worker thread i
 
 ## Choosing what shows
 
+![The Service pane: the supervisor, login service, notifications, and what the app shows](../assets/screenshots/service.png)
+
 In Dash's Service pane, pick a window, a menu bar item, or both. The default is both.
 
 The choice is this machine's, and so is the notification switch above it. Both are saved in `dash.toml` under the state root, which is not part of the fleet configuration:
@@ -81,6 +91,8 @@ notify = true       # whether the app raises desktop notifications itself
 ```
 
 ## Editing configuration
+
+![The Configuration pane, editing the top-level settings](../assets/screenshots/configuration.png)
 
 Edits stay in the form until you press **Save**. The editor checks them through Autobahn's own configuration loader and marks errors on the fields they belong to; an invalid configuration is never written. **Reload** reads the file again and throws away pending changes. Optional switches keep the difference between inheriting a value and setting it deliberately.
 

@@ -42,7 +42,7 @@ Staged content this machine holds *as an agent* for sessions driven from other m
 
 ## Agents
 
-Remote hosts need nothing pre-installed. Connections run the agent this controller would install for the host's platform, by a path naming its version and a digest of its bytes (`~/.autobahn/bin/autobahn-0.4.0+e13-613662c7aad6`) — the platform is read on the host, in the same command, so it costs no extra round trip. When that path is missing — a fresh host, your first connect after upgrading, or a rebuild at the same version — the controller streams the matching agent into place and retries. Upgrades therefore roll out host by host, automatically, on first contact, and the agent running is always exactly the build the controller holds.
+Remote hosts need nothing pre-installed. Connections run the agent this controller would install for the host's platform, by a path naming its version and a digest of its bytes (`~/.autobahn/bin/autobahn-1.0.0+e1-613662c7aad6`) — the platform is read on the host, in the same command, so it costs no extra round trip. When that path is missing — a fresh host, your first connect after upgrading, or a rebuild at the same version — the controller streams the matching agent into place and retries. Upgrades therefore roll out host by host, automatically, on first contact, and the agent running is always exactly the build the controller holds.
 
 The binary to stream is looked for in `AUTOBAHN_AGENTS_DIR`, then `~/.autobahn/agents`, then an `agents` directory beside the running executable — and, when the remote platform matches the local one, the running executable itself. A fleet on one platform needs no bundle at all.
 
@@ -59,7 +59,7 @@ One thing to know: "in use" means the version of the binary *running `clean`*, w
 
 ## Compatibility epochs
 
-The agent's version must match the controller's exactly. A change that breaks the wire protocol, or one that makes the two sides disagree about a tree — a scan rule, an ignore rule — bumps a compatibility epoch that rides inside the version string (`0.4.0+e8`). A mismatched agent fails the handshake, and the installer places the new agent at a path the old one never occupied, so both sides are enforced with no protocol change.
+The agent's version must match the controller's exactly. A change that breaks the wire protocol, or one that makes the two sides disagree about a tree — a scan rule, an ignore rule — bumps a compatibility epoch that rides inside the version string (`1.0.0+e1`). A mismatched agent fails the handshake, and the installer places the new agent at a path the old one never occupied, so both sides are enforced with no protocol change.
 
 A *stale bundle* — an `agents/` binary left over from an older build — is refused before upload when the bundle has a `MANIFEST`, which every released bundle does: the message names the bundle, the build it is for, and `autobahn update` as the fix. A bundle built by hand has no manifest; its stale binary is uploaded, the handshake refuses it, and the message names the bundle and its age.
 

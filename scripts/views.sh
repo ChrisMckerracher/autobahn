@@ -24,8 +24,36 @@ panes="groups hosts conflicts log service config"
 
 build() {
   $cargo build --quiet --features dash --bin autobahn-dash
+  # Built, not `cargo run`: `launch` gives the app a fixture's own HOME,
+  # and cargo under that HOME has no ~/.cargo to work from.
+  $cargo build --quiet --example fixtures
   $cargo run --quiet --example fixtures -- "$views" >/dev/null
 }
+
+# Whether a supervisor is running is read from a socket, not a file, so
+# a fixture needs something answering on it. This starts one and the
+# trap takes it down, however the script ends.
+served=
+serve() {
+  at=$1
+  [ -f "$at/home/.local/bin/autobahn" ] || return 0   # nothing installed to supervise
+  # A stale socket from a killed run answers nothing; the server
+  # removes it before binding, and this keeps the wait below honest.
+  rm -f "$at/home/.autobahn/control.sock"
+  "$here/target/debug/examples/fixtures" "$at" --serve >/dev/null 2>&1 &
+  served=$!
+  # The socket has to exist before the app looks for it.
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    [ -S "$at/home/.autobahn/control.sock" ] && return 0
+    sleep 0.2
+  done
+  echo "the fixture supervisor did not start; the footer will say none is running" >&2
+}
+hang_up() {
+  [ -n "$served" ] && kill "$served" 2>/dev/null
+  served=
+}
+trap hang_up EXIT INT TERM
 
 # Runs the app against one fixture. Everything after the fixture name is
 # handed to the binary, so `shoot` and `show` share one launcher.
@@ -38,10 +66,12 @@ launch() {
   # library reads them from the environment wherever it asks.
   # shellcheck disable=SC2046
   export $(grep -v '^#' "$at/env" | xargs)
+  serve "$at"
   "$here/target/debug/autobahn-dash" \
-    --config "$at/autobahn.toml" \
-    --state-root "$at/state" \
+    --config "$at/home/.autobahn/config.toml" \
+    --state-root "$at/home/.autobahn" \
     "$@"
+  hang_up
 }
 
 case "${1:-show}" in
@@ -64,7 +94,7 @@ sheet)
   build
   rm -rf "$shots"
   mkdir -p "$shots"
-  for fixture in $($cargo run --quiet --example fixtures -- --list | awk '{print $1}'); do
+  for fixture in $("$here/target/debug/examples/fixtures" --list | awk '{print $1}'); do
     # A fixture with no command installed draws the splash whatever pane
     # is asked for, so asking for seven is six identical pictures.
     case "$fixture" in

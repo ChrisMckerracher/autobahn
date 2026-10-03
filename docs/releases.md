@@ -63,7 +63,7 @@ To manually verify downloaded release artifacts:
 
 ```sh
 # Download release manifests
-gh release download v0.4.0 --repo fny/autobahn --pattern 'SHA256SUMS*'
+gh release download v1.0.0 --repo fny/autobahn --pattern 'SHA256SUMS*'
 
 # Verify signature
 minisign -V -p release.pub -m SHA256SUMS

@@ -23,7 +23,11 @@ pub mod mux;
 
 /// Sends one frame over an arbitrary writer (used by the control socket,
 /// which shares the agent protocol's framing).
-pub(crate) fn send_control_frame<W: Write, T: Serialize>(
+///
+/// Public so an example can stand in for a supervisor: the fixtures
+/// behind `scripts/views.sh` answer a probe, which is the only way to
+/// photograph the app with the footer saying one is running.
+pub fn send_control_frame<W: Write, T: Serialize>(
     writer: &mut W,
     message: &T,
 ) -> anyhow::Result<()> {
@@ -32,7 +36,7 @@ pub(crate) fn send_control_frame<W: Write, T: Serialize>(
 
 /// Receives one frame from an arbitrary reader (the control-socket
 /// counterpart of [`send_control_frame`]).
-pub(crate) fn receive_control_frame<R: Read, T: serde::de::DeserializeOwned>(
+pub fn receive_control_frame<R: Read, T: serde::de::DeserializeOwned>(
     reader: &mut R,
 ) -> anyhow::Result<T> {
     receive_frame(reader)
