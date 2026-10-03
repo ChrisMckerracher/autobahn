@@ -1585,16 +1585,19 @@ mod tests {
         // Variant order is the wire: a later build adding a request must
         // add it after these, or an older supervisor misreads the envelope
         // as something else and a newer one cannot say "restart".
+        //
+        // The tag is a varint, so each of these is one byte while the
+        // index stays under 128. Reordering shows up here first.
         let envelope = crate::wire::encode(&versioned("x", &ControlRequest::Progress)).unwrap();
-        assert_eq!(envelope[..4], 7u32.to_le_bytes());
+        assert_eq!(envelope[0], 7);
         let mismatch = crate::wire::encode(&ControlResponse::Mismatch {
             supervisor: "x".into(),
         })
         .unwrap();
-        assert_eq!(mismatch[..4], 3u32.to_le_bytes());
+        assert_eq!(mismatch[0], 3);
         // Later requests come after them.
         let sessions = crate::wire::encode(&ControlRequest::Sessions).unwrap();
-        assert_eq!(sessions[..4], 8u32.to_le_bytes());
+        assert_eq!(sessions[0], 8);
         let inventory = crate::wire::encode(&ControlResponse::Sessions(Inventory {
             sessions: Vec::new(),
             configuration: None,
@@ -1602,7 +1605,7 @@ mod tests {
             logging_failed: false,
         }))
         .unwrap();
-        assert_eq!(inventory[..4], 4u32.to_le_bytes());
+        assert_eq!(inventory[0], 4);
     }
 
     #[test]

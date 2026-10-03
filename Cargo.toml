@@ -7,7 +7,7 @@ license = "AGPL-3.0-or-later OR LicenseRef-Commercial"
 
 [dependencies]
 anyhow = "1"
-bincode = { version = "2", default-features = false, features = ["std", "serde"] }
+postcard = { version = "1", features = ["use-std"] }
 blake3 = "1"
 caseless = "0.2"
 clap = { version = "4", features = ["derive"] }

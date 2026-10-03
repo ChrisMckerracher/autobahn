@@ -83,7 +83,7 @@ const VERSIONED_CHECKPOINT_MAGIC: [u8; 8] = *b"ABAHNAN2";
 /// every upgraded session misreads its journal — refused at best, a wrong
 /// ancestor at worst. `the_encodings_this_format_promises_are_unchanged`
 /// holds the bytes still, so such a change fails until it does.
-const CHECKPOINT_VERSION: u16 = 3;
+const CHECKPOINT_VERSION: u16 = 4;
 
 /// The first format whose journal records carry a checksummed header.
 ///
@@ -98,12 +98,13 @@ const CHECKSUMMED_JOURNAL: u16 = 3;
 
 /// The oldest format this build reads.
 ///
-/// Formats 0 (a bare hierarchy, before journalling), 1 (a generation and
-/// digest, before versions were stated) and 2 (journal records without a
-/// checksummed header) all still read. Raising this
-/// drops support for what it passes, and the message that refuses them
-/// names the command that recovers.
-const OLDEST_READABLE_CHECKPOINT: u16 = 0;
+/// Format 4 is the first written with postcard, and the formats before
+/// it are fixed-width bytes this build would misread rather than fail
+/// on — so none of them is read at all. They were never released: the
+/// encoding changed before the first tag, so the only checkpoints in
+/// that shape were written by development builds, and the message that
+/// refuses one names the command that recovers.
+const OLDEST_READABLE_CHECKPOINT: u16 = 4;
 
 /// The smallest journal worth compacting. Below this the full write costs
 /// more than the reading it would save.
@@ -1399,27 +1400,6 @@ mod tests {
         );
     }
 
-    /// A checkpoint written before journalling existed must still load.
-    #[test]
-    fn a_legacy_checkpoint_is_read_as_generation_zero() {
-        let keep = tempdir().expect("temporary directory");
-        let path = keep.path().join("ancestor");
-        let legacy = Some(directory(vec![file("a", 1)]));
-        fs::write(&path, crate::wire::encode(&legacy).expect("encodes")).expect("writes");
-
-        let (mut store, ancestor, _) = AncestorStore::open(&path).expect("opens");
-        assert!(same(&ancestor, &legacy));
-        assert_eq!(store.generation, 0);
-
-        // And it must accept records on top of itself.
-        let next = Some(directory(vec![file("a", 1), file("b", 2)]));
-        store
-            .record(&[change("b", Some(file("b", 2)))], next.as_ref())
-            .expect("records");
-        let (_, reloaded, _) = AncestorStore::open(&path).expect("reopens");
-        assert!(same(&reloaded, &next));
-    }
-
     /// A crash part-way through an append leaves a record that was never
     /// acknowledged. It must be discarded, not replayed and not fatal —
     /// wherever the cut lands in it, header included.
@@ -1744,10 +1724,10 @@ mod tests {
         let keep = tempdir().expect("temporary directory");
         let path = keep.path().join("ancestor");
 
-        // A legacy checkpoint (bare hierarchy, read as generation zero) with
-        // a delta journalled on top: the exact shape codex flagged.
+        // A checkpoint with a delta journalled on top: the exact shape
+        // codex flagged.
         let base = Some(directory(vec![file("a", 1), file("b", 2)]));
-        fs::write(&path, crate::wire::encode(&base).expect("encodes")).expect("writes");
+        checkpoint_file(&path, 0, &base);
         let (mut store, loaded, _) = AncestorStore::open(&path).expect("opens");
         assert!(same(&loaded, &base));
         let full = Some(directory(vec![file("a", 1), file("b", 2), file("c", 3)]));
@@ -1770,7 +1750,7 @@ mod tests {
         ];
         for (index, remove_first) in residues.iter().enumerate() {
             // Rebuild the pre-reset state each round.
-            fs::write(&path, crate::wire::encode(&base).expect("encodes")).expect("writes");
+            checkpoint_file(&path, 0, &base);
             let _ = fs::remove_file(journal_path(&path));
             let (mut store, _, _) = match AncestorStore::open(&path) {
                 Ok(opened) => opened,
@@ -2160,70 +2140,6 @@ mod tests {
         assert!(readable(&path).is_err());
     }
 
-    /// A checkpoint written by an older build is read, then rewritten in
-    /// the current format. The conversion happens once, on first open.
-    #[test]
-    fn an_older_checkpoint_is_read_and_then_rewritten_in_the_current_format() {
-        let keep = tempdir().expect("temporary directory");
-        let path = keep.path().join("ancestor");
-        let state = Some(directory(vec![file("a", 1), file("b", 2)]));
-
-        // Format 0: the bare hierarchy, as builds before journalling wrote.
-        let bare = crate::wire::encode(&state).expect("encodes");
-        fs::write(&path, &bare).expect("writes");
-        assert_eq!(checkpoint_version(&bare), 0);
-
-        let (store, loaded, _) = match AncestorStore::open(&path) {
-            Ok(opened) => opened,
-            Err(error) => panic!("an old format must still open: {error:#}"),
-        };
-        assert!(
-            same(&loaded, &state),
-            "the hierarchy survives the conversion"
-        );
-        assert_eq!(store.generation, 0);
-        drop(store);
-
-        // And the file on disk is now the current format.
-        let rewritten = fs::read(&path).expect("reads");
-        assert_eq!(checkpoint_version(&rewritten), CHECKPOINT_VERSION);
-
-        // Which the next open reads without converting again.
-        let (_, reloaded, _) = AncestorStore::open(&path).expect("reopens");
-        assert!(same(&reloaded, &state));
-    }
-
-    /// Format 1 — a marker, a generation and a digest, with no stated
-    /// version — is read and converted the same way.
-    #[test]
-    fn the_unversioned_format_is_read_and_converted() {
-        let keep = tempdir().expect("temporary directory");
-        let path = keep.path().join("ancestor");
-        let state = Some(directory(vec![file("a", 1)]));
-
-        let payload = crate::wire::encode(&state).expect("encodes");
-        let generation = 7u64;
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(&CHECKPOINT_MAGIC);
-        bytes.extend_from_slice(&generation.to_le_bytes());
-        bytes.extend_from_slice(&digest(generation, &payload));
-        bytes.extend_from_slice(&payload);
-        fs::write(&path, &bytes).expect("writes");
-        assert_eq!(checkpoint_version(&bytes), 1);
-
-        let (store, loaded, _) = match AncestorStore::open(&path) {
-            Ok(opened) => opened,
-            Err(error) => panic!("format 1 must open: {error:#}"),
-        };
-        assert!(same(&loaded, &state));
-        assert_eq!(store.generation, generation, "the generation carries over");
-        drop(store);
-        assert_eq!(
-            checkpoint_version(&fs::read(&path).expect("reads")),
-            CHECKPOINT_VERSION
-        );
-    }
-
     /// Finding I2-B: an intent orders nothing unless it is on stable
     /// storage before the transitions it announces. A durable intent —
     /// requested by any session with a remote endpoint — syncs whatever
@@ -2611,15 +2527,15 @@ mod tests {
         record
     }
 
-    /// A format-2 checkpoint, as the build before checksummed record
-    /// headers wrote it.
-    fn format_two_checkpoint(path: &Path, generation: u64, ancestor: &Option<Node>) {
+    /// A checkpoint in the current format, written by hand so a test can
+    /// put a journal in front of one without going through the store.
+    fn checkpoint_file(path: &Path, generation: u64, ancestor: &Option<Node>) {
         let payload = crate::wire::encode(ancestor).expect("encodes");
         let mut data = Vec::new();
         data.extend_from_slice(&VERSIONED_CHECKPOINT_MAGIC);
-        data.extend_from_slice(&2u16.to_le_bytes());
+        data.extend_from_slice(&CHECKPOINT_VERSION.to_le_bytes());
         data.extend_from_slice(&generation.to_le_bytes());
-        data.extend_from_slice(&checkpoint_digest(2, generation, &payload));
+        data.extend_from_slice(&checkpoint_digest(CHECKPOINT_VERSION, generation, &payload));
         data.extend_from_slice(&payload);
         fs::write(path, data).expect("writes");
     }
@@ -2627,8 +2543,10 @@ mod tests {
     /// A format-2 store: an empty checkpoint at generation zero and a
     /// legacy journal of five records. Returns the journal, where each
     /// record starts, and the state after each.
-    fn legacy_store(path: &Path) -> (Vec<u8>, Vec<usize>, Vec<Option<Node>>) {
-        format_two_checkpoint(path, 0, &None);
+    fn legacy_store(path: &Path, checkpointed: bool) -> (Vec<u8>, Vec<usize>, Vec<Option<Node>>) {
+        if checkpointed {
+            checkpoint_file(path, 0, &None);
+        }
         let mut journal = Vec::new();
         let mut starts = Vec::new();
         let mut states = Vec::new();
@@ -2660,7 +2578,7 @@ mod tests {
     fn a_legacy_journal_reads_and_is_rewritten() {
         let keep = tempdir().expect("temporary directory");
         let path = keep.path().join("ancestor");
-        let (_, _, states) = legacy_store(&path);
+        let (_, _, states) = legacy_store(&path, true);
         let (store, loaded, _) = AncestorStore::open(&path).expect("a legacy journal opens");
         assert!(same(&loaded, &states[4]));
         assert_eq!(store.generation, 5);
@@ -2680,7 +2598,7 @@ mod tests {
     fn a_legacy_middle_length_pointing_past_the_end_fails_closed() {
         let keep = tempdir().expect("temporary directory");
         let path = keep.path().join("ancestor");
-        let (mut journal, starts, _) = legacy_store(&path);
+        let (mut journal, starts, _) = legacy_store(&path, true);
         journal[starts[1] + 8 + 2] ^= 0x10;
         fs::write(journal_path(&path), &journal).expect("writes");
         match AncestorStore::open(&path) {
@@ -2698,7 +2616,7 @@ mod tests {
     fn every_legacy_journal_cut_reopens() {
         let keep = tempdir().expect("temporary directory");
         let path = keep.path().join("ancestor");
-        let (journal, starts, states) = legacy_store(&path);
+        let (journal, starts, states) = legacy_store(&path, false);
         let mut boundaries: Vec<(usize, Option<Node>)> = vec![(0, None)];
         for (index, state) in states.iter().enumerate() {
             let end = starts.get(index + 1).copied().unwrap_or(journal.len());
@@ -2725,7 +2643,7 @@ mod tests {
     fn an_unresolved_intent_survives_the_format_upgrade() {
         let keep = tempdir().expect("temporary directory");
         let path = keep.path().join("ancestor");
-        let (mut journal, _, states) = legacy_store(&path);
+        let (mut journal, _, states) = legacy_store(&path, true);
         journal.extend(legacy_record(5, &JournalEntry::Intent(vec!["x".into()])));
         fs::write(journal_path(&path), &journal).expect("writes");
 
@@ -2762,7 +2680,7 @@ mod tests {
     fn reading_the_stored_generation_writes_nothing() {
         let keep = tempdir().expect("temporary directory");
         let path = keep.path().join("ancestor");
-        let (mut journal, _, _) = legacy_store(&path);
+        let (mut journal, _, _) = legacy_store(&path, true);
         journal.extend(legacy_record(5, &JournalEntry::Intent(vec!["x".into()])));
         // A torn tail, which an open would normalize away.
         journal.extend_from_slice(&[1, 2, 3]);
@@ -2783,7 +2701,7 @@ mod tests {
     fn spent_legacy_records_read_ahead_of_current_ones() {
         let keep = tempdir().expect("temporary directory");
         let path = keep.path().join("ancestor");
-        let (journal, _, states) = legacy_store(&path);
+        let (journal, _, states) = legacy_store(&path, true);
         let (mut store, _, _) = AncestorStore::open(&path).expect("opens");
         // The upgrade's checkpoint stands; the crash put the journal back.
         fs::write(journal_path(&path), &journal).expect("restores the spent journal");
@@ -2842,6 +2760,38 @@ mod tests {
         bytes.iter().map(|byte| format!("{byte:02x}")).collect()
     }
 
+    /// A checkpoint older than this build's format is refused by its
+    /// version, not read as if the bytes meant the same thing.
+    ///
+    /// Formats 0 to 3 were fixed-width; 4 is postcard. The two overlap
+    /// enough that a bare hierarchy would decode into *something*, so
+    /// the refusal has to come from the header before the payload is
+    /// looked at — which is what the version is for.
+    #[test]
+    fn a_checkpoint_from_before_the_encoding_changed_is_refused() {
+        let keep = tempdir().expect("temporary directory");
+        let path = keep.path().join("ancestor");
+        let state = Some(directory(vec![file("a", 1)]));
+        let payload = crate::wire::encode(&state).expect("encodes");
+
+        for version in 0..OLDEST_READABLE_CHECKPOINT {
+            let mut bytes = Vec::new();
+            bytes.extend_from_slice(&VERSIONED_CHECKPOINT_MAGIC);
+            bytes.extend_from_slice(&version.to_le_bytes());
+            bytes.extend_from_slice(&7u64.to_le_bytes());
+            bytes.extend_from_slice(&checkpoint_digest(version, 7, &payload));
+            bytes.extend_from_slice(&payload);
+            fs::write(&path, &bytes).expect("writes");
+
+            let refused = AncestorStore::open(&path);
+            let error = refused.err().expect("a format this build cannot read");
+            assert!(
+                error.downcast_ref::<UnknownFormat>().is_some(),
+                "format {version} must be refused by its version, not by its bytes: {error:#}"
+            );
+        }
+    }
+
     /// The bytes a journal record and a checkpoint payload encode to, held
     /// still. A build reads the journal a previous build left *before* it
     /// rewrites anything, so a changed encoding under the same
@@ -2850,10 +2800,10 @@ mod tests {
     /// `read_checkpoint`) the old layout, and only then update the bytes.
     #[test]
     fn the_encodings_this_format_promises_are_unchanged() {
-        // Format 3 changed the record header, not the payload encoding:
-        // the payload bytes below are format 2's, unchanged.
+        // Format 4 is postcard: varint lengths, no padding. Nothing
+        // before it is read, so there are no older bytes to keep.
         assert_eq!(
-            CHECKPOINT_VERSION, 3,
+            CHECKPOINT_VERSION, 4,
             "a new format: record its bytes below, beside the old ones"
         );
         let achieved = JournalEntry::Achieved(vec![
@@ -2870,16 +2820,16 @@ mod tests {
         ]);
         let intent = JournalEntry::Intent(vec!["x".into(), "y/z".into()]);
         let checkpoint: Option<Node> = Some(every_shape());
-        assert_eq!(hex(&crate::wire::encode(&achieved).unwrap()), ACHIEVED_V2);
-        assert_eq!(hex(&crate::wire::encode(&intent).unwrap()), INTENT_V2);
+        assert_eq!(hex(&crate::wire::encode(&achieved).unwrap()), ACHIEVED_V4);
+        assert_eq!(hex(&crate::wire::encode(&intent).unwrap()), INTENT_V4);
         assert_eq!(
             hex(&crate::wire::encode(&checkpoint).unwrap()),
-            CHECKPOINT_V2
+            CHECKPOINT_V4
         );
         // A whole record: the checksummed header, then the payload.
         assert_eq!(
             hex(&encode_record(7, &intent).unwrap()),
-            format!("{RECORD_V3_HEADER}{INTENT_V2}")
+            format!("{RECORD_V4_HEADER}{INTENT_V4}")
         );
         // And they decode as what they were.
         let decoded = decode_record(CHECKPOINT_VERSION, &crate::wire::encode(&intent).unwrap())
@@ -2887,9 +2837,9 @@ mod tests {
         assert!(matches!(decoded, JournalEntry::Intent(paths) if paths == ["x", "y/z"]));
     }
 
-    const ACHIEVED_V2: &str = "0000000002000000000000000300000000000000612f6200010000000000000000000000000400000000000000040000000000000066696c6501000000070707070707070707070707070707070707070707070707070707070707070701feffffffffffffff0300000004000000000000000500000000000000ed81000004000000000000006c696e6b02000000040000000000000066696c6503000000000000006f64640400000002000000000000006e6f0700000000000000736b6970706564030000000000000000000000010000000000000000000000000400000000000000040000000000000066696c6501000000070707070707070707070707070707070707070707070707070707070707070701feffffffffffffff0300000004000000000000000500000000000000ed81000004000000000000006c696e6b02000000040000000000000066696c6503000000000000006f64640400000002000000000000006e6f0700000000000000736b69707065640300000000";
-    const RECORD_V3_HEADER: &str =
-        "414241484e4a52330700000000000000200000000000000066e8bde40501dbe11ebfe90cca28e876";
-    const INTENT_V2: &str = "0100000002000000000000000100000000000000780300000000000000792f7a";
-    const CHECKPOINT_V2: &str = "010000000000000000000000000400000000000000040000000000000066696c6501000000070707070707070707070707070707070707070707070707070707070707070701feffffffffffffff0300000004000000000000000500000000000000ed81000004000000000000006c696e6b02000000040000000000000066696c6503000000000000006f64640400000002000000000000006e6f0700000000000000736b697070656403000000";
+    const ACHIEVED_V4: &str = "000203612f6200010000040466696c650107070707070707070707070707070707070707070707070707070707070707070103030405ed8302046c696e6b020466696c65036f646404026e6f07736b69707065640300010000040466696c650107070707070707070707070707070707070707070707070707070707070707070103030405ed8302046c696e6b020466696c65036f646404026e6f07736b69707065640300";
+    const RECORD_V4_HEADER: &str =
+        "414241484e4a523307000000000000000800000000000000dbdf491fcf57e84a5f1a4cd2b6fb907b";
+    const INTENT_V4: &str = "0102017803792f7a";
+    const CHECKPOINT_V4: &str = "010000040466696c650107070707070707070707070707070707070707070707070707070707070707070103030405ed8302046c696e6b020466696c65036f646404026e6f07736b697070656403";
 }
