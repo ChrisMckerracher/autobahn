@@ -38,8 +38,9 @@ use gpui_kit::*;
 
 use crate::supervisor::{status_report, GroupReport, SessionReport, StatusReport};
 use crate::surface::{
-    self, first_sentence, holds, tilde, Conflict, Holds, Section, Sheet, Side, Spot, EXPERIMENTAL,
-    SILENT_AT_THE_TOP, SILENT_IN_ADVANCED,
+    self, first_sentence, format_age, holds, severity, state_words, thousands, tilde, Conflict,
+    Holds, Section, Severity, Sheet, Side, Spot, EXPERIMENTAL, SILENT_AT_THE_TOP,
+    SILENT_IN_ADVANCED,
 };
 use crate::words::{count as counted, fill, t};
 
@@ -126,9 +127,14 @@ enum Pane {
 }
 
 impl Pane {
+    /// The name over the pane, and in the rail beside its mark.
+    ///
+    /// Welcome has none, like its entry in `about` below: the splash is
+    /// drawn before the header exists, and the rail never lists it, so
+    /// a name here would be a string nothing reads.
     fn title(self) -> &'static str {
         match self {
-            Pane::Welcome => t("pane.welcome"),
+            Pane::Welcome => "",
             Pane::Groups => t("pane.groups"),
             Pane::Hosts => t("pane.hosts"),
             Pane::Conflicts => t("pane.conflicts"),
@@ -157,7 +163,7 @@ impl Pane {
     /// sentence saying so is a sentence in the way.
     fn about(self) -> &'static str {
         match self {
-            Pane::Welcome => t("pane.welcome_about"),
+            Pane::Welcome => "",
             Pane::Groups => "",
             Pane::Conflicts => t("pane.conflicts_about"),
             Pane::Config => t("pane.config_about"),
@@ -4404,56 +4410,11 @@ fn empty(text: &'static str) -> AnyElement {
         .into_any_element()
 }
 
-fn thousands(n: u64) -> String {
-    let digits = n.to_string();
-    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
-    for (index, ch) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index) % 3 == 0 {
-            out.push(',');
-        }
-        out.push(ch);
-    }
-    out
-}
-
-fn format_age(seconds: u64) -> String {
-    match seconds {
-        0..=59 => format!("{seconds}s"),
-        60..=3599 => format!("{}m", seconds / 60),
-        3600..=86_399 => format!("{}h", seconds / 3600),
-        _ => format!("{}d", seconds / 86_400),
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum Severity {
-    Fine,
-    Attention,
-    Bad,
-}
-
-fn severity(state: &str) -> Severity {
-    match state {
-        "halted" | "unreachable" | "errored" => Severity::Bad,
-        "conflicts" | "blocked" => Severity::Attention,
-        _ => Severity::Fine,
-    }
-}
-
 fn colour_of(severity: Severity) -> u32 {
     match severity {
         Severity::Fine => GREEN,
         Severity::Attention => AMBER,
         Severity::Bad => RED,
-    }
-}
-
-fn state_words(session: &SessionReport) -> String {
-    match (session.conflicts.len(), session.blocked.len()) {
-        (0, 0) => session.state.clone(),
-        (c, 0) => format!("{} · {c}", session.state),
-        (0, b) => format!("{} · {b}", session.state),
-        (c, b) => format!("{} · {c} + {b}", session.state),
     }
 }
 

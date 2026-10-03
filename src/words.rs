@@ -63,6 +63,10 @@ pub(crate) fn t(key: &str) -> &'static str {
 ///
 /// Random rather than in order: a person who opens this window twice
 /// a day should not read the same sentence every time.
+///
+/// The window's, not the menu bar's: a bar item has no room for a
+/// sentence, so a build with only the tray never calls this.
+#[cfg(any(feature = "dash", test))]
 pub(crate) fn hint() -> &'static str {
     hint_besides("")
 }
@@ -71,6 +75,7 @@ pub(crate) fn hint() -> &'static str {
 ///
 /// A hint that is meant to change and does not looks like a window
 /// that failed to notice the click.
+#[cfg(any(feature = "dash", test))]
 pub(crate) fn hint_besides(showing: &str) -> &'static str {
     static EVERY: OnceLock<Vec<&'static str>> = OnceLock::new();
     let every = EVERY.get_or_init(|| {

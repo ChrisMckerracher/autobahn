@@ -4,8 +4,6 @@ window = "Autobahn"
 surface = "dash"
 
 [pane]
-welcome = "Welcome"
-welcome_about = "nothing to talk to yet"
 groups = "Groups"
 conflicts = "Conflicts"
 conflicts_about = "issues needing resolution"

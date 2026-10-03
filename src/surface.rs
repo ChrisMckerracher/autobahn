@@ -5,7 +5,6 @@
 //! conflict's two sides hold, what a session is waiting on and how it
 //! is grouped, the words for a size or an age — all of it is here,
 //! where it can be tested without opening a window.
-#![allow(dead_code)]
 
 use std::path::PathBuf;
 
@@ -511,11 +510,11 @@ pub(crate) fn faults(refusal: &str) -> Vec<String> {
     // `plans` gathers its complaints under a heading; everything else
     // the loader refuses a file for — a log level it does not know, a
     // hook timing it cannot read — arrives as a sentence on its own.
-    let body = match refusal.lines().next() {
-        Some("invalid configuration:") => refusal.lines().skip(1),
-        _ => refusal.lines().skip(0),
+    let heading = match refusal.lines().next() {
+        Some("invalid configuration:") => 1,
+        _ => 0,
     };
-    for line in body {
+    for line in refusal.lines().skip(heading) {
         // Whole lines, kept whole. The loader blames the table a value
         // was written in, so the copies an inherited value used to make
         // are already identical — and the `group 'x': ` in front of a
@@ -777,41 +776,9 @@ pub(crate) fn waiting_groups(session: &SessionReport) -> Vec<(String, Vec<String
     groups
 }
 
-/// A line cut to fit a status bar.
-pub(crate) fn cap(text: &str, most: usize) -> String {
-    crate::text::cap_line(text, most).into_owned()
-}
-
 /// Whether a log line is the supervisor complaining.
 pub(crate) fn is_complaint(line: &str) -> bool {
     line.contains(" error:") || line.contains("refused")
-}
-
-/// What a working session is doing, in one line: the phase, how long it
-/// has been at it, and how far along when the numbers allow an honest
-/// answer. The same rule `status` follows, so the two never disagree.
-pub(crate) fn describe(progress: &crate::progress::ProgressSnapshot) -> String {
-    let mut line = format!(
-        "{} · {}",
-        progress.phase.label(),
-        format_age(progress.seconds)
-    );
-    let side = &progress.alpha;
-    match (side.entries, side.expected) {
-        // A tree nothing has counted yet reports what it has walked and
-        // no estimate, which is the honest answer on a first scan.
-        (walked, Some(expected)) if walked > 0 && expected > 0 => line.push_str(&format!(
-            " · alpha {} of ~{}",
-            thousands(walked),
-            thousands(expected)
-        )),
-        (walked, None) if walked > 0 => line.push_str(&format!(" · alpha {}", thousands(walked))),
-        _ => {}
-    }
-    if let Some(left) = progress.remaining_seconds.filter(|left| *left > 0) {
-        line.push_str(&format!(" · about {} left", format_age(left)));
-    }
-    line
 }
 
 /// Digits a person can read at a glance.
