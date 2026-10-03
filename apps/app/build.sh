@@ -1,13 +1,14 @@
 #!/bin/sh
-# Autobahn Dash — a window over the fleet, for this machine only.
-#
-# Personal and unshipped: no Developer ID, no notarisation, no release
-# asset, no mention in docs/. An ad-hoc signature is enough for a bundle
-# that only ever arrives by scp or by autobahn itself, neither of which
-# quarantines anything. A downloaded copy would be refused, and should be.
+# Autobahn Dash — a window over the fleet.
 #
 #   apps/app/build.sh            # builds "Autobahn Dash.app"
 #   open "apps/app/Autobahn Dash.app"
+#
+# The signature here is ad-hoc, which is enough for a bundle that
+# arrives by scp or by autobahn itself, neither of which quarantines
+# anything. A release replaces it: apps/tray/release.sh --sign-only
+# takes this bundle and signs it with the Developer ID, notarises it
+# and staples the ticket, which is what a downloaded copy needs.
 #
 # The binary goes to target/app, never target/release: the login service
 # runs the latter through a symlink, and a personal build must not replace

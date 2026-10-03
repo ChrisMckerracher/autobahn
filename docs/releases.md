@@ -76,12 +76,15 @@ sha256sum -c --ignore-missing SHA256SUMS
 
 A downloaded app must be signed with a Developer ID certificate and notarised — scanned by Apple, with the verdict stapled inside the bundle so Gatekeeper trusts it offline. A copy that arrives by `scp`, or through Autobahn itself, is never quarantined and needs none of this.
 
-`apps/tray/release.sh` does the whole thing, on a laptop or in CI:
+`apps/tray/release.sh` does the whole thing, on a laptop or in CI, for either app:
 
 ```sh
 apps/tray/release.sh                                     # build, sign, notarise, staple
 apps/tray/release.sh --sign-only apps/tray/Autobahn.app  # sign a bundle already built
+apps/tray/release.sh --sign-only "apps/app/Autobahn Dash.app"
 ```
+
+It signs whatever bundle it is given: the executable to check and to sign is the one `CFBundleExecutable` names, not a fixed `autobahn`. Any other Mach-O in `Contents/MacOS` is signed first, inner out — signing a bundle reaches its main executable and its resources and nothing else, and notarisation refuses the bundle for an unsigned neighbour.
 
 `--sign-only` compiles nothing: it takes a bundle from `build.sh --unsigned` and signs it. That split is what CI uses, so every build happens before the signing identity exists.
 
@@ -94,9 +97,9 @@ xcrun notarytool store-credentials autobahn \
 
 ### In CI
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`, whose `mac` job builds and signs everything macOS on one runner: the two command-line binaries, signed and notarised by `apps/tray/notarize-cli.sh`, and the app, attached to the release as `Autobahn-macos-aarch64.zip`.
+Pushing a `v*` tag runs `.github/workflows/release.yml`, whose `mac` job builds and signs everything macOS on one runner: the two command-line binaries, signed and notarised by `apps/tray/notarize-cli.sh`, and both apps — the menu bar one as `Autobahn-macos-aarch64.zip` and the window as `Autobahn-Dash-macos-aarch64.zip`. Each is notarised on its own submission, because a ticket is stapled to one bundle.
 
-The job builds everything first — the binaries, and the app with `build.sh --unsigned` — and checks that the app's `Info.plist` reports the tag's version. Only then does it import the certificate and sign with `release.sh --sign-only`, so no dependency's build script or proc macro ever runs while the identity is usable.
+The job builds everything first — the binaries and both bundles — and checks that each `Info.plist` reports the tag's version. Only then does it import the certificate and sign with `release.sh --sign-only`, so no dependency's build script or proc macro ever runs while the identity is usable.
 
 It is the only job holding the certificate, and it uses the protected `release` environment, which must hold five secrets:
 

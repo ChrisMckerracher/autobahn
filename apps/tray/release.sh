@@ -26,7 +26,7 @@
 #   AUTOBAHN_NOTARY_ISSUER=<issuer uuid> AUTOBAHN_RELEASE_ZIP=Autobahn.zip \
 #   apps/tray/release.sh
 set -euo pipefail
-usage() { echo "usage: $0 [--sign-only path/to/Autobahn.app]" >&2; exit 2; }
+usage() { echo "usage: $0 [--sign-only path/to/Some.app]" >&2; exit 2; }
 BUILD=yes
 APP="apps/tray/Autobahn.app"
 case $# in
@@ -41,10 +41,20 @@ cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 source apps/tray/notary.sh
 ZIP_OUT="${AUTOBAHN_RELEASE_ZIP:-}"
 
-if [ "$BUILD" = no ] &&
-   { [ ! -f "$APP/Contents/Info.plist" ] || [ ! -x "$APP/Contents/MacOS/autobahn" ]; }; then
-    echo "not a built Autobahn.app: $APP (apps/tray/build.sh --unsigned makes one)" >&2
-    exit 1
+# Whatever the bundle calls its main executable. The menu bar app's is
+# `autobahn` and the window's is `autobahn-app`, and this script signs
+# either, so the name to check is the one the bundle states.
+if [ "$BUILD" = no ]; then
+    if [ ! -f "$APP/Contents/Info.plist" ]; then
+        echo "not an app bundle: $APP (no Contents/Info.plist)" >&2
+        exit 1
+    fi
+    MAIN="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \
+            "$APP/Contents/Info.plist" 2>/dev/null || true)"
+    if [ -z "$MAIN" ] || [ ! -x "$APP/Contents/MacOS/$MAIN" ]; then
+        echo "not a built app: $APP has no runnable Contents/MacOS/${MAIN:-<unset>}" >&2
+        exit 1
+    fi
 fi
 
 # Both settled before the build, not after it: a missing credential should
@@ -70,7 +80,7 @@ xattr -cr "$APP"
 # told people not to use it for years.
 MAIN="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \
         "$APP/Contents/Info.plist")"
-for nested in "$APP/Contents/MacOS/"*; do
+for nested in "$APP/Contents/MacOS/"*; do  # shellcheck disable=SC2043
     [ -f "$nested" ] || continue
     [ "$(basename "$nested")" = "$MAIN" ] && continue
     echo "  nested: $(basename "$nested")"

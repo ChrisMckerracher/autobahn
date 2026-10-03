@@ -5,7 +5,8 @@
 # macOS binaries link only the always-present libSystem.
 #
 # The macOS side — both command-line binaries, and the menu bar app as
-# Autobahn-macos-aarch64.zip — is signed with the Developer ID certificate
+# Autobahn-macos-aarch64.zip and Autobahn-Dash-macos-aarch64.zip — are
+# signed with the Developer ID certificate
 # and notarised by Apple, so a copy downloaded in a browser is not refused
 # by Gatekeeper. It is built in one job, the only one holding the
 # certificate, inside the protected "release" environment, which waits for
@@ -167,6 +168,8 @@ jobs:
           rustup toolchain install stable --profile minimal \
             --target aarch64-apple-darwin --target x86_64-apple-darwin
           rustup default stable
+          # The window's kit wants a newer compiler than the rest.
+          rustup toolchain install 1.98.0 --profile minimal
       - name: Use Xcode 26 if the runner has it
         # Only Xcode 26's actool compiles the Icon Composer bundle. Without
         # it, build.sh falls back to the committed .icns: still the real
@@ -182,24 +185,31 @@ jobs:
             cargo build --profile dist --locked --target "$target"
             cp "target/$target/dist/autobahn" "autobahn-$platform"
           done
-      - name: Build the app, unsigned
+      - name: Build the apps, unsigned
         # Every build happens before the certificate exists: a dependency's
         # build script or proc macro that runs while the identity is usable
         # could sign anything as us. Nothing after the import compiles.
-        run: apps/tray/build.sh --unsigned
-      - name: The app must report the tag's version
-        # build.sh writes both keys from Cargo.toml, which the version job
-        # has already matched to the tag; this checks what actually ships.
+        #
+        # The window's own script signs ad-hoc, which the Developer ID
+        # signature below replaces; --force does not care what was there.
         run: |
-          plist=apps/tray/Autobahn.app/Contents/Info.plist
-          for key in CFBundleShortVersionString CFBundleVersion; do
-            value=$(/usr/libexec/PlistBuddy -c "Print :$key" "$plist")
-            if [ "$value" != "${GITHUB_REF_NAME#v}" ]; then
-              echo "the app's $key is '$value', but the tag is $GITHUB_REF_NAME" >&2
-              exit 1
-            fi
+          apps/tray/build.sh --unsigned
+          apps/app/build.sh
+      - name: The apps must report the tag's version
+        # Each build.sh writes both keys from Cargo.toml, which the version
+        # job has already matched to the tag; this checks what ships.
+        run: |
+          for plist in "apps/tray/Autobahn.app/Contents/Info.plist" \
+                       "apps/app/Autobahn Dash.app/Contents/Info.plist"; do
+            for key in CFBundleShortVersionString CFBundleVersion; do
+              value=$(/usr/libexec/PlistBuddy -c "Print :$key" "$plist")
+              if [ "$value" != "${GITHUB_REF_NAME#v}" ]; then
+                echo "$plist: $key is '$value', but the tag is $GITHUB_REF_NAME" >&2
+                exit 1
+              fi
+            done
           done
-          echo "the app reports ${GITHUB_REF_NAME#v}"
+          echo "both apps report ${GITHUB_REF_NAME#v}"
       - name: Import the Developer ID certificate
         env:
           P12: ${{ secrets.DEVELOPER_ID_P12 }}
@@ -240,6 +250,15 @@ jobs:
           AUTOBAHN_NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
           AUTOBAHN_RELEASE_ZIP: Autobahn-macos-aarch64.zip
         run: apps/tray/release.sh --sign-only apps/tray/Autobahn.app
+      - name: Sign, notarise and staple the window
+        # The same script against the other bundle. Separate notarisation
+        # submissions, because Apple staples a ticket to one bundle.
+        env:
+          AUTOBAHN_NOTARY_KEY: ${{ runner.temp }}/notary.p8
+          AUTOBAHN_NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          AUTOBAHN_NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
+          AUTOBAHN_RELEASE_ZIP: Autobahn-Dash-macos-aarch64.zip
+        run: apps/tray/release.sh --sign-only "apps/app/Autobahn Dash.app"
       - name: Remove the credentials
         # Whether the build passed or failed. The runner is discarded after
         # the job anyway; this is so nothing outlives the step that needed it.
@@ -254,6 +273,7 @@ jobs:
             autobahn-darwin-aarch64
             autobahn-darwin-x86_64
             Autobahn-macos-aarch64.zip
+            Autobahn-Dash-macos-aarch64.zip
           if-no-files-found: error
 
   release:
@@ -310,7 +330,7 @@ jobs:
           # The installer as of this tag, so releases/latest/download/install.sh
           # installs the release it came with, not whatever main holds.
           cp source/scripts/install.sh install.sh
-          sha256sum autobahn-* Autobahn-macos-aarch64.zip install.sh > SHA256SUMS
+          sha256sum autobahn-* Autobahn-*.zip install.sh > SHA256SUMS
       - name: Sign the checksums
         # The checksums come from this same release, so on their own they
         # prove only that a download is intact. The signature, by a key
@@ -358,6 +378,7 @@ jobs:
             autobahn-darwin-x86_64 \
             autobahn-agents.tar.gz \
             Autobahn-macos-aarch64.zip \
+            Autobahn-Dash-macos-aarch64.zip \
             install.sh \
             SHA256SUMS \
             SHA256SUMS.minisig
