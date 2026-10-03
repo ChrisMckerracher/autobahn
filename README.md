@@ -110,9 +110,8 @@ See [Safety](docs/safety.md) for guarantees and the related invariants in [Corre
 ## UI Goodness
 
 In addition to the standard CLI, several user interfaces are available:
-- **[Autobahn Dash](docs/app.md):** Experimental graphical management application.
+- **[The app](docs/app.md):** Experimental desktop window and menu bar item.
 - **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn shop`).
-- **[Menu Bar App](docs/macos-app.md):** Lightweight status monitor for macOS.
 - **[Alert Hooks](docs/alerts.md):** Event notification script support (`on_alert`).
 
 ```toml

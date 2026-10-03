@@ -9,7 +9,7 @@
 # and notarised by Apple, so a copy downloaded in a browser is not refused
 # by Gatekeeper. It is built in one job, the only one holding the
 # certificate, inside the protected "release" environment, which waits for
-# approval before any secret reaches a runner. docs/macos-app.md lists what
+# approval before any secret reaches a runner. docs/releases.md lists what
 # that environment must contain.
 name: Release
 

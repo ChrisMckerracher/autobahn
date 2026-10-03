@@ -58,7 +58,7 @@ autobahn enable  --group lack
 
 These commands edit `~/.autobahn/config.toml` and preserve comments. A host enters or leaves `disabled_hosts`. A group gains or loses `disabled = true`.
 
-An unknown name produces an error with valid names. Disabling preserves session state, so enabling resumes the session. The supervisor normally applies the edit within a few seconds. See [Live reload](./configuration.md#editing-it-while-it-runs).
+An unknown name produces an error with valid names. Disabling preserves session state, so enabling resumes the session. The supervisor normally applies the edit within a few seconds. See [Live reload](./configuration.md#live-reload-behavior).
 
 ## Manage the Service and Updates
 
@@ -155,7 +155,7 @@ Version 3 added `config_notice`, present while the supervisor rejects a configur
 
 `--filter` applies to JSON. `--depth` affects the list display only.
 
-Session alerts receive this same document. Configuration-refusal alerts receive the notice object described in [Alerts](./alerts.md). The [terminal interface](./shop.md), [Dash](./app.md), and [menu bar app](./macos-app.md) use status data.
+Session alerts receive this same document. Configuration-refusal alerts receive the notice object described in [Alerts](./alerts.md). The [terminal interface](./shop.md) and [the app](./app.md) use status data.
 
 ## One-off Syncs and Scripting
 

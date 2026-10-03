@@ -9,10 +9,10 @@ Autobahn keeps configuration and session state under `~/.autobahn` by default, o
 | `config.toml` | the configuration — the source of truth |
 | `dash.toml` | this machine's Dash display preference (`presence = "both"`, `"window"`, or `"menubar"`), separate from the fleet configuration |
 | `install.log` | the desktop app's installer output |
-| `host.toml` | what this machine allows, whoever asks: the folders its agent serves — see [This machine's own settings](./configuration.md#this-machines-own-settings) |
+| `host.toml` | what this machine allows, whoever asks: the folders its agent serves — see [This machine's own settings](./configuration.md#host-local-policy-autobahnhosttoml) |
 | `sessions/<id>/` | each session's ancestor and journal: what was last agreed between its two roots |
 | `status/<id>.json` | what each session is doing, or last did; what `status` reads |
-| `sessions/<id>/mounts` | the mount points each side's scans last found inside the roots, so one that goes away is known to have been one — see `ignore_mounts` in [Configuration](./configuration.md#session-settings) |
+| `sessions/<id>/mounts` | the mount points each side's scans last found inside the roots, so one that goes away is known to have been one — see `ignore_mounts` in [Configuration](./configuration.md#session-and-group-settings) |
 | `staging/` | in-flight content, held aside until verified, then renamed into place; swept at the end of every cycle, so a version that changed while in flight does not linger |
 | `endpoint-locks/` | one lock per pair of roots, so two sessions never write one tree from independent ancestors |
 | `agents/` | the agent bundle — binaries for platforms other than this one |
@@ -21,7 +21,7 @@ Autobahn keeps configuration and session state under `~/.autobahn` by default, o
 | `p2p/` | experimental: the lease, this host's name in the star, the pushed configuration, and the ancestor copies a leader keeps here — see [P2P](./p2p.md). `clean` leaves it alone |
 | `service.log` | the supervisor's log — see [The log](./logging.md) |
 | `control.sock` | the running supervisor's control socket, through which `flush`, `reset`, `verify` and `pause` reach live sessions |
-| `config-notice.json` | present while the running supervisor is refusing an edit to `config.toml` — what `status`, `mi` and the menu bar app show for it; removed when the file loads again, or a supervisor starts — see [Editing it while it runs](./configuration.md#editing-it-while-it-runs) |
+| `config-notice.json` | present while the running supervisor is refusing an edit to `config.toml` — what `status`, `mi` and the menu bar app show for it; removed when the file loads again, or a supervisor starts — see [Editing it while it runs](./configuration.md#live-reload-behavior) |
 | `icon.png` | autobahn's icon, for notifiers |
 | `on-alert.sh` | the example alert hook `init` writes — see [Alerts](./alerts.md). Yours to edit; never replaced |
 

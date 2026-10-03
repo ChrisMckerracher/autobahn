@@ -71,6 +71,24 @@ Ordinary CI covers the CLI, library, and macOS tray. Dash has a separate workflo
 
 Shared strings live in `assets/words/en.toml` and load through `src/words.rs`. Catalog tests check interface usage. `src/surface.rs` contains the shared UI model and configuration editor.
 
+### The menu bar app bundle
+
+`apps/tray/build.sh` builds `Autobahn.app`. It signs with the best identity in your keychain; `--unsigned` stops at the assembled bundle and touches no keychain, and a path argument builds somewhere else, resolved from where you run it. The version the app reports comes from `Cargo.toml`, written into `Info.plist` at build time — so build with `build.sh`, never by copying the template.
+
+`build.sh` puts the binary in `target/tray` (`AUTOBAHN_TRAY_TARGET` moves it), never `target/release`: the login service runs `target/release/autobahn` through a symlink, and an app build must not replace it.
+
+### The icon
+
+`assets/Autobahn.icon` is an Icon Composer bundle (Icon Composer ships inside Xcode). `build.sh` compiles it with Xcode's `actool`, exactly as Xcode would: the bundle gets `Assets.car` carrying the light, dark, and tinted variants macOS 26 draws, plus `Autobahn.icns` as the flat fallback for older systems. Without Xcode it falls back to the committed `assets/autobahn.icns`.
+
+`scripts/build-icon.sh` regenerates the committed files from the bundle: `assets/autobahn.icns` and `assets/notification.png` — the icon every alert wears, embedded in the binary — both from `actool`, and `assets/autobahn.png`, the artwork at 1024 pixels. That last comes from Icon Composer's `ictool` and is full bleed: the squircle runs edge to edge, which suits a README or a website but is about a quarter larger than an app icon should be. Rerun the script after changing the bundle.
+
+The menu bar glyph is not this icon. It is the Autobahn sign, drawn in code in `src/menubar.rs`; `assets/sign.svg` is the same shape at full size.
+
+### A guided tour
+
+`scripts/mi` runs a guided tour against throwaway directories — every command, and every state a session can report, printed as the binary actually produces them.
+
 ## The A/B gate
 
 Measure hot-path changes before release:

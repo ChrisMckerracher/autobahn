@@ -40,7 +40,7 @@ The modes behave identically for standard actions: unchanged files remain untouc
 ### 1. `one-way-conflict` vs. `one-way-primary`
 
 * **`one-way-conflict` protects the replica from data loss:** It pushes updates from the primary to the replica, but if the replica modifies a file locally, the engine refuses to overwrite it and flags a conflict. New local files on the replica are ignored and preserved.
-* **`one-way-primary` enforces parity:** The replica is made to match the primary within the synchronized scope. Files only on the replica—including runtime logs, caches, and build artifacts—are **deleted** unless they are excluded by policy. Ignored entries are not mirrored individually, but deleting their parent can remove them; see [Ignores](./ignores.md#ignores-and-deletion).
+* **`one-way-primary` enforces parity:** The replica is made to match the primary within the synchronized scope. Files only on the replica—including runtime logs, caches, and build artifacts—are **deleted** unless they are excluded by policy. Ignored entries are not mirrored individually, but deleting their parent can remove them; see [Ignores](./ignores.md#interaction-between-ignores-and-deletions).
 
 ### 2. Deletions vs. Edits: Standard vs. Strict
 

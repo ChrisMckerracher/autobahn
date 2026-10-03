@@ -19,7 +19,7 @@ Each row shows the last cycle’s outcome separately from current work. The phas
 
 Press `?` for definitions of the interface labels.
 
-A `⚠ configuration refused …` line means the supervisor rejected a configuration edit. Sessions continue under the last valid configuration. The notice clears after a valid reload. See [Live reload](./configuration.md#editing-it-while-it-runs).
+A `⚠ configuration refused …` line means the supervisor rejected a configuration edit. Sessions continue under the last valid configuration. The notice clears after a valid reload. See [Live reload](./configuration.md#live-reload-behavior).
 
 ```
   ┌──────────────────────────────────────────────────────────────┐
