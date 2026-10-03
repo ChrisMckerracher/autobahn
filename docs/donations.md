@@ -23,3 +23,8 @@ Rehabilitative programs like these have been proven to reduce recidivism:
 
  - The Vera Institute showed College-in-prison programs [reduce the risk of reconviction by about two-thirds](https://www.vera.org/publications/the-impacts-of-college-in-prison)
  - According to comprehensive tracking by the Department of Justice and the RAND Corporation, individuals who participate in any correctional education program [have up to 43% lower odds of recidivating than those who do not](https://bja.ojp.gov/sites/bja/files/Publications/RAND_Correctional-Education-Meta-Analysis.pdf).
+
+## See also
+
+- [Commercial licence](../COMMERCIAL-LICENSE.md) — the terms a donation puts you under
+- [Limitations](./limitations.md) — what you would be building on

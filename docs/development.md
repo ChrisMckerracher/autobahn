@@ -137,3 +137,9 @@ Autobahn is a Rust implementation derived from architectural work on [Mutagen](h
 
 It uses enum-based trees, sorted copy-on-write children, metadata on nodes, linear-merge reconciliation, and streaming transfers. Rust ownership and `Arc::make_mut` enforce parts of the sharing discipline.
 
+## See also
+
+- [Releases](./releases.md) — tagging, signing, and what ships
+- [Invariants](./correctness/invariants.md) — what the tests are defending
+- [Benchmarks](./benchmarks.md) — the recorded comparisons, and the harness
+- [The app](./app.md) — what the desktop app is, from the outside

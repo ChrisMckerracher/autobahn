@@ -120,3 +120,11 @@ To restrict which local directories remote controllers are allowed to access via
 # Whitelist directories the local agent will serve
 roots = ["~/Workspace", "/srv/repositories"]
 ```
+
+## See also
+
+- [Modes](./modes.md) — what each `mode` does, and which to pick
+- [Ignores](./ignores.md) — the patterns `ignores` takes, and `file:` entries
+- [Alerts](./alerts.md) — the `on_alert` hook and when it fires
+- [The state root](./state.md) — where this file lives, and what sits beside it
+- [The app](./app.md) — editing all of it in a form that validates as you type

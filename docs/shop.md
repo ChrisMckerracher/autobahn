@@ -56,3 +56,10 @@ Resolution actions ask for confirmation. They can replace edited files across ev
 Each action runs the normal `resolve` command for the selected paths or all marked paths together. One invocation scans each losing side once. Resolving twenty paths together avoids nineteen additional scans.
 
 Overlapping selections are deduplicated. Marks clear after resolution and after leaving the counter. Blocked-path repairs can require interactive `sudo` over SSH. The interface copies these commands instead of running them.
+
+## See also
+
+- [Commands](./commands.md) — everything this shows, as commands
+- [The app](./app.md) — the same fleet in a window
+- [Conflicts](./conflicts.md) — what the resolve keys do
+- [Logging](./logging.md) — the log, when the summary is not enough

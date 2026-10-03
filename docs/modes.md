@@ -78,9 +78,10 @@ When a Primary syncs concurrently to multiple Replicas, each pair runs an indepe
 
 ---
 
-## See Also
+## See also
 
-* [Configuration](./configuration.md) — How to set the `mode` parameter.
-* [Conflicts](./conflicts.md) — Resolving and settling flagged file collisions.
-* [Safety](./safety.md) — Root-level safeguards against accidental wipeouts.
-* [P2P](./p2p.md) — Automatic leader failover setup and edge cases. Dangerously experimental, with known security issues.
+- [Configuration](./configuration.md) — where `mode` is set, and what inherits it
+- [Conflicts](./conflicts.md) — settling the collisions a two-way mode reports
+- [Safety](./safety.md) — the safeguards under every mode
+- [Ignores](./ignores.md) — what the directory guard counts
+- [P2P](./p2p.md) — leader failover, dangerously experimental

@@ -37,3 +37,10 @@ Large directory hierarchies on Linux require one `inotify` watch descriptor per 
 Certain editors (such as Vim or JetBrains IDEs) save files by creating a hidden temporary copy and renaming it over the destination.
 - On Linux, Autobahn detects open write descriptors and delays synchronization until the file is closed.
 - macOS `FSEvents` does not emit file close notifications; consequently, saving a very large file on macOS may require two rapid sync cycles to complete propagation. No data is lost.
+
+## See also
+
+- [Safety](./safety.md) — what is guaranteed, as against what is merely supported
+- [Accepted risks](./correctness/accepted-risks.md) — the known gaps, each with its reasoning
+- [P2P](./p2p.md) — the one feature that is dangerously experimental
+- [How it works](./how-it-works.md) — why some of these boundaries are where they are

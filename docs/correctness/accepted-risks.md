@@ -67,3 +67,9 @@ Review round five judged writable overlap across processes an uncommon, delibera
 **Reason to revisit.** Verification logs that show real divergence, or a deployment whose threat model includes deliberate metadata restoration.
 
 **Possible fix.** Add scheduled background verification that gradually rehashes files during idle cycles. This can bound digest age without hashing the whole tree on every scan.
+
+## See also
+
+- [Invariants](./invariants.md) — the guarantees these are the limits of
+- [Safety](../safety.md) — the same ground, for a reader who is not auditing
+- [Limitations](../limitations.md) — what is out of scope rather than unresolved

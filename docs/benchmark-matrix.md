@@ -154,3 +154,8 @@ These values are median wall seconds for repeated module copies, including conve
 |---|---:|---:|
 | 50k-burst | 3.5 | 7.5 |
 | chromium-burst | 4.5 | 6.9 |
+
+## See also
+
+- [Benchmarks](./benchmarks.md) — what these cells add up to
+- [Development](./development.md) — the harness, and the A/B gate

@@ -68,3 +68,10 @@ Guarantees operate within explicit physical and software constraints:
 - **Local Filesystem Requirement:** Network filesystems (NFS/SMB) with aggressive client-side attribute caching may mask external modifications.
 - **Timestamp Preservation:** Tools that rewrite files while deliberately preserving size and modification timestamps (`touch -r`) evade metadata-based change detection. Use `autobahn verify` to detect these changes.
 - **Host Trust Model:** Protocols assume both endpoints execute genuine, authenticated Autobahn binaries. While a compromised agent cannot access paths outside its root (I11), it could emit falsified scan data within its designated root.
+
+## See also
+
+- [Invariants](./correctness/invariants.md) — each guarantee, its enforcement point, and its tests
+- [Accepted risks](./correctness/accepted-risks.md) — where a guarantee stops, and why
+- [Modes](./modes.md) — the directory guard, and what each mode does with a deletion
+- [The state root](./state.md) — the ancestor, which is what most of this protects

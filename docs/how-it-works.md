@@ -56,3 +56,10 @@ Synchronization sessions execute within dedicated worker threads coordinated by 
 2. **Early Quiescence Return:** If both endpoints share storage pointers and no pending issues exist, the cycle terminates immediately.
 3. **Debounce Settle Windows:** Rather than syncing on the first detected filesystem event, Autobahn monitors change counters across short sleep slices (5ms to 25ms). If change counts stabilize, the burst has concluded and the cycle begins.
 4. **Active Write Descriptor Detection:** On Linux, `inotify` tracks whether temporary save files remain open for writing. If an editor (e.g., Vim) is mid-flush, synchronization pauses until the file descriptor closes, preventing incomplete temporary files from being transmitted across the wire.
+
+## See also
+
+- [Safety](./safety.md) — the guarantees this design is built to keep
+- [The state root](./state.md) — what it writes down, and where
+- [Invariants](./correctness/invariants.md) — each guarantee, its enforcement point, and its tests
+- [Benchmarks](./benchmarks.md) — what it costs in practice

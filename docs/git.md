@@ -54,3 +54,10 @@ Linked worktrees created via `git worktree add` embed absolute filesystem paths 
 ```sh
 git config worktree.useRelativePaths true
 ```
+
+## See also
+
+- [Ignores](./ignores.md) — how `file:` entries are read, and in what order
+- [Configuration](./configuration.md) — where the group and its ignores are written
+- [Modes](./modes.md) — why a repository wants a two-way mode
+- [Conflicts](./conflicts.md) — what happens when both checkouts move

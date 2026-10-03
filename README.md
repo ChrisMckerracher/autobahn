@@ -12,7 +12,7 @@ curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh |
 
 Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or see [the app](docs/app.md) for the experimental desktop interface above.
 
-Want to use Autobahn free of AGPLv3? Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
+‼️ Want to use Autobahn free of AGPLv3? Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
 
 ## The Problem
 
@@ -163,6 +163,7 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 - [Accepted risks](docs/correctness/accepted-risks.md)
 - [Development Guide](docs/development.md)
 - [Release Process](docs/releases.md)
+- [Roadmap and proposals](docs/wishlist.md)
 
 
 ## System Requirements & Limitations

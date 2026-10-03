@@ -386,3 +386,10 @@ Extend existing harness operation sets where possible.
 ## The specification
 
 `spec/Autobahn.tla` models reconciliation across one primary and multiple replicas. TLC checks bounded states, and `tests/spec_replay.rs` compares implementation behavior. See [Specification guide](../../spec/README.md).
+
+## See also
+
+- [Accepted risks](./accepted-risks.md) — where each guarantee stops, with its reasoning
+- [Safety](../safety.md) — the same guarantees, in prose
+- [How it works](../how-it-works.md) — the design that makes them enforceable
+- [Development](../development.md) — running the tests and the specification

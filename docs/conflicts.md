@@ -67,3 +67,10 @@ autobahn resolve ~/Workspace/project --all --keep primary --yes
 A **blocked path** occurs when an endpoint cannot read or write an entry due to filesystem permissions, missing directory structures, or unsupported filename characters:
 - `autobahn issues` prints the root cause and suggested remediation commands (e.g., `chmod` or `chown`).
 - Once filesystem permissions or paths are corrected, the subsequent sync cycle clears the blocked status automatically.
+
+## See also
+
+- [Modes](./modes.md) — which modes report a conflict and which decide it
+- [Commands](./commands.md) — `issues`, `diff` and `resolve` on the command line
+- [The app](./app.md) — the Conflicts pane, with the diff and the three ways to settle
+- [Safety](./safety.md) — the guards that stop a deletion becoming a conflict you never see

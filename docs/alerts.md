@@ -64,3 +64,10 @@ coalesce_after = "60s"   # Multi-event aggregation window
 settle_after   = "15m"   # Incident closure threshold
 timeout        = "30s"   # Script execution timeout
 ```
+
+## See also
+
+- [Configuration](./configuration.md) — where `on_alert` is set, and the timing around it
+- [The app](./app.md) — the app raises these itself when no hook is configured
+- [Conflicts](./conflicts.md) — what an alert about a conflict is asking you to do
+- [Commands](./commands.md) — `status --json`, the document a hook is handed

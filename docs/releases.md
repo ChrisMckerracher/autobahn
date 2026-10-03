@@ -117,3 +117,10 @@ The certificate can sign anything as you, so it is kept where it can do the leas
 If the certificate ever leaks, revoke it in your Apple Developer account.
 
 The app is Apple Silicon only; the command-line binaries cover Intel as well. A command-line binary cannot be stapled, so Gatekeeper checks its notarisation online the first time it runs. The runner's default Xcode may be older than 26, whose `actool` is the only one that compiles the Icon Composer bundle; the job picks Xcode 26 when the runner has it, and otherwise `build.sh` uses the committed `assets/autobahn.icns`, the same icon without the macOS 26 variants.
+
+## See also
+
+- [Development](./development.md) — building any of it yourself
+- [Commands](./commands.md) — `update`, the in-place upgrade
+- [The state root](./state.md) — the agent bundle, and how a remote host gets one
+- [The app](./app.md) — what the signed macOS artifacts are

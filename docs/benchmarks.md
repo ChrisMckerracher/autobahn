@@ -64,3 +64,9 @@ Dedicated first-sync medians were:
 | Chromium, ten destinations | 221.3 s | 505.4 s |
 
 Cells used different machine groups. The fan-out result does not show that adding destinations accelerates the same machine.
+
+## See also
+
+- [Benchmark matrix](./benchmark-matrix.md) — every cell, and which builds were measured
+- [How it works](./how-it-works.md) — the design these numbers come out of
+- [Development](./development.md) — the A/B gate, and how a run is reproduced
