@@ -29,13 +29,11 @@ CI runs on pushes to `main` and pull requests. It skips changes limited to Markd
 
 The macOS job runs the suite and builds an ad-hoc-signed tray app. Release certificates are unavailable to ordinary CI. New pushes cancel older runs on the same branch.
 
-Every job runs by default. The macOS job waits for Linux and is the longest at about fifteen minutes, but linux, linux-arm and spec are all done around eight whether it runs or not, and runner time is free on a public repository — so skipping it buys a green tick sooner and nothing else.
-
-For the pushes where that is worth having, `[skip mac]`, `[mac skip]` or `[no mac]` in the head commit's message or a pull request's title turns it off for that push, the way GitHub's own `[skip ci]`, `[ci skip]` and `[no ci]` turn off every workflow. Only the **final** commit of a push is read. A manual run (`gh workflow run ci.yml`) ignores all of them.
+Every job runs on every push that reaches them; nothing is opt-in. The macOS job waits for Linux and is the longest at about fifteen minutes, but linux, linux-arm and spec are all done around eight whether it runs or not, and runner time is free on a public repository — so skipping it would buy a green tick sooner and nothing else.
 
 The app build is a separate workflow on its own path filter, eight minutes across three runners in parallel, finishing inside the time CI takes anyway.
 
-A release needs `linux`, `linux-arm`, `mac` and `spec` to have passed on the tagged commit — so do not tag one whose message skipped mac. `release.yml` names the recovery when it refuses: run CI on the tag by hand, then push it again.
+A release needs `linux`, `linux-arm`, `mac` and `spec` to have passed on the tagged commit. Since they all run on every push to main, tagging a commit that is green is enough; `release.yml` names the recovery when it is not.
 
 ## Targeted tests
 

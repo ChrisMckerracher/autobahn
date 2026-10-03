@@ -32,6 +32,14 @@ on:
 permissions:
   contents: read
 
+# A newer push replaces an older check of the same branch: the question
+# is what the lock file says now, and an answer about what it said two
+# commits ago is not worth a runner. The scheduled run has its own ref,
+# so a weekly check is never cancelled by a push.
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # cargo-deny's release binary, checked against its SHA-256 before it runs.
   # To upgrade, change both, from the release's .sha256 asset.
