@@ -180,6 +180,7 @@ fn open_window(
     state_root: PathBuf,
     pane: Option<String>,
     shown: bool,
+    speaks: bool,
     cx: &mut App,
 ) -> gpui_kit::WindowHandle<Root> {
     // A width can be asked for, which is how the narrow layouts are
@@ -214,7 +215,7 @@ fn open_window(
     let window = cx
         .open_window(options, |window, cx| {
             let dash = cx.new(|cx| {
-                let mut dash = Dash::new(config, state_root, cx);
+                let mut dash = Dash::new(config, state_root, speaks, cx);
                 if let Some(pane) = pane.as_deref() {
                     // `config:defaults` opens the configuration on one of
                     // its sections, which is the only way a picture of a
@@ -300,7 +301,7 @@ fn watch_the_bar(config: Option<PathBuf>, state_root: PathBuf, cx: &mut App) {
                     crate::dock::in_the_dock(true);
                     cx.activate(true);
                     if cx.windows().is_empty() {
-                        open_window(config.clone(), state_root.clone(), None, true, cx);
+                        open_window(config.clone(), state_root.clone(), None, true, false, cx);
                     } else {
                         for window in cx.windows() {
                             window
@@ -417,7 +418,19 @@ pub struct Dash {
     form: ScrollHandle,
     /// How much of itself this app shows: a window, a menu bar item,
     /// or both.
-    presence: crate::dock::Presence,
+    presence: crate::preferences::Presence,
+    /// Whether this machine wants the app to raise notifications.
+    notify: bool,
+    /// Whether `on_alert` is set, which is what makes the app's own
+    /// notifications a second voice saying the same thing. Read on the
+    /// poll and not at startup, so a hook added while the app is open
+    /// changes the warning without a restart — and not in the render,
+    /// which would be a file read every frame.
+    hook_set: bool,
+    /// Raises them, when no menu bar item is doing it. `None` only if
+    /// no alert plan could be built at all, which is a configuration
+    /// too broken to say anything useful about anyway.
+    notifier: Option<crate::menubar::Notifier>,
     /// The name being typed for a new group, while one is being made.
     naming: Option<Entity<TextareaState>>,
     /// The group the name in that field would rename, when it is a
@@ -492,10 +505,11 @@ fn run_with(
             // What this machine asked for: a window, a menu bar item, or
             // both. A screenshot always wants the window, whatever the
             // file says.
-            let presence = match shot.is_some() {
-                true => crate::dock::Presence::Both,
-                false => crate::dock::read(&state_root),
+            let settings = match shot.is_some() {
+                true => crate::preferences::Settings::default(),
+                false => crate::preferences::read(&state_root),
             };
+            let presence = settings.presence;
             let wants_bar = shot.is_none() && presence.takes_the_menu_bar();
             let bar = if wants_bar {
                 // The same item in the menu bar the other window puts
@@ -516,7 +530,19 @@ fn run_with(
             };
             let shown = presence.opens_a_window() || (wants_bar && bar.is_none());
             crate::dock::in_the_dock(shown);
-            let window = open_window(config.clone(), state_root.clone(), wanted, shown, cx);
+            // The bar notifies when there is one. When there is not —
+            // a window-only presence, or a bar that would not start —
+            // the window does it instead, so the choice of where the
+            // app appears never decides whether anything tells you.
+            let speaks = settings.notify && bar.is_none();
+            let window = open_window(
+                config.clone(),
+                state_root.clone(),
+                wanted,
+                shown,
+                speaks,
+                cx,
+            );
             if let Some(bar) = bar {
                 cx.set_global(Menubar(bar));
                 watch_the_bar(config.clone(), state_root.clone(), cx);
@@ -590,13 +616,39 @@ fn said_by_a_panic(panic: Box<dyn std::any::Any + Send>) -> String {
 }
 
 impl Dash {
-    fn new(config: Option<PathBuf>, state_root: PathBuf, cx: &mut Context<Self>) -> Self {
+    fn new(
+        config: Option<PathBuf>,
+        state_root: PathBuf,
+        speaks: bool,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let names = cx.text_system().all_font_names();
         let mono = ["SF Mono", "Menlo", "Monaco"]
             .into_iter()
             .find(|name| names.iter().any(|known| known == name))
             .unwrap_or("Menlo");
-        let presence = crate::dock::read(&state_root);
+        let settings = crate::preferences::read(&state_root);
+        let presence = settings.presence;
+        // The window's own notifier, used only when no bar took the
+        // job. Its plan comes from the configuration, so it holds
+        // exactly the timing the hook would; a configuration that will
+        // not load yet gets the built-in plan, which is the same thing
+        // minus the hook.
+        let plan = config
+            .as_deref()
+            .map(std::path::Path::to_path_buf)
+            .or_else(|| crate::paths::default_config_path().ok())
+            .and_then(|path| {
+                crate::config::Config::load(&path)
+                    .and_then(|config| config.alert_plan())
+                    .ok()
+            })
+            .or_else(|| crate::config::Config::default().alert_plan().ok());
+        let notifier = plan.map(|plan| {
+            let mut notifier = crate::menubar::Notifier::new(plan, state_root.clone());
+            notifier.wanted(speaks);
+            notifier
+        });
         // Every other pane shells out to `autobahn` for what it shows.
         // With no command to shell out to they are all empty in the same
         // uninformative way, so the window opens on the one pane that can
@@ -636,6 +688,9 @@ impl Dash {
             hint: SharedString::from(crate::words::hint()),
             form: ScrollHandle::new(),
             presence,
+            notify: settings.notify,
+            hook_set: false,
+            notifier,
             naming: None,
             renaming: None,
             showing_faults: false,
@@ -749,6 +804,9 @@ impl Dash {
                 Err(_) => return,
             },
         };
+        self.hook_set = crate::config::Config::load(&path)
+            .map(|config| config.on_alert.is_some())
+            .unwrap_or(false);
         match crate::supervisor::shown_plans(&path, &self.state_root) {
             Ok(shown) => {
                 let selected: Vec<&crate::config::SessionPlan> = shown.plans.iter().collect();
@@ -768,6 +826,12 @@ impl Dash {
         // The dock icon carries what needs a person, so a glance at it
         // answers the question the window was opened to answer.
         crate::dock::badge(self.waiting());
+        // And the notification, when no menu bar item is raising it.
+        // The same report, the same rules; the notifier was told at
+        // startup whether it is the one speaking.
+        if let (Some(notifier), Some(report)) = (self.notifier.as_mut(), self.report.as_ref()) {
+            notifier.observe(report);
+        }
     }
 
     fn working(&self) -> bool {
@@ -974,13 +1038,42 @@ impl Dash {
     /// putting it back mid-session is more moving parts than the
     /// setting is worth, so it settles at the next launch and the
     /// status line says so.
-    fn show_as(&mut self, presence: crate::dock::Presence) {
+    fn show_as(&mut self, presence: crate::preferences::Presence) {
         self.presence = presence;
         crate::dock::in_the_dock(presence.opens_a_window());
-        self.said = Some(match crate::dock::write(&self.state_root, presence) {
+        self.said = Some(match self.keep_settings() {
             Some(error) => fill("presence.unwritable", &[("error", &error)]),
             None => t("presence.at_next_launch").to_owned(),
         });
+    }
+
+    /// Turns the app's own notifications on or off.
+    ///
+    /// Takes effect at once, unlike the presence beside it: whichever
+    /// notifier is running is told, and there is nothing to rebuild.
+    fn notify_as(&mut self, wanted: bool) {
+        self.notify = wanted;
+        if let Some(notifier) = self.notifier.as_mut() {
+            notifier.wanted(wanted);
+        }
+        self.said = Some(match self.keep_settings() {
+            Some(error) => fill("presence.unwritable", &[("error", &error)]),
+            None => match wanted {
+                true => t("presence.notify_on").to_owned(),
+                false => t("presence.notify_off").to_owned(),
+            },
+        });
+    }
+
+    /// Writes both of this machine's choices, which share one file.
+    fn keep_settings(&self) -> Option<String> {
+        crate::preferences::write(
+            &self.state_root,
+            crate::preferences::Settings {
+                presence: self.presence,
+                notify: self.notify,
+            },
+        )
     }
 
     /// Asks the service manager for something, and says what came back.
@@ -2342,14 +2435,53 @@ impl Dash {
                         )),
                 ),
             )
+            // Whether the app says anything when a session needs a
+            // person. Its own question, and not the presence below: a
+            // window with no menu bar item still has something to say.
+            .child(
+                self.block(t("service.notifications"))
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap(step(2.5))
+                            .child(
+                                Switch::new("notify")
+                                    .checked(self.notify)
+                                    .tooltip(t("tip.notify"))
+                                    .on_click(cx.listener(move |this, _, _, cx| {
+                                        let wanted = !this.notify;
+                                        this.notify_as(wanted);
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(div().text_size(px(11.)).text_color(rgb(FAINT)).child(
+                                match self.notify {
+                                    true => t("service.notify_on"),
+                                    false => t("service.notify_off"),
+                                },
+                            )),
+                    )
+                    // A hook follows the same rules, so both on means
+                    // hearing everything twice. Said only when it is
+                    // true of this machine right now.
+                    .when(self.notify && self.hook_set, |block| {
+                        block.child(
+                            div()
+                                .text_size(px(11.))
+                                .text_color(rgb(AMBER))
+                                .child(t("service.notify_and_hook")),
+                        )
+                    }),
+            )
             // How much of itself the app shows.
             .child(
                 self.block(t("service.showing")).child(
                     div().flex().gap(step(1.5)).children(
                         [
-                            crate::dock::Presence::Both,
-                            crate::dock::Presence::Window,
-                            crate::dock::Presence::Menubar,
+                            crate::preferences::Presence::Both,
+                            crate::preferences::Presence::Window,
+                            crate::preferences::Presence::Menubar,
                         ]
                         .into_iter()
                         .map(|presence| {
@@ -2359,14 +2491,14 @@ impl Dash {
                                 .when(chosen, |button| button.primary())
                                 .when(!chosen, |button| button.outline())
                                 .label(t(match presence {
-                                    crate::dock::Presence::Both => "presence.both",
-                                    crate::dock::Presence::Window => "presence.window",
-                                    crate::dock::Presence::Menubar => "presence.menubar",
+                                    crate::preferences::Presence::Both => "presence.both",
+                                    crate::preferences::Presence::Window => "presence.window",
+                                    crate::preferences::Presence::Menubar => "presence.menubar",
                                 }))
                                 .tooltip(t(match presence {
-                                    crate::dock::Presence::Both => "tip.presence_both",
-                                    crate::dock::Presence::Window => "tip.presence_window",
-                                    crate::dock::Presence::Menubar => "tip.presence_menubar",
+                                    crate::preferences::Presence::Both => "tip.presence_both",
+                                    crate::preferences::Presence::Window => "tip.presence_window",
+                                    crate::preferences::Presence::Menubar => "tip.presence_menubar",
                                 }))
                                 .on_click(cx.listener(move |this, _, _, cx| {
                                     this.show_as(presence);

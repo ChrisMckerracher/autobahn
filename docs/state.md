@@ -7,7 +7,7 @@ Autobahn keeps configuration and session state under `~/.autobahn` by default, o
 | path | holds |
 |---|---|
 | `config.toml` | the configuration — the source of truth |
-| `dash.toml` | this machine's Dash display preference (`presence = "both"`, `"window"`, or `"menubar"`), separate from the fleet configuration |
+| `dash.toml` | what this machine asked of the app, separate from the fleet configuration: `presence` (`"both"`, `"window"`, or `"menubar"`) and `notify`, whether it raises desktop notifications itself |
 | `install.log` | the desktop app's installer output |
 | `host.toml` | what this machine allows, whoever asks: the folders its agent serves — see [This machine's own settings](./configuration.md#host-local-policy-autobahnhosttoml) |
 | `sessions/<id>/` | each session's ancestor and journal: what was last agreed between its two roots |

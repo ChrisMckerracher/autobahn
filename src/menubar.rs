@@ -124,18 +124,9 @@ pub(crate) struct Bar {
     pub(crate) tray: Option<TrayIcon>,
     /// Menu item ids to what choosing them does.
     pub(crate) actions: HashMap<muda::MenuId, Action>,
-    /// Decides when a notification is due, from what the report shows.
-    /// The same policy the supervisor's hook uses — confirmation, only
-    /// growth is news, a cascade gathered into one, trouble that comes and
-    /// goes reported once — so the tray cannot say something the hook
-    /// would not. Before this it announced every transition, recoveries
-    /// included, with no hold time and no coalescing, and was a second
-    /// source of exactly the storm the hook's rules exist to prevent.
-    pub(crate) alerter: crate::alerts::Alerter,
-    /// Whether `on_alert` is configured. When it is, the hook is the one
-    /// place notifications come from and the tray stays quiet: two
-    /// sources with identical rules still means everything twice.
-    pub(crate) hook_configured: bool,
+    /// Decides when a notification is due, and raises it. Shared with
+    /// the window, which notifies for itself when no bar is running.
+    pub(crate) notifier: Notifier,
     pub(crate) health: Health,
     /// The menu bar's ink at the last poll. The sign is drawn in it, so a
     /// switch between light and dark redraws the icon on the next poll.
@@ -151,9 +142,6 @@ pub(crate) struct Bar {
     /// The last action's failure, shown at the top of the menu until an
     /// action succeeds — a notification can be missed.
     pub(crate) last_error: Option<String>,
-    /// The refused configuration edit last announced, so each is
-    /// announced once.
-    pub(crate) last_notice: Option<crate::supervisor::reload::Notice>,
     /// The live menu.
     pub(crate) model: Option<MenuModel>,
     /// Whether this process has a window to show, which is what puts
@@ -187,7 +175,7 @@ impl Bar {
                 .and_then(|config| config.alert_plan())
                 .or_else(|_| crate::config::Config::default().alert_plan())?
         };
-        let hook_configured = plan.on_alert.is_some();
+        let state_root_for_alerts = state_root.clone();
         // Actions run on a worker thread, one after another. Before this
         // they ran on the event loop, so a second menu choice was lost
         // while the first was still running and a slow resolve froze the
@@ -223,13 +211,11 @@ impl Bar {
             failure,
             tray: None,
             actions: HashMap::new(),
-            alerter: crate::alerts::Alerter::new(plan),
-            hook_configured,
+            notifier: Notifier::new(plan, state_root_for_alerts),
             ink: menu_bar_ink(None),
             health: Health::Idle,
             report: None,
             last_error: None,
-            last_notice: None,
             model: None,
             window: false,
         })
@@ -634,58 +620,7 @@ impl Bar {
     /// each session's alerting conditions, decided by the supervisor's
     /// own rule, so nothing here reinterprets a state word.
     pub(crate) fn notify(&mut self, report: &StatusReport) {
-        if self.hook_configured {
-            return;
-        }
-        // A refused edit is one event, announced once; the line in the
-        // menu stays until the file loads again.
-        if report.config_notice != self.last_notice {
-            if let Some(notice) = &report.config_notice {
-                // The first line only: a notification is narrower than a
-                // menu, and the caret diagram under a parse error reads as
-                // rubble once its newlines are escaped away.
-                let first = notice.message.split('\n').next().unwrap_or("").trim_end();
-                notify_with(
-                    "configuration",
-                    "autobahn",
-                    &fill("menu.config_refused", &[("message", &display_safe(first))]),
-                    crate::icon::ensure(&self.state_root),
-                );
-            }
-            self.last_notice = report.config_notice.clone();
-        }
-        let sessions: Vec<crate::alerts::SessionAlerts> = report
-            .groups
-            .iter()
-            .flat_map(|group| {
-                group
-                    .sessions
-                    .iter()
-                    .map(move |session| crate::alerts::SessionAlerts {
-                        session: session.session.clone(),
-                        group: group.name.clone(),
-                        host: session.host.clone(),
-                        destination: session.label().to_owned(),
-                        alerts: session.alerts.clone(),
-                        summary: session.alert_summary.clone(),
-                        after: session.alert_after,
-                    })
-            })
-            .collect();
-        if let Some(crate::alerts::Fire::Alert {
-            summary, detail, ..
-        }) = self.alerter.observe(&sessions, std::time::Instant::now())
-        {
-            // One identifier for the alerting set, so trouble that
-            // grows updates the notification a person is already
-            // looking at.
-            notify_with(
-                "fleet",
-                &summary,
-                &detail,
-                crate::icon::ensure(&self.state_root),
-            );
-        }
+        self.notifier.observe(report);
     }
 
     /// Queues a chosen action. Several choices stack up and run in the
@@ -771,6 +706,113 @@ pub(crate) fn run_action(
         Action::ServiceRestart => crate::service::restart(),
         // Answered by the surface, never queued to be run here.
         Action::Refresh | Action::Quit | Action::Show => Ok(()),
+    }
+}
+
+/// Who decides a notification is due, and raises it.
+///
+/// The same policy the supervisor's hook uses — a condition must hold
+/// before it counts, only something joining the set in trouble is news,
+/// a cascade is gathered into one, and recovery is silent — so nothing
+/// here can say something the hook would not. Before the rules were
+/// shared, the tray announced every transition, recoveries included,
+/// with no hold time and no coalescing: a second source of exactly the
+/// storm the hook's rules exist to prevent.
+///
+/// One of these belongs to the menu bar when there is one, and to the
+/// window when there is not. Never both at once in a process: two
+/// following identical rules would still say everything twice.
+pub(crate) struct Notifier {
+    alerter: crate::alerts::Alerter,
+    /// Whether `on_alert` is configured. When it is, the hook is the
+    /// one place notifications come from and this stays quiet.
+    hook_configured: bool,
+    /// Whether this machine wants them at all.
+    wanted: bool,
+    /// The refused configuration edit last announced, so each is
+    /// announced once.
+    last_notice: Option<crate::supervisor::reload::Notice>,
+    state_root: PathBuf,
+}
+
+impl Notifier {
+    pub(crate) fn new(plan: crate::alerts::AlertPlan, state_root: PathBuf) -> Notifier {
+        let hook_configured = plan.on_alert.is_some();
+        Notifier {
+            alerter: crate::alerts::Alerter::new(plan),
+            hook_configured,
+            wanted: true,
+            last_notice: None,
+            state_root,
+        }
+    }
+
+    /// Turns them off, or back on, without forgetting what has already
+    /// been said: a person who switches them off and on again has not
+    /// asked to hear about trouble that was already reported.
+    ///
+    /// The window's switch; a bar is told at startup and never changes
+    /// its mind, so a tray-only build never calls this.
+    #[cfg(feature = "dash")]
+    pub(crate) fn wanted(&mut self, wanted: bool) {
+        self.wanted = wanted;
+    }
+
+    /// Looks at what every session is in, and raises a notification if
+    /// the rules say one is due.
+    pub(crate) fn observe(&mut self, report: &StatusReport) {
+        if self.hook_configured || !self.wanted {
+            return;
+        }
+        // A refused edit is one event, announced once; the line in the
+        // menu stays until the file loads again.
+        if report.config_notice != self.last_notice {
+            if let Some(notice) = &report.config_notice {
+                // The first line only: a notification is narrower than a
+                // menu, and the caret diagram under a parse error reads as
+                // rubble once its newlines are escaped away.
+                let first = notice.message.split('\n').next().unwrap_or("").trim_end();
+                notify_with(
+                    "configuration",
+                    "autobahn",
+                    &fill("menu.config_refused", &[("message", &display_safe(first))]),
+                    crate::icon::ensure(&self.state_root),
+                );
+            }
+            self.last_notice = report.config_notice.clone();
+        }
+        let sessions: Vec<crate::alerts::SessionAlerts> = report
+            .groups
+            .iter()
+            .flat_map(|group| {
+                group
+                    .sessions
+                    .iter()
+                    .map(move |session| crate::alerts::SessionAlerts {
+                        session: session.session.clone(),
+                        group: group.name.clone(),
+                        host: session.host.clone(),
+                        destination: session.label().to_owned(),
+                        alerts: session.alerts.clone(),
+                        summary: session.alert_summary.clone(),
+                        after: session.alert_after,
+                    })
+            })
+            .collect();
+        if let Some(crate::alerts::Fire::Alert {
+            summary, detail, ..
+        }) = self.alerter.observe(&sessions, std::time::Instant::now())
+        {
+            // One identifier for the alerting set, so trouble that
+            // grows updates the notification a person is already
+            // looking at.
+            notify_with(
+                "fleet",
+                &summary,
+                &detail,
+                crate::icon::ensure(&self.state_root),
+            );
+        }
     }
 }
 

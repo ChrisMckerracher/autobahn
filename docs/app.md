@@ -71,7 +71,14 @@ Choices are queued rather than run where you click. They go to a worker thread i
 
 ## Choosing what shows
 
-In Dash's Service pane, pick a window, a menu bar item, or both. The default is both. The choice is this machine's, saved as `presence = "window"`, `"menubar"`, or `"both"` in `dash.toml` under the state root — it is not part of the fleet configuration.
+In Dash's Service pane, pick a window, a menu bar item, or both. The default is both.
+
+The choice is this machine's, and so is the notification switch above it. Both are saved in `dash.toml` under the state root, which is not part of the fleet configuration:
+
+```toml
+presence = "both"   # both, window, or menubar
+notify = true       # whether the app raises desktop notifications itself
+```
 
 ## Editing configuration
 
@@ -83,9 +90,13 @@ A running supervisor picks up a saved file through [live reload](./configuration
 
 ## Notifications
 
-With no `on_alert` hook configured, the app raises desktop notifications itself, under exactly the rules the hook would use: a condition has to hold before it counts, only something *joining* the set in trouble is news, a cascade is gathered into one, and recovery is silent. See [Alerts](./alerts.md).
+The app raises desktop notifications itself, under exactly the rules an `on_alert` hook would use: a condition has to hold before it counts, only something *joining* the set in trouble is news, a cascade is gathered into one, and recovery is silent. See [Alerts](./alerts.md).
 
-With a hook configured, the app stays quiet. The hook is then the one place notifications come from — two sources following identical rules would still say everything twice.
+This does not depend on showing a menu bar item. A window with no menu bar still notifies — choosing where the app appears is not a choice about whether anything tells you a session has halted. Exactly one thing speaks per app: the menu bar item when there is one, the window when there is not.
+
+Turn them off with the switch in the Service pane.
+
+**Do not leave them on alongside an `on_alert` hook.** The hook follows the same rules, so both means being told everything twice. The Service pane says so when it finds a hook configured and the switch still on; turn off whichever you want less. A hook you add while the app is open is noticed within a few seconds, without a restart.
 
 ## Starting at login
 

@@ -33,8 +33,7 @@ pub mod config;
 /// dashed up by the horses.
 #[cfg(feature = "dash")]
 pub mod dash;
-/// The application's own presence: the dock icon, and whether there is
-/// a window, a menu bar item, or both.
+/// The icon in the dock, and the count on it.
 #[cfg(feature = "dash")]
 pub mod dock;
 pub mod endpoint;
@@ -56,6 +55,10 @@ pub mod paths;
 pub mod peerkeys;
 pub mod persist;
 pub mod power;
+/// What this machine has asked of the app: a window, a menu bar item,
+/// or both, and whether it says anything when a session needs a person.
+#[cfg(feature = "dash")]
+pub mod preferences;
 pub mod progress;
 pub mod protocol;
 pub mod root;
