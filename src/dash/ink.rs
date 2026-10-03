@@ -195,7 +195,7 @@ mod tests {
             })
     }
 
-    const LINE: &str = "2026-09-24 09:55:57 [dev@halle.steinbach.de] blocked: beta path: why";
+    const LINE: &str = "2026-09-24 09:55:57 [dev@halle.steinbach.de] blocked: replica path: why";
     const CHATTER: &str =
         "2026-09-24 09:55:57 debug: [dev@halle.steinbach.de] cycle finished in 0.10s";
 
@@ -208,7 +208,7 @@ mod tests {
         );
         assert_eq!(colour_of(LINE, "2026-09-24"), Some(FAINT));
         assert_eq!(colour_of(LINE, "[halle"), Some(BLUE));
-        assert_eq!(colour_of(LINE, "beta path"), Some(INK));
+        assert_eq!(colour_of(LINE, "replica path"), Some(INK));
     }
 
     #[test]
