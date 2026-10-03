@@ -1,8 +1,10 @@
-# Builds the app for people to try, when a push to main asks for one:
-# put [app] in the head commit's message. Opt in rather than out — it
-# is eight minutes on three runners, and most changes to src/ are the
-# command's rather than the window's. A manual run always builds:
-#   gh workflow run app.yml
+# Builds the app for people to try, on a push to main that touches it.
+# Eight minutes across three runners in parallel, so it finishes inside
+# the time CI takes anyway and never delays anything. Runner time is
+# free on a public repository, so there is nothing to save by asking
+# for it, and a channel that always matches main cannot go stale
+# without anybody noticing — which is what the branch it used to watch
+# did.
 #
 # Separate from release.yml, which ships the command on a tag and signs
 # and notarises everything. Nothing here is signed: these are builds to
@@ -52,12 +54,6 @@ env:
 jobs:
   build:
     name: ${{ matrix.platform }}
-    # `workflow_dispatch` carries no commit message, so the marker can
-    # never be found on one; naming the event is what makes a manual
-    # run build without one.
-    if: >-
-      ${{ github.event_name == 'workflow_dispatch'
-          || contains(github.event.head_commit.message, '[app]') }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
       # One platform failing should not hide whether the others work,
@@ -183,10 +179,8 @@ jobs:
     name: Publish app-latest
     needs: build
     # A platform that failed should not stop the ones that worked from
-    # reaching the person waiting to try them — but a build nobody asked
-    # for produces nothing, and `always()` would otherwise send this to
-    # replace the release with an empty one.
-    if: always() && !cancelled() && needs.build.result != 'skipped'
+    # reaching the person waiting to try them.
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
