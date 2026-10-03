@@ -2,17 +2,19 @@
 
 *Subsecond sync with German precision.*
 
-Keep your files in sync as fast as you or an agent edits them across a fleet of machines.
-
-<img src="assets/screenshots/groups.png" alt="Autobahn Dash showing three sync groups across four sessions, all synchronized" width="900">
+Keep your files in sync as fast as you (or an agent) edit them across a fleet.
 
 ```sh
 curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh | sh
 ```
 
-Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or see [Autobahn Dash](docs/app.md) for the experimental desktop interface above.
+You can also point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup or install [Autobahn Dash](docs/app.md) from its [releases page](https://github.com/fny/autobahn/releases).
 
-‼️ Want to use Autobahn free of AGPLv3? Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
+<img src="assets/screenshots/groups.png" alt="Autobahn Dash showing three sync groups across four sessions, all synchronized" width="900">
+
+> ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3?
+>
+> ✨ Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
 
 ## The Problem
 
@@ -20,12 +22,14 @@ Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or se
 - Agents that run `--dangerously` should do it in a VM elsewhere, but you can't use your local tools.
 - Some sync tools require gigs of RAM for big trees, or a cloud account, or both.
 
+Solution: keep everything in sync so editing local files is the same as editing remote ones.
+
 ## Why Autobahn
 
 - **Fast as hell.** Delivers sub-30ms propagation times for small-file updates across trees containing hundreds of thousands of files.
 - **Lightweight.** Employs immutable shared-tree structures in memory, requiring significantly less RAM and idle CPU than conventional sync daemons.
-- **Safe.** Choose a sync policy per group, backed by tests and bounded formal models. See [Safety](docs/safety.md) for the guarantees and their limits.
-- **Reviewed.** Findings from the security reviews are fixed or recorded; the ones that remain are in [accepted risks](docs/correctness/accepted-risks.md), each with its reasoning.
+- **Safe.** Choose a sync policy per group that matches your risk profile backed by tests and bounded formal models. See [Safety](docs/safety.md) for the guarantees and their limits.
+- **Reviewed to death.** GLM 5.3, KIMI 3, Astra, and Fable were used to perform correctness and secuirty reviews.
 - **Privacy first.** No cloud service, no account, no third party.
 
 ## Quick Start
@@ -79,7 +83,6 @@ For mode details, see [Modes](docs/modes.md) and [Conflict Resolution](docs/conf
 
 Read [P2P](docs/p2p.md) before P2P use.
 
-
 ## Benchmarks
 
 Autobahn began as an effort to reduce the memory use of [Mutagen](https://mutagen.io/) which offers similar sync features, and then I got carried away.
@@ -110,12 +113,11 @@ Autobahn prevents data loss through strict operational invariants:
 
 See [Safety](docs/safety.md) for guarantees and the related invariants in [Correctness](docs/correctness/).
 
-
 ## UI Goodness
 
 In addition to the standard CLI, several user interfaces are available:
 - **[Autobahn Dash](docs/app.md):** Experimental desktop window.
-- **[Menu bar item](docs/tray.md):** Status light and a menu, inside Dash or standalone.
+- **[Menu bar item](docs/tray.md):** Status light and a menu without need for the full app.
 - **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn shop`).
 - **[Alert Hooks](docs/alerts.md):** Event notification script support (`on_alert`).
 
@@ -131,7 +133,7 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 
 ## Contributing
 
-- I won't accept PRs. I prefer my slop over your slop, so instead file an issue for a bug report or (small) feature request.
+- I won't accept PRs unless I know you. I prefer my slop over your slop, so instead file an issue for a bug report or (small) feature request.
 - Bug reports should come with detailed context from a human or LLM.
 - Feature requests should be small with high impact.
 - Have a greater request? Go fork yourself. ;D
@@ -158,6 +160,7 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 - [Failover P2P (Experimental)](docs/p2p.md)
 
 ### Verification & Performance
+
 - [Benchmark Results](docs/benchmarks.md)
 - [Full Benchmark Matrix](docs/benchmark-matrix.md)
 - [Invariants](docs/correctness/invariants.md)
@@ -165,7 +168,6 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 - [Development Guide](docs/development.md)
 - [Release Process](docs/releases.md)
 - [Roadmap and proposals](docs/wishlist.md)
-
 
 ## System Requirements & Limitations
 
@@ -177,7 +179,5 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 
 Autobahn is dual licensed: `AGPL-3.0-or-later OR LicenseRef-Commercial`.
 
-- **[AGPL-3.0-or-later](LICENSE)** — free for any use, including in a business. Its condition is reciprocity: if you convey a modified version, or let others use one over a network, those users are entitled to its source under the same terms.
-- **[Commercial](COMMERCIAL-LICENSE.md)** — for building on Autobahn without that condition.
-
-Using Autobahn to sync your own files places you under neither obligation; the AGPL's network clause is about offering a modified Autobahn to others, not about the files it carries.
+- **[AGPL-3.0-or-later](LICENSE)**: free for any use with copy left caveats
+- **[Commercial](COMMERCIAL-LICENSE.md)** [donate to Justice-In-Education](docs/donations.md) to use Autobahn free of GPL
