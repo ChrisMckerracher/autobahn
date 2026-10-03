@@ -19,7 +19,10 @@ fn main() -> anyhow::Result<()> {
             "--shoot" => shoot = arguments.next().map(Into::into),
             "--pane" => pane = arguments.next(),
             "--help" | "-h" => {
-                println!("autobahn-dash [--config <file>] [--state-root <directory>]");
+                println!(
+                    "autobahn-dash [--config <file>] [--state-root <directory>] \
+                     [--pane <name>] [--shoot <directory>]"
+                );
                 return Ok(());
             }
             other => anyhow::bail!("unknown argument {other}"),
@@ -31,6 +34,6 @@ fn main() -> anyhow::Result<()> {
     };
     match shoot {
         Some(directory) => autobahn::dash::shoot(config, state_root, directory, pane),
-        None => autobahn::dash::run(config, state_root),
+        None => autobahn::dash::run(config, state_root, pane),
     }
 }

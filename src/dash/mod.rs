@@ -447,9 +447,10 @@ pub struct Dash {
     installing: bool,
 }
 
-/// Runs the window until it is closed.
-pub fn run(config: Option<PathBuf>, state_root: PathBuf) -> Result<()> {
-    run_with(config, state_root, None)
+/// Runs the window until it is closed, opening on `pane` when one was
+/// asked for — the gallery opens straight onto the view being worked on.
+pub fn run(config: Option<PathBuf>, state_root: PathBuf, pane: Option<String>) -> Result<()> {
+    run_with(config, state_root, pane, None)
 }
 
 /// The same window, photographed into `directory` and closed again.
@@ -459,7 +460,7 @@ pub fn shoot(
     directory: PathBuf,
     pane: Option<String>,
 ) -> Result<()> {
-    run_with(config, state_root, Some((directory, pane)))
+    run_with(config, state_root, pane, Some(directory))
 }
 
 /// A menu bar alone is useful only if its item appeared. Decide that
@@ -467,7 +468,8 @@ pub fn shoot(
 fn run_with(
     config: Option<PathBuf>,
     state_root: PathBuf,
-    shots: Option<(PathBuf, Option<String>)>,
+    pane: Option<String>,
+    shot: Option<PathBuf>,
 ) -> Result<()> {
     // The icons are files the kit embeds, so the application has to be
     // told where its assets come from or every one of them draws as
@@ -479,15 +481,16 @@ fn run_with(
             cx.activate(true);
             let config = config.clone();
             let state_root = state_root.clone();
-            let wanted = shots.as_ref().and_then(|(_, pane)| pane.clone());
+            let pane = pane.clone();
+            let wanted = pane.clone();
             // What this machine asked for: a window, a menu bar item, or
             // both. A screenshot always wants the window, whatever the
             // file says.
-            let presence = match shots.is_some() {
+            let presence = match shot.is_some() {
                 true => crate::dock::Presence::Both,
                 false => crate::dock::read(&state_root),
             };
-            let wants_bar = shots.is_none() && presence.takes_the_menu_bar();
+            let wants_bar = shot.is_none() && presence.takes_the_menu_bar();
             let bar = if wants_bar {
                 // The same item in the menu bar the other window puts
                 // there, from the same code: one poll, one notifier, and
@@ -512,7 +515,7 @@ fn run_with(
                 cx.set_global(Menubar(bar));
                 watch_the_bar(config.clone(), state_root.clone(), cx);
             }
-            let Some((directory, pane)) = shots.clone() else {
+            let Some(directory) = shot.clone() else {
                 return;
             };
             cx.spawn(async move |cx| {

@@ -541,8 +541,24 @@ pub fn restart() -> Result<()> {
     platform::restart()
 }
 
+/// What to answer instead of asking the service manager.
+///
+/// `scripts/views.sh` sets this, because the service pane has three
+/// states and a machine has one. Anything unrecognized is ignored
+/// rather than refused: a stray value in an environment should not
+/// stop the window opening.
+pub const TOLD_STATE: &str = "AUTOBAHN_SERVICE_STATE";
+
 /// The service's current state.
 pub fn state() -> Result<ServiceState> {
+    if let Some(told) = std::env::var(TOLD_STATE).ok() {
+        match told.as_str() {
+            "not-installed" => return Ok(ServiceState::NotInstalled),
+            "stopped" => return Ok(ServiceState::Stopped),
+            "running" => return Ok(ServiceState::Running),
+            _ => {}
+        }
+    }
     platform::state()
 }
 

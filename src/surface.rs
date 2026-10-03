@@ -1078,6 +1078,15 @@ fn runnable(path: &std::path::Path) -> bool {
     path.is_file()
 }
 
+/// Where to look for the command instead of looking.
+///
+/// `scripts/views.sh` sets this: at a shim that answers like `autobahn`,
+/// or at a path that is not there, which is the only way to see the
+/// welcome pane on a machine that has the real command installed —
+/// `looked_in` names absolute folders, so no amount of PATH will hide
+/// one that is sitting in `/usr/local/bin`.
+pub(crate) const TOLD_WHERE: &str = "AUTOBAHN_BIN";
+
 /// The `autobahn` command, if this machine has one.
 ///
 /// Not `current_exe`, which is what this used to be: the kit window is
@@ -1085,6 +1094,13 @@ fn runnable(path: &std::path::Path) -> bool {
 /// `autobahn-dash`, which answered "unknown argument resolve" and
 /// looked like a button that did nothing.
 pub(crate) fn found() -> Option<PathBuf> {
+    // Being told beats looking, in both directions: a path that is not
+    // runnable means there is no command, rather than meaning carry on
+    // searching.
+    if let Some(told) = std::env::var_os(TOLD_WHERE) {
+        let told = PathBuf::from(told);
+        return runnable(&told).then_some(told);
+    }
     if let Some(here) = std::env::current_exe().ok() {
         if here.file_name().is_some_and(|name| name == "autobahn") {
             return Some(here);
