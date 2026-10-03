@@ -123,4 +123,5 @@ The app is Apple Silicon only; the command-line binaries cover Intel as well. A 
 - [Development](./development.md) — building any of it yourself
 - [Commands](./commands.md) — `update`, the in-place upgrade
 - [The state root](./state.md) — the agent bundle, and how a remote host gets one
-- [The app](./app.md) — what the signed macOS artifacts are
+- [The menu bar item](./tray.md) — the bundle these sign and notarise
+- [Autobahn Dash](./app.md) — the unsigned channel, and why it is separate

@@ -72,5 +72,5 @@ A **blocked path** occurs when an endpoint cannot read or write an entry due to 
 
 - [Modes](./modes.md) — which modes report a conflict and which decide it
 - [Commands](./commands.md) — `issues`, `diff` and `resolve` on the command line
-- [The app](./app.md) — the Conflicts pane, with the diff and the three ways to settle
+- [Autobahn Dash](./app.md) — the Conflicts pane, with the diff and the three ways to settle
 - [Safety](./safety.md) — the guards that stop a deletion becoming a conflict you never see

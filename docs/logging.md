@@ -41,5 +41,5 @@ Autobahn automatically manages log rotation:
 
 - [The state root](./state.md) — where `service.log` and `watch.log` live
 - [Commands](./commands.md) — `status`, which answers most questions a log would
-- [The app](./app.md) — the Log pane, which tails the same file
+- [Autobahn Dash](./app.md) — the Log pane, which tails the same file
 - [Alerts](./alerts.md) — being told without going to look

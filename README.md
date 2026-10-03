@@ -10,7 +10,7 @@ Keep your files in sync as fast as you or an agent edits them across a fleet of 
 curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh | sh
 ```
 
-Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or see [the app](docs/app.md) for the experimental desktop interface above.
+Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or see [Autobahn Dash](docs/app.md) for the experimental desktop interface above.
 
 ‼️ Want to use Autobahn free of AGPLv3? Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
 
@@ -30,7 +30,7 @@ Point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup, or se
 
 ## Quick Start
 
-After you [install Autobahn](INSTALL.md) you need to set up your configuration. By default, the configuration is written to `~/.autobahn/config.toml`. You can edit it by hand or use [the app](docs/app.md).
+After you [install Autobahn](INSTALL.md) you need to set up your configuration. By default, the configuration is written to `~/.autobahn/config.toml`. You can edit it by hand or use [Autobahn Dash](docs/app.md).
 
 Each group connects one root, the primary, to one or more destinations, the replicas. Sync can be one-way, bidirectional, or P2P (experimental.)
 
@@ -114,7 +114,8 @@ See [Safety](docs/safety.md) for guarantees and the related invariants in [Corre
 ## UI Goodness
 
 In addition to the standard CLI, several user interfaces are available:
-- **[The app](docs/app.md):** Experimental desktop window and menu bar item.
+- **[Autobahn Dash](docs/app.md):** Experimental desktop window.
+- **[Menu bar item](docs/tray.md):** Status light and a menu, inside Dash or standalone.
 - **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn shop`).
 - **[Alert Hooks](docs/alerts.md):** Event notification script support (`on_alert`).
 
@@ -174,7 +175,7 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 
 ## License
 
-Autobahn is dual licensed: `AGPL-3.0-or-later OR LicenseRef-Commercial`. You may use it under either, and you choose which.
+Autobahn is dual licensed: `AGPL-3.0-or-later OR LicenseRef-Commercial`.
 
 - **[AGPL-3.0-or-later](LICENSE)** — free for any use, including in a business. Its condition is reciprocity: if you convey a modified version, or let others use one over a network, those users are entitled to its source under the same terms.
 - **[Commercial](COMMERCIAL-LICENSE.md)** — for building on Autobahn without that condition.

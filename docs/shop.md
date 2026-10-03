@@ -60,6 +60,7 @@ Overlapping selections are deduplicated. Marks clear after resolution and after 
 ## See also
 
 - [Commands](./commands.md) — everything this shows, as commands
-- [The app](./app.md) — the same fleet in a window
+- [Autobahn Dash](./app.md) — the same fleet in a window
+- [The menu bar item](./tray.md) — the same fleet in a menu
 - [Conflicts](./conflicts.md) — what the resolve keys do
 - [Logging](./logging.md) — the log, when the summary is not enough

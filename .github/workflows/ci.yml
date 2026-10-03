@@ -26,7 +26,6 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
-      - 'bench/**'
       - 'LICENSE*'
       - 'assets/sign*'
       - '.github/workflows/release.yml'
@@ -34,7 +33,6 @@ on:
     paths-ignore:
       - '**.md'
       - 'docs/**'
-      - 'bench/**'
       - 'LICENSE*'
       - 'assets/sign*'
       - '.github/workflows/release.yml'

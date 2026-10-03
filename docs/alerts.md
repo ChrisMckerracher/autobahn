@@ -68,6 +68,7 @@ timeout        = "30s"   # Script execution timeout
 ## See also
 
 - [Configuration](./configuration.md) — where `on_alert` is set, and the timing around it
-- [The app](./app.md) — the app raises these itself when no hook is configured
+- [Autobahn Dash](./app.md) — raises these itself when no hook is configured
+- [The menu bar item](./tray.md) — the same, from the menu bar
 - [Conflicts](./conflicts.md) — what an alert about a conflict is asking you to do
 - [Commands](./commands.md) — `status --json`, the document a hook is handed
