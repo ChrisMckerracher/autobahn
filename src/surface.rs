@@ -1,6 +1,6 @@
 //! What a window over the fleet is, apart from its drawing.
 //!
-//! `crate::dash` draws it and owns none of it. The sections of the
+//! `crate::app` draws it and owns none of it. The sections of the
 //! configuration file and how a value is written back, what a
 //! conflict's two sides hold, what a session is waiting on and how it
 //! is grouped, the words for a size or an age — all of it is here,
@@ -1043,7 +1043,7 @@ pub(crate) const TOLD_WHERE: &str = "AUTOBAHN_BIN";
 ///
 /// Not `current_exe`, which is what this used to be: the kit window is
 /// its own binary, so every `resolve` and `diff` it ran was handed to
-/// `autobahn-dash`, which answered "unknown argument resolve" and
+/// `autobahn-app`, which answered "unknown argument resolve" and
 /// looked like a button that did nothing.
 pub(crate) fn found() -> Option<PathBuf> {
     // Being told beats looking, in both directions: a path that is not

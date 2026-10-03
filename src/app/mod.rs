@@ -1,4 +1,4 @@
-//! The dash: the window over the fleet.
+//! The window over the fleet.
 //!
 //! A dashboard is what the gauges of a road vehicle have been called
 //! since the board that stopped mud being dashed up by the horses, and

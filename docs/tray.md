@@ -56,7 +56,7 @@ Inside Dash, the item is what speaks, and Dash's notification switch turns it of
 
 ## On Linux
 
-Dash's menu bar item runs on Linux from the `dash-latest` archives, though it is the half most likely not to appear — see [the app](./app.md#on-linux).
+Dash's menu bar item runs on Linux from the `app-latest` archives, though it is the half most likely not to appear — see [the app](./app.md#on-linux).
 
 The **standalone tray** is a different matter:
 

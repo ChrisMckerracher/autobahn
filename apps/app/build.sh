@@ -6,24 +6,24 @@
 # that only ever arrives by scp or by autobahn itself, neither of which
 # quarantines anything. A downloaded copy would be refused, and should be.
 #
-#   apps/dash/build.sh            # builds "Autobahn Dash.app"
-#   open "apps/dash/Autobahn Dash.app"
+#   apps/app/build.sh            # builds "Autobahn Dash.app"
+#   open "apps/app/Autobahn Dash.app"
 #
-# The binary goes to target/dash, never target/release: the login service
+# The binary goes to target/app, never target/release: the login service
 # runs the latter through a symlink, and a personal build must not replace
 # what supervises the fleet.
 set -eu
 cd "$(dirname "$0")/../.."
 
-TARGET="${AUTOBAHN_DASH_TARGET:-target/dash}"
-APP="apps/dash/Autobahn Dash.app"
+TARGET="${AUTOBAHN_APP_TARGET:-target/app}"
+APP="apps/app/Autobahn Dash.app"
 
 # GPUI Kit wants a newer compiler than the repository's default.
-cargo +1.98.0 build --release --features dash --target-dir "$TARGET" --bin autobahn-dash
+cargo +1.98.0 build --release --features app --target-dir "$TARGET" --bin autobahn-app
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$TARGET/release/autobahn-dash" "$APP/Contents/MacOS/autobahn-dash"
+cp "$TARGET/release/autobahn-app" "$APP/Contents/MacOS/autobahn-app"
 
 # The command goes in beside it: the window shells out to `autobahn` for
 # the work that is the command's — resolve, diff, clean — and finds it by
@@ -35,7 +35,7 @@ fi
 # The bundle is the window; there is no subcommand to pass.
 cat > "$APP/Contents/MacOS/Autobahn Dash" <<'LAUNCH'
 #!/bin/sh
-exec "$(dirname "$0")/autobahn-dash" "$@"
+exec "$(dirname "$0")/autobahn-app" "$@"
 LAUNCH
 chmod +x "$APP/Contents/MacOS/Autobahn Dash"
 
@@ -61,7 +61,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <dict>
   <key>CFBundleName</key><string>Autobahn Dash</string>
   <key>CFBundleDisplayName</key><string>Autobahn Dash</string>
-  <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.dash</string>
+  <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.app</string>
   <key>CFBundleExecutable</key><string>Autobahn Dash</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>

@@ -61,9 +61,10 @@ gtk = { version = "0.18", optional = true }
 tray = ["dep:tray-icon", "dep:muda", "dep:winit", "dep:notify-rust", "dep:gtk", "dep:objc2", "dep:objc2-app-kit", "dep:objc2-user-notifications", "dep:block2", "dep:objc2-foundation"]
 # The configuration's own shape, for anything that builds a form from it.
 schema = ["dep:schemars"]
-# The dash: a window over the fleet, personal and unshipped. Its own
-# binary, autobahn-dash, bundled by apps/dash/build.sh.
-dash = ["dep:gpui-kit", "dep:image", "schema", "dep:tray-icon", "dep:muda", "dep:notify-rust", "dep:gtk", "dep:objc2", "dep:objc2-app-kit", "dep:objc2-user-notifications", "dep:block2", "dep:objc2-foundation"]
+# The window over the fleet. Its own binary, autobahn-app, bundled by
+# apps/app/build.sh. Named for what it is rather than what it is
+# called, so the product name can move without the plumbing.
+app = ["dep:gpui-kit", "dep:image", "schema", "dep:tray-icon", "dep:muda", "dep:notify-rust", "dep:gtk", "dep:objc2", "dep:objc2-app-kit", "dep:objc2-user-notifications", "dep:block2", "dep:objc2-foundation"]
 
 [dev-dependencies]
 proptest = "1"
@@ -94,6 +95,6 @@ mimalloc = { version = "0.1", default-features = false }
 libmimalloc-sys = { version = "0.1", features = ["extended"] }
 
 [[bin]]
-name = "autobahn-dash"
-path = "src/dash/main.rs"
-required-features = ["dash"]
+name = "autobahn-app"
+path = "src/app/main.rs"
+required-features = ["app"]

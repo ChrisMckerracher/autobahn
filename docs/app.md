@@ -1,17 +1,15 @@
 # Autobahn Dash
 
-A window over the fleet: groups, hosts, conflicts, the log, service controls, and a configuration editor. It watches the supervisor rather than replacing it — the supervisor runs whether Dash is open or not.
+Autobahn Dash is an easy-to-use app for managing your sync sessions. If you don't already have the supervisor installed, the app will offer to install it for you.
 
-Dash also carries [the menu bar item](./tray.md), and you choose whether to show the window, the item, or both.
+## Download
 
-## Getting it
-
-Dash is built by the `dash.yml` workflow and published to the moving `dash-latest` prerelease: macOS Apple Silicon and Linux x86-64/arm64. This channel is unsigned and separate from the signed command-line releases. A platform whose build failed is simply absent, so check the release notes for the build commit and what it contains.
+Dash is built by the `app.yml` workflow and published to the moving `app-latest` prerelease: macOS Apple Silicon and Linux x86-64/arm64. This channel is unsigned and separate from the signed command-line releases. A platform whose build failed is simply absent, so check the release notes for the build commit and what it contains.
 
 - **macOS** — open `Autobahn Dash.app`. These builds are not Developer ID signed or notarised, so a downloaded copy is quarantined; the release notes explain the step to clear it.
-- **Linux** — extract the archive and run `./autobahn-dash`, keeping the companion `autobahn` executable beside it. You need a graphical session (Wayland or X11), a Vulkan driver, and the desktop libraries the workflow lists.
+- **Linux** — extract the archive and run `./autobahn-app`, keeping the companion `autobahn` executable beside it. You need a graphical session (Wayland or X11), a Vulkan driver, and the desktop libraries the workflow lists.
 
-## First run
+## First Run
 
 ![The welcome screen, offering to install the autobahn command](../assets/screenshots/welcome.png)
 
@@ -23,7 +21,7 @@ Then configure a group before starting the service — see [Installation](../INS
 
 Keep the command matched to the running supervisor. A version mismatch is reported in the status area rather than left to surprise you.
 
-## The panes
+## Panes
 
 ![The Groups pane: three groups across four sessions, all synchronized](../assets/screenshots/groups.png)
 
@@ -58,7 +56,7 @@ A running supervisor picks up a saved file through [live reload](./configuration
 
 In the Service pane, pick a window, [a menu bar item](./tray.md), or both. The default is both.
 
-The choice is this machine's, and so is the notification switch above it. Both are saved in `dash.toml` under the state root, which is not part of the fleet configuration:
+The choice is this machine's, and so is the notification switch above it. Both are saved in `app.toml` under the state root, which is not part of the fleet configuration:
 
 ```toml
 presence = "both"   # both, window, or menubar
@@ -87,7 +85,7 @@ Turn them off with the switch in the Service pane.
 
 ## On Linux
 
-Dash runs from the `dash-latest` archives, including its menu bar item — though the item is the half most likely not to appear. The tray libraries need GTK started on the thread running the event loop, and neither GPUI nor winit provides one, so expect the window and treat the item as a bonus. A failure there leaves the window up with a one-line complaint rather than taking the app down.
+Dash runs from the `app-latest` archives, including its menu bar item — though the item is the half most likely not to appear. The tray libraries need GTK started on the thread running the event loop, and neither GPUI nor winit provides one, so expect the window and treat the item as a bonus. A failure there leaves the window up with a one-line complaint rather than taking the app down.
 
 ## See also
 

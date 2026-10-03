@@ -224,7 +224,7 @@ impl Bar {
     /// Puts the item in the menu bar, once, and fills it in. macOS
     /// wants this after the application is running, which is why it is
     /// not part of starting. A refusal goes back to the surface: the
-    /// dash can still offer its window when there is no item to open it.
+    /// app can still offer its window when there is no item to open it.
     pub(crate) fn appear(&mut self) -> Result<()> {
         if self.tray.is_some() {
             return Ok(());
@@ -753,7 +753,7 @@ impl Notifier {
     ///
     /// The window's switch; a bar is told at startup and never changes
     /// its mind, so a tray-only build never calls this.
-    #[cfg(feature = "dash")]
+    #[cfg(feature = "app")]
     pub(crate) fn wanted(&mut self, wanted: bool) {
         self.wanted = wanted;
     }

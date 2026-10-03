@@ -23,18 +23,18 @@
 #![warn(clippy::doc_lazy_continuation)]
 
 pub mod alerts;
-pub mod blocked;
-/// Photographing the window, for the screenshots that check it.
-#[cfg(feature = "dash")]
-pub(crate) mod camera;
-pub mod config;
 /// The window over the fleet: a dashboard, which is what the gauges
 /// of a road vehicle have been called since they stopped mud being
 /// dashed up by the horses.
-#[cfg(feature = "dash")]
-pub mod dash;
+#[cfg(feature = "app")]
+pub mod app;
+pub mod blocked;
+/// Photographing the window, for the screenshots that check it.
+#[cfg(feature = "app")]
+pub(crate) mod camera;
+pub mod config;
 /// The icon in the dock, and the count on it.
-#[cfg(feature = "dash")]
+#[cfg(feature = "app")]
 pub mod dock;
 pub mod endpoint;
 pub mod fsutil;
@@ -43,11 +43,11 @@ pub mod host;
 pub mod icon;
 pub mod invocation;
 pub mod logging;
-/// What the menu bar shows, for the tray and for the dash.
-#[cfg(any(feature = "tray", feature = "dash"))]
+/// What the menu bar shows, for the tray and for the window.
+#[cfg(any(feature = "tray", feature = "app"))]
 pub(crate) mod menubar;
 /// Notifications the system posts, for whoever can post them.
-#[cfg(any(feature = "tray", feature = "dash"))]
+#[cfg(any(feature = "tray", feature = "app"))]
 pub(crate) mod native_alert;
 pub mod ownership;
 pub mod p2p;
@@ -57,7 +57,7 @@ pub mod persist;
 pub mod power;
 /// What this machine has asked of the app: a window, a menu bar item,
 /// or both, and whether it says anything when a session needs a person.
-#[cfg(feature = "dash")]
+#[cfg(feature = "app")]
 pub mod preferences;
 pub mod progress;
 pub mod protocol;
@@ -68,7 +68,7 @@ pub mod service;
 pub mod session;
 pub mod supervisor;
 /// What a window over the fleet is, apart from its drawing.
-#[cfg(feature = "dash")]
+#[cfg(feature = "app")]
 pub(crate) mod surface;
 pub mod text;
 pub mod threads;
@@ -81,5 +81,5 @@ pub mod update;
 /// so the examples measure what the transport actually does.
 pub mod wire;
 /// What the surfaces say, in one place.
-#[cfg(any(feature = "tray", feature = "dash"))]
+#[cfg(any(feature = "tray", feature = "app"))]
 pub(crate) mod words;

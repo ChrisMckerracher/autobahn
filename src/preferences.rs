@@ -3,7 +3,7 @@
 //! Not in `config.toml`: that file is the fleet's, it is read by the
 //! supervisor on every machine, and whether this window draws an icon
 //! or raises a notification is nobody's business but this machine's.
-//! So they live in `dash.toml`, beside it in the state root.
+//! So they live in `app.toml`, beside it in the state root.
 
 /// How much of itself the application shows.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -47,7 +47,7 @@ impl Presence {
 
 /// The file itself.
 pub fn path(state_root: &std::path::Path) -> std::path::PathBuf {
-    state_root.join("dash.toml")
+    state_root.join("app.toml")
 }
 
 /// What this machine has asked of the app.
@@ -99,7 +99,7 @@ pub fn read(state_root: &std::path::Path) -> Settings {
 pub fn write(state_root: &std::path::Path, settings: Settings) -> Option<String> {
     let path = path(state_root);
     let text = format!(
-        "# How much of itself the dash shows: both, window, menubar.\n\
+        "# How much of itself the app shows: both, window, menubar.\n\
          presence = \"{}\"\n\
          \n\
          # Whether the app raises desktop notifications itself. Leave this\n\

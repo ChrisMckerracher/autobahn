@@ -1,21 +1,21 @@
-# Builds the dash app for people to try, on every push to its branch.
+# Builds the app for people to try, on every push to its branch.
 #
 # Separate from release.yml, which ships the command on a tag and signs
 # and notarises everything. Nothing here is signed: these are builds to
 # hand to a tester, and the macOS one needs the quarantine bit cleared
 # before it will open. The release workflow is where signing belongs,
-# and this will fold into it when the dash is ready to ship.
+# and this will fold into it when the app is ready to ship.
 #
 # Three platforms, each built natively rather than cross-compiled: GPUI
 # links against the system's graphics and font libraries, and a sysroot
 # good enough to cross-compile that is more work than a second runner.
 # aarch64 Linux runners are free on public repositories.
 #
-# The result is one prerelease, `dash-latest`, moved to each new build —
+# The result is one prerelease, `app-latest`, moved to each new build —
 # so there is always one link to send somebody, and it is always the
 # newest. A prerelease because it is exactly that, and because it keeps
 # these builds out of the way of the real releases.
-name: Dash
+name: App
 
 on:
   push:
@@ -23,10 +23,10 @@ on:
     paths:
       - 'src/**'
       - 'assets/**'
-      - 'apps/dash/**'
+      - 'apps/app/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - '.github/workflows/dash.yml'
+      - '.github/workflows/app.yml'
   workflow_dispatch:
 
 permissions:
@@ -63,7 +63,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: dash-${{ matrix.platform }}
+          key: app-${{ matrix.platform }}
 
       # Two stacks, not one. GPUI wants Vulkan to draw with, xkbcommon and
       # wayland for the window, fontconfig for the text. The menu bar item
@@ -98,7 +98,7 @@ jobs:
             clang
 
       - name: Build
-        run: cargo build --release --locked --features dash --bin autobahn-dash
+        run: cargo build --release --locked --features app --bin autobahn-app
 
       # The command the window shells out to for resolve, diff and clean.
       # It travels with the app: a tester has neither on their machine.
@@ -110,11 +110,11 @@ jobs:
         run: |
           APP="Autobahn Dash.app"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-          cp target/release/autobahn-dash "$APP/Contents/MacOS/autobahn-dash"
+          cp target/release/autobahn-app "$APP/Contents/MacOS/autobahn-app"
           cp target/release/autobahn "$APP/Contents/MacOS/autobahn"
           cat > "$APP/Contents/MacOS/Autobahn Dash" <<'LAUNCH'
           #!/bin/sh
-          exec "$(dirname "$0")/autobahn-dash" "$@"
+          exec "$(dirname "$0")/autobahn-app" "$@"
           LAUNCH
           chmod +x "$APP/Contents/MacOS/Autobahn Dash"
           if xcrun actool assets/Autobahn.icon --compile "$APP/Contents/Resources" \
@@ -133,7 +133,7 @@ jobs:
           <dict>
             <key>CFBundleName</key><string>Autobahn Dash</string>
             <key>CFBundleDisplayName</key><string>Autobahn Dash</string>
-            <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.dash</string>
+            <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.app</string>
             <key>CFBundleExecutable</key><string>Autobahn Dash</string>
             <key>CFBundlePackageType</key><string>APPL</string>
             <key>CFBundleShortVersionString</key><string>$VERSION</string>
@@ -146,23 +146,23 @@ jobs:
           </plist>
           PLIST
           # ditto rather than zip, so the bundle's structure survives.
-          ditto -c -k --sequesterRsrc --keepParent "$APP" "autobahn-dash-${{ matrix.platform }}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "autobahn-app-${{ matrix.platform }}.zip"
 
       - name: Stage the Linux build
         if: runner.os == 'Linux'
         run: |
           mkdir -p stage
-          cp target/release/autobahn-dash target/release/autobahn stage/
-          tar -C stage -czf "autobahn-dash-${{ matrix.platform }}.tar.gz" .
+          cp target/release/autobahn-app target/release/autobahn stage/
+          tar -C stage -czf "autobahn-app-${{ matrix.platform }}.tar.gz" .
 
       - uses: actions/upload-artifact@v7
         with:
-          name: autobahn-dash-${{ matrix.platform }}
-          path: autobahn-dash-${{ matrix.platform }}.*
+          name: autobahn-app-${{ matrix.platform }}
+          path: autobahn-app-${{ matrix.platform }}.*
           if-no-files-found: error
 
   publish:
-    name: Publish dash-latest
+    name: Publish app-latest
     needs: build
     # A platform that failed should not stop the ones that worked from
     # reaching the person waiting to try them.
@@ -178,21 +178,21 @@ jobs:
       - name: What was built
         run: ls -la downloaded
 
-      - name: Move dash-latest to this build
+      - name: Move app-latest to this build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd downloaded
           sha256sum * > SHA256SUMS
           {
-            echo "Unsigned builds of the dash app, from \`${GITHUB_SHA:0:7}\` on \`$GITHUB_REF_NAME\`."
+            echo "Unsigned builds of the app, from \`${GITHUB_SHA:0:7}\` on \`$GITHUB_REF_NAME\`."
             echo "Built $(date -u '+%Y-%m-%d %H:%M UTC')."
             echo
             echo "**macOS** — unzip, then clear the quarantine bit before it will open:"
             echo
             echo '    xattr -dr com.apple.quarantine "Autobahn Dash.app"'
             echo
-            echo "**Linux** — untar, and keep \`autobahn\` beside \`autobahn-dash\`: the app"
+            echo "**Linux** — untar, and keep \`autobahn\` beside \`autobahn-app\`: the app"
             echo "shells out to it. Needs a Vulkan driver, either Wayland or X11, and"
             echo "the shared libraries the build links against:"
             echo
@@ -203,8 +203,8 @@ jobs:
           } > notes.md
           # Deleting and recreating, rather than editing, so the asset list
           # never mixes this build's files with the last one's.
-          gh release delete dash-latest --yes --cleanup-tag 2>/dev/null || true
-          gh release create dash-latest ./* \
+          gh release delete app-latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create app-latest ./* \
             --title "Dash (latest build)" \
             --notes-file notes.md \
             --prerelease \

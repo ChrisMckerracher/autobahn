@@ -1,4 +1,4 @@
-//! `autobahn-dash`: the window again, drawn with GPUI Kit.
+//! `autobahn-app`: the window again, drawn with GPUI Kit.
 //!
 //! A second binary rather than a second command, because the kit brings
 //! its own GPUI and two of them must not meet in one process. Everything
@@ -20,7 +20,7 @@ fn main() -> anyhow::Result<()> {
             "--pane" => pane = arguments.next(),
             "--help" | "-h" => {
                 println!(
-                    "autobahn-dash [--config <file>] [--state-root <directory>] \
+                    "autobahn-app [--config <file>] [--state-root <directory>] \
                      [--pane <name>] [--shoot <directory>]"
                 );
                 return Ok(());
@@ -33,7 +33,7 @@ fn main() -> anyhow::Result<()> {
         None => autobahn::paths::default_state_root()?,
     };
     match shoot {
-        Some(directory) => autobahn::dash::shoot(config, state_root, directory, pane),
-        None => autobahn::dash::run(config, state_root, pane),
+        Some(directory) => autobahn::app::shoot(config, state_root, directory, pane),
+        None => autobahn::app::run(config, state_root, pane),
     }
 }

@@ -66,7 +66,7 @@ pub(crate) fn t(key: &str) -> &'static str {
 ///
 /// The window's, not the menu bar's: a bar item has no room for a
 /// sentence, so a build with only the tray never calls this.
-#[cfg(any(feature = "dash", test))]
+#[cfg(any(feature = "app", test))]
 pub(crate) fn hint() -> &'static str {
     hint_besides("")
 }
@@ -75,7 +75,7 @@ pub(crate) fn hint() -> &'static str {
 ///
 /// A hint that is meant to change and does not looks like a window
 /// that failed to notice the click.
-#[cfg(any(feature = "dash", test))]
+#[cfg(any(feature = "app", test))]
 pub(crate) fn hint_besides(showing: &str) -> &'static str {
     static EVERY: OnceLock<Vec<&'static str>> = OnceLock::new();
     let every = EVERY.get_or_init(|| {
@@ -150,7 +150,7 @@ mod tests {
         // Every surface that speaks: the two windows, what they share,
         // and the menu bar.
         let sources = [
-            include_str!("dash/mod.rs"),
+            include_str!("app/mod.rs"),
             include_str!("surface.rs"),
             include_str!("menubar.rs"),
         ];
@@ -199,7 +199,7 @@ mod tests {
     #[test]
     fn the_catalogue_says_only_what_is_asked_for() {
         let sources = concat!(
-            include_str!("dash/mod.rs"),
+            include_str!("app/mod.rs"),
             include_str!("surface.rs"),
             include_str!("menubar.rs"),
         );

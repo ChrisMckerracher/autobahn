@@ -55,17 +55,17 @@ CARGO_TARGET_DIR=target/tray cargo build --release --locked --features tray
 
 ## Desktop app and shared text
 
-Dash is a separate binary behind `--features dash`, built with GPUI Kit and the configuration schema. `apps/dash/build.sh` and `.github/workflows/dash.yml` specify Rust 1.98.0:
+Dash is a separate binary behind `--features app`, built with GPUI Kit and the configuration schema. `apps/app/build.sh` and `.github/workflows/app.yml` specify Rust 1.98.0:
 
 ```sh
-cargo +1.98.0 build --release --locked --features dash --bin autobahn-dash --target-dir target/dash
+cargo +1.98.0 build --release --locked --features app --bin autobahn-app --target-dir target/app
 ```
 
 Build the CLI separately and place it beside Dash or in a supported installation path.
 
-On macOS, `apps/dash/build.sh` creates an ad-hoc-signed bundle. It includes `target/release/autobahn` if present.
+On macOS, `apps/app/build.sh` creates an ad-hoc-signed bundle. It includes `target/release/autobahn` if present.
 
-Linux build packages appear in `.github/workflows/dash.yml`. Runtime also requires a display server and Vulkan driver. See [Autobahn Dash](./app.md).
+Linux build packages appear in `.github/workflows/app.yml`. Runtime also requires a display server and Vulkan driver. See [Autobahn Dash](./app.md).
 
 Ordinary CI covers the CLI, library, and macOS tray. Dash has a separate workflow, so ordinary CI success does not establish that Dash builds.
 

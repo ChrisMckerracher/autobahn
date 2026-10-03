@@ -3,7 +3,7 @@
 #
 # The graph is everything, on every target that ships: `all-features` takes
 # the command line and agent, the menu bar app (--features tray), and the
-# dash (--features dash, which brings gpui-kit and its tree). cargo-deny
+# app (--features app, which brings gpui-kit and its tree). cargo-deny
 # cannot say "the tray on macOS only", so it also reads the tray's Linux
 # path — GTK, Wayland — which no release carries.
 [graph]
@@ -25,7 +25,7 @@ version = 2
 # written in Cargo.toml can be replaced, which is how bincode's
 # RUSTSEC-2025-0141 was answered — it is postcard now. One buried in
 # gpui-kit's tree cannot. Today that is `paste`, `instant` and
-# `rustybuzz` under the dash, `proc-macro-error` under GTK and
+# `rustybuzz` under the app, `proc-macro-error` under GTK and
 # `ttf-parser` under winit's Wayland decorations: five advisories, all
 # unmaintained, none with a safe upgrade, none ours to fix. They leave
 # when the crates above them update, and an ignore entry each would be

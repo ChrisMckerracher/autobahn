@@ -23,7 +23,7 @@ cargo="cargo +1.98.0"
 panes="groups hosts conflicts log service config"
 
 build() {
-  $cargo build --quiet --features dash --bin autobahn-dash
+  $cargo build --quiet --features app --bin autobahn-app
   # Built, not `cargo run`: `launch` gives the app a fixture's own HOME,
   # and cargo under that HOME has no ~/.cargo to work from.
   $cargo build --quiet --example fixtures
@@ -67,7 +67,7 @@ launch() {
   # shellcheck disable=SC2046
   export $(grep -v '^#' "$at/env" | xargs)
   serve "$at"
-  "$here/target/debug/autobahn-dash" \
+  "$here/target/debug/autobahn-app" \
     --config "$at/home/.autobahn/config.toml" \
     --state-root "$at/home/.autobahn" \
     "$@"
