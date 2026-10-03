@@ -196,7 +196,7 @@ A missing primary and a vanished recorded mount have separate safeguards.
 
 `guard_dir_deletes_over = N` protects directories with at least N recursive ancestor entries. Emptying creates a conflict. Two-way modes also restore a missing protected directory from an unchanged peer.
 
-One-way modes retain their direction for missing directories. The optional guard is off by default and replaces `two-way-paranoid`.
+One-way modes retain their direction for missing directories. The optional guard is off by default.
 
 **Enforcement.** `src/tree/reconcile.rs` implements `Policy::guard_dir_deletes_over`, `large_in_ancestor`, and the directory rules. `src/session/mod.rs` implements `one_side_emptied_root`, mount tracking, root refusal, and `SafetyHalt`.
 
@@ -214,10 +214,10 @@ One-way modes retain their direction for missing directories. The optional guard
 - `emptied_root_detection`
 - `a_root_emptied_down_to_an_ignored_entry_halts_in_every_mode`
 - `no_change_is_lost_silently`
-- `paranoid_treats_an_emptied_large_directory_as_a_conflict`
-- `paranoid_treats_a_directory_emptied_down_to_an_ignored_entry_as_emptied`
-- `paranoid_restores_a_large_directory_gone_from_one_side`
-- `paranoid_lets_the_emptying_side_win_once_the_full_copy_is_retired`
+- `the_guard_treats_an_emptied_large_directory_as_a_conflict`
+- `the_guard_treats_a_directory_emptied_down_to_an_ignored_entry_as_emptied`
+- `the_guard_restores_a_large_directory_gone_from_one_side`
+- `the_guard_lets_the_emptying_side_win_once_the_full_copy_is_retired`
 
 The reconciliation properties and ignored-entry root guard include mutation checks.
 

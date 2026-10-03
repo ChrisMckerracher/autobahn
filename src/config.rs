@@ -500,9 +500,6 @@ pub struct Defaults {
     /// put back. Counted recursively, so one subfolder of seven files
     /// reaches eight. Unset propagates every disappearance, whatever its
     /// size.
-    ///
-    /// This was the `two-way-paranoid` mode, which did nothing else and
-    /// so could not be had alongside a one-way or p2p direction.
     pub guard_dir_deletes_over: Option<usize>,
     /// Whether directories mounted inside a root are left alone rather
     /// than synchronized as part of it. Off unless said otherwise: a
@@ -2215,8 +2212,8 @@ pub fn parse_word<'a>(words: &'a [Word], what: &str, given: &str) -> Result<&'a 
 /// What marks an `ignores` entry as naming a file of patterns rather
 /// than being one.
 ///
-/// A prefix rather than a second key, because the two used to be two
-/// lists applied in an order nobody could see.
+/// A prefix rather than a second key, so a file's patterns land where
+/// the entry sits and the order a reader sees is the order that applies.
 pub const IGNORE_FILE: &str = "file:";
 
 pub const ORDER: &[&str] = &[

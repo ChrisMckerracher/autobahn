@@ -327,28 +327,13 @@ pub(crate) fn holds(field: &serde_json::Value) -> Holds {
     Holds::Line
 }
 
-/// Keys the form does not show at the top of the file: the sections
-/// that have a place of their own in the sidebar, and the retired
-/// spellings kept only so that a file still using one gets an answer
-/// rather than "unknown field".
-///
-/// Only at the top of the file. A group has a `disabled` of its own
-/// that is a flag and not a retired anything, and hiding it everywhere
-/// because the name is spoken for at the top is how it went missing.
-pub(crate) const SILENT_AT_THE_TOP: &[&str] = &[
-    "groups",
-    "defaults",
-    "experimental",
-    "disabled",
-    "alerts",
-    "p2p-experimental",
-];
+/// Keys the form does not show at the top of the file, because each has
+/// a place of its own in the sidebar.
+pub(crate) const SILENT_AT_THE_TOP: &[&str] = &["groups", "defaults", "experimental"];
 
 /// The same, for `[experimental]`: its two timing tables are sections of
-/// their own, and `p2p-experimental` is the spelling that was
-/// renamed.
-pub(crate) const SILENT_IN_ADVANCED: &[&str] =
-    &["alerts", "p2p-dangerously-experimental", "p2p-experimental"];
+/// their own.
+pub(crate) const SILENT_IN_ADVANCED: &[&str] = &["alerts", "p2p-dangerously-experimental"];
 
 /// Session keys nobody should meet before they have gone looking.
 ///

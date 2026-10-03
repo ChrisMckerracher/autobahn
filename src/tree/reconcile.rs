@@ -335,14 +335,14 @@ impl<'m> Reconciler<'m> {
 
         // If primary and replica agree (shallowly) at this path, then recurse.
         if shallow_equal(primary, replica) {
-            // The paranoid mode's emptied-directory guard: both sides hold
+            // The emptied-directory guard: both sides hold
             // a directory here, exactly one of them is empty, and the
             // ancestor says it was substantial. Plain three-way merging
             // would read that as one side deleting every entry and carry
             // the deletions across; the shape is just as often a mount
             // that went away and left its mountpoint behind, or a tool
             // that swept a directory clean (`git gc` packing loose refs),
-            // so the paranoid mode reports it as a conflict at the
+            // so the guard reports it as a conflict at the
             // directory and lets a person name the winner. The full side's
             // entries are not walked, so nothing beneath moves until then.
             //
@@ -509,7 +509,7 @@ impl<'m> Reconciler<'m> {
         let primary_diff = diff_at(path, ancestor, primary_sync.as_ref());
         let replica_diff = diff_at(path, ancestor, replica_sync.as_ref());
 
-        // The paranoid mode's other rule: a large directory that is gone
+        // The guard's other rule: a large directory that is gone
         // on one side while the other still holds exactly what the
         // ancestor recorded is restored, not deleted. Partly for its own
         // sake — the mode exists for people who would rather re-delete
@@ -932,8 +932,6 @@ mod tests {
     }
 
     /// Two-way conflict, guarding a directory of `over` entries or more.
-    /// What `two-way-paranoid` used to be, now that the threshold is a
-    /// setting instead of the mode.
     fn guarding(over: usize) -> Policy {
         Policy {
             mode: SyncMode::TwoWaySafe,
@@ -998,7 +996,7 @@ mod tests {
     }
 
     /// A large directory at `data/` holding `n` files, from which the tests
-    /// below build the shapes the paranoid mode cares about: emptied on one
+    /// below build the shapes the guard cares about: emptied on one
     /// side, gone on one side.
     fn large(n: u8) -> Node {
         dir(
@@ -1007,11 +1005,11 @@ mod tests {
         )
     }
 
-    /// The paranoid mode reports a large directory emptied on one side as a
+    /// The guard reports a large directory emptied on one side as a
     /// conflict at the directory; every other mode carries the emptying
     /// across as the deletions it literally is.
     #[test]
-    fn paranoid_treats_an_emptied_large_directory_as_a_conflict() {
+    fn the_guard_treats_an_emptied_large_directory_as_a_conflict() {
         let ancestor = dir("", vec![file("readme", 9, false), large(9)]);
         let emptied = dir("", vec![file("readme", 9, false), dir("data", vec![])]);
 
@@ -1062,9 +1060,9 @@ mod tests {
 
     /// A directory emptied down to one ignored entry is emptied: what is
     /// left does not synchronize, so it is the same shape as a truly empty
-    /// directory and the paranoid mode reports it the same way.
+    /// directory and the guard reports it the same way.
     #[test]
-    fn paranoid_treats_a_directory_emptied_down_to_an_ignored_entry_as_emptied() {
+    fn the_guard_treats_a_directory_emptied_down_to_an_ignored_entry_as_emptied() {
         let ancestor = dir("", vec![file("readme", 9, false), large(9)]);
         let emptied = dir(
             "",
@@ -1092,7 +1090,7 @@ mod tests {
 
     /// Below the threshold, emptying is housekeeping in every mode.
     #[test]
-    fn paranoid_lets_a_small_directory_be_emptied() {
+    fn the_guard_lets_a_small_directory_be_emptied() {
         let ancestor = dir("", vec![file("readme", 9, false), large(3)]);
         let emptied = dir("", vec![file("readme", 9, false), dir("data", vec![])]);
         let result = reconcile(
@@ -1106,12 +1104,12 @@ mod tests {
     }
 
     /// A large directory gone on one side while the other holds exactly
-    /// what the ancestor recorded is restored in the paranoid mode, and
+    /// what the ancestor recorded is restored under the guard, and
     /// deleted in every other. This is also the second half of resolving
     /// the emptied-directory conflict in the full side's favour: `resolve`
     /// retires the empty directory, and the next cycle sees this shape.
     #[test]
-    fn paranoid_restores_a_large_directory_gone_from_one_side() {
+    fn the_guard_restores_a_large_directory_gone_from_one_side() {
         let ancestor = dir("", vec![file("readme", 9, false), large(9)]);
         let gone = dir("", vec![file("readme", 9, false)]);
 
@@ -1139,7 +1137,7 @@ mod tests {
         assert_eq!(result.replica_transitions.len(), 1);
         assert!(result.replica_transitions[0].new.is_none());
 
-        // A small directory is deleted in the paranoid mode too.
+        // A small directory is deleted under the guard too.
         let ancestor = dir("", vec![file("readme", 9, false), large(3)]);
         let result = reconcile(Some(&ancestor), Some(&gone), Some(&ancestor), guarding(8));
         assert!(result.primary_transitions.is_empty());
@@ -1152,7 +1150,7 @@ mod tests {
     /// side, its entries on the other — and the fuller one carries, so
     /// the directory ends up gone everywhere rather than restored.
     #[test]
-    fn paranoid_lets_the_emptying_side_win_once_the_full_copy_is_retired() {
+    fn the_guard_lets_the_emptying_side_win_once_the_full_copy_is_retired() {
         let ancestor = dir("", vec![file("readme", 9, false), large(9)]);
         let gone = dir("", vec![file("readme", 9, false)]);
         let emptied = dir("", vec![file("readme", 9, false), dir("data", vec![])]);
@@ -1166,9 +1164,9 @@ mod tests {
 
     /// The restore rule needs the kept side untouched. A deletion against
     /// an edited directory is the ordinary edit-beats-delete case, in the
-    /// paranoid mode as in the others.
+    /// guard as without it.
     #[test]
-    fn paranoid_restore_rule_yields_to_an_edited_other_side() {
+    fn the_guard_restore_rule_yields_to_an_edited_other_side() {
         let ancestor = dir("", vec![large(9)]);
         let gone = dir("", vec![]);
         let mut edited_children: Vec<Node> =

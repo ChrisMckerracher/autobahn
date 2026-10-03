@@ -1985,7 +1985,7 @@ mod tests {
     /// Reproduced before the fix: an ancestor of twenty files, primary down
     /// to one untracked `.DS_Store`, replica untouched. The halt did not fire,
     /// because the primary's root had a child, and reconciliation deleted all
-    /// twenty files from the replica — in every mode, the paranoid one included.
+    /// twenty files from the replica — in every mode.
     #[test]
     fn a_root_emptied_down_to_an_ignored_entry_halts_in_every_mode() {
         let full = || Node::directory("", (1..=20).map(|i| file(&format!("f{i}"), i)).collect());

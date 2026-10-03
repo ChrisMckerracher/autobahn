@@ -53,7 +53,7 @@ Because a deletion contains no file content, reconciling a deletion against an a
 
 When a mounted drive disconnects, an operating system often presents the mount point as a valid, empty folder. Standard three-way sync engines interpret this as: *"Every file inside was intentionally deleted,"* propagating mass deletions to the other side.
 
-This was a mode of its own, `two-way-paranoid`, which did nothing else — so it could not be had alongside a one-way or p2p direction. It is a setting now, and works with any mode:
+A setting rather than a mode, so it works alongside any direction:
 
 ```toml
 [groups.work]
@@ -77,8 +77,6 @@ When a Primary syncs concurrently to multiple Replicas, each pair runs an indepe
 * **Under `two-way-primary`:** Once replica A's edit reaches the primary, a competing edit on replica B against the old ancestor loses to the version now on the primary. A replica edit still travels to the primary when the primary is unchanged against that pair's ancestor. This is per-session three-way reconciliation, not a last-writer-wins policy; transition validation refuses writes based on stale scans. Use `two-way-conflict` when competing edits need review.
 
 ---
-
-`two-way-paranoid` has been removed; migrate it to `two-way-conflict` with `guard_dir_deletes_over = 8`.
 
 ## See Also
 

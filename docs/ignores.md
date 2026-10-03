@@ -49,7 +49,7 @@ ignores = [
 ]
 ```
 
-An entry beginning `file:` names a file of patterns rather than being one. Its patterns are read in where the entry sits, so a pattern after it can re-include something it excluded — which the two separate keys this replaced could not express.
+An entry beginning `file:` names a file of patterns rather than being one. Its patterns are read in where the entry sits, so a pattern after it can re-include something it excluded.
 
 Resolution rules:
 
