@@ -14,9 +14,22 @@
 Autobahn requires local POSIX-compliant filesystems (e.g., ext4, XFS, Btrfs, APFS).
 - **Network Mounts (NFS, SMB/CIFS, FUSE):** Supported only on a best-effort, single-writer basis. Remote file attribute caching can mask modifications from scanners and safety validation checks. Change events are frequently dropped or unsupported by the kernel driver. Autobahn warns when network mount points are detected.
 
-### Multi-Controller Root Locking
-Two sessions synchronizing the identical pair of roots are locked machine-wide per user account to prevent race conditions.
-- **Unsupported Topology:** Running two separate Autobahn controllers from different user accounts, distinct machines, or divergent `AUTOBAHN_HOME` locations against the same directory pairs bypasses endpoint lock mechanisms and can cause race conditions.
+### One supervisor per folder
+A folder is synchronized by one supervisor. That supervisor may run as many sessions over it as the configuration asks for — fanning one source out to several destinations is a supported topology, because one supervisor decides in order what happens to the folder.
+
+Two supervisors writing one folder is not supported. Each keeps its own record of what it last agreed, neither knows the other exists, and they can undo each other's work.
+
+In ordinary use this costs nothing: there is one supervisor, the login service, and it owns everything in the configuration. A second one arrives only deliberately — a `--state-root` or `AUTOBAHN_HOME` override, a manual `autobahn sync` beside the running service, another user account, or another machine against shared storage.
+
+What is enforced, and what is not:
+
+| | |
+| :--- | :--- |
+| One supervisor per state root | Enforced — a lock on `<state-root>/supervisor`. |
+| One session per *pair* of folders | Enforced machine-wide per user, by a lock named for the pair and kept in the real `~/.autobahn` so an override cannot dodge it. |
+| One supervisor per *folder* | **Not enforced.** The pair lock catches the same two folders twice; it does not catch one folder paired with something different. |
+
+The gap is the last row: two configurations that both name `~/Workspace`, each syncing it somewhere else, take different pair locks and both run. See [accepted risks §4](./correctness/accepted-risks.md#4-cross-process-overlapping-configurations).
 
 ### Timestamp-Preserving File Rewrites
 Tools that modify file contents while deliberately preserving file sizes and modification timestamps (`touch -r`, certain reproducible build packaging tools) evade standard mtime-based change detection.

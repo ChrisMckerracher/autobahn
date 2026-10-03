@@ -44,17 +44,17 @@ Root is refused by default. Controllers require `--allow-root` or `experimental.
 
 ## 4. Cross-process overlapping configurations
 
-**Risk.** One configuration rejects nested writable endpoints and warns about equal shared endpoints. Processes sharing one user’s default state root exclude only identical endpoint pairs.
+**Risk.** The support boundary is one supervisor per folder; see [Limitations](../limitations.md#one-supervisor-per-folder). Nothing enforces it.
 
-Explicit `--state-root` and `--state-dir` still share that pair lock. Different machines, users, and `AUTOBAHN_HOME` directories do not.
+Within one configuration the loader refuses nested writable endpoints, and *warns* about equal ones, because an equal one is fan-out: one source to several destinations, which is a supported topology. The endpoint-pair lock then excludes a second run of the same pair, machine-wide per user, from the real `~/.autobahn` — so `--state-root` and `--state-dir` cannot dodge it. Different machines, users, and `AUTOBAHN_HOME` directories are outside it entirely.
 
-Separate configurations can write overlapping regions using independent ancestors.
+What is left is one folder paired with something different in two configurations. Each takes a different pair lock, both run, and each writes the folder from its own ancestor.
 
-**Reason retained.** Full exclusion requires read/write locks on each endpoint host, including agents. The protocol must then address stale locks, acquisition order, and supervisor deadlocks.
+**Reason retained.** This is not a topology nobody wants. It is the same shape the loader permits inside one configuration, where one supervisor sequences the sessions over a folder. Across processes the shape is unchanged and the coordinator is gone — so refusing it outright would refuse fan-out, and permitting it is what the documented boundary already tells a reader not to do.
 
-Review round five judged writable overlap across processes an uncommon, deliberate topology. Intent records reduce some consequences by producing conflicts instead of silent replacement.
+Closing it properly means locking endpoints rather than pairs, on every host involved, agents included. The protocol must then answer stale locks, acquisition order, and supervisor deadlock. Intent records already soften the consequence: two runs tend to produce conflicts rather than silent replacement.
 
-**Reason to revisit.** Broader agent-protocol changes or evidence of common multi-machine synchronization into shared storage.
+**Reason to revisit.** Broader agent-protocol changes, or evidence of common multi-machine synchronization into shared storage.
 
 **Possible fix.** Add advisory locks keyed by resolved endpoint identity under the endpoint host’s default state root. Use shared locks for read-only one-way primaries and exclusive locks for writable endpoints. Retain the existing pair lock.
 
