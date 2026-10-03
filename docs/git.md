@@ -11,10 +11,10 @@ file rather than in each group:
 ```toml
 # ~/.autobahn/config.toml
 
-[groups.myrepo]
+[groups.work]
 mode  = "two-way-conflict"
-alpha = "~/Workspace/myrepo"
-betas = ["user@buildhost:~/Workspace/myrepo"]
+alpha = "~/Workspace"
+betas = ["dev@build.audi.de:/home/dev/workspace"]
 ignores = [
   "file:Essential.gitignore",   # written by `autobahn init`
   "target",

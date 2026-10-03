@@ -10,21 +10,21 @@
 //!
 //! ```toml
 //! # Top-level keys (like `disabled_hosts`) must precede the first section header.
-//! disabled_hosts = ["flaky.example.com"]
+//! disabled_hosts = ["nas.porsche.de"]
 //!
 //! [defaults]
 //! mode = "two-way-conflict"
-//! ignores = [".git"]
+//! ignores = ["file:Essential.gitignore"]
 //! interval = 5
 //!
-//! [groups.project]
-//! alpha = "~/project"
-//! betas = ["build.example.com", "user@lab.example.com:/srv/project"]
+//! [groups.work]
+//! alpha = "~/Workspace"
+//! betas = ["laptop.bmw.de", "dev@build.audi.de:/home/dev/workspace"]
 //!
-//! [groups.dotfiles]
-//! alpha = "~/.config/shell"
+//! [groups.backup]
+//! alpha = "~/Workspace"
 //! mode = "one-way-alpha"
-//! betas = ["build.example.com", "/mnt/backup/shell"]
+//! betas = ["/Volumes/Backup/Workspace"]
 //! ```
 //!
 //! A beta is **remote** unless it visibly denotes a local path: an entry
@@ -111,12 +111,12 @@ interval = 5
 # This example is commented out, so a fresh install starts nothing. Edit
 # the paths, uncomment it, and run `autobahn watch`.
 #
-# [groups.project]
-# alpha = "~/project"
+# [groups.work]
+# alpha = "~/Workspace"
 # betas = [
-#   "build.example.com",                 # uses the alpha's path on that host
-#   "user@lab.example.com:/srv/project", # or name a path
-#   "/mnt/backup/project",               # a local path works too
+#   "laptop.bmw.de",                     # uses the alpha's path on that host
+#   "dev@build.audi.de:/home/dev/work",  # or name a path
+#   "/Volumes/Backup/Workspace",         # a local path works too
 # ]
 # ignores = ["dist", "*.log"]            # added to the defaults' ignores
 # disabled = true                        # turns the whole group off

@@ -34,17 +34,21 @@ Each group connects one root, called alpha, to one or more destinations, called 
 # ~/.autobahn/config.toml
 
 [defaults]
-mode = "two-way-conflict"   # sync modes explained below
-ignores = [".git", "node_modules"]
+mode = "two-way-conflict"                   # sync modes explained below
+ignores = ["file:Essential.gitignore"]      # written by `autobahn init`
 
-[groups.project]
-alpha = "~/project"
-betas = [                   # sync targets
-  "user@audi.de:/srv/car",  #  - fully specified
-  "mercedes-benz.de",       #  - inherits alpha path
-  "/mnt/backup/project",    #  - local paths work too
+[groups.work]
+alpha = "~/Workspace"
+betas = [                                   # sync targets
+  "dev@build.audi.de:/home/dev/workspace",  #  - fully specified
+  "laptop.bmw.de",                          #  - inherits the alpha path
 ]
-ignores = ["target"]        # appended to the defaults' ignores
+ignores = ["target", "node_modules"]        # appended to the defaults'
+
+[groups.backup]
+mode = "one-way-alpha"                      # the disk is made identical
+alpha = "~/Workspace"
+betas = ["/Volumes/Backup/Workspace"]       #  - local paths work too
 ```
 
 ```sh

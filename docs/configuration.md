@@ -15,23 +15,28 @@ on_alert = "~/.autobahn/on-alert.sh"
 
 [defaults]                  # inherited by every group; any key can be
 mode = "two-way-conflict"       # overridden per group
-ignores = [".git"]
+ignores = ["file:Essential.gitignore"]
 interval = 5                # heartbeat seconds between cycles
 
-[groups.project]
-alpha = "~/project"         # the source root you edit
+[groups.work]
+alpha = "~/Workspace"       # the source root you edit
 betas = [                   # everywhere it fans out to
-  "build.example.com",              # inherits the alpha path (~/project
+  "laptop.bmw.de",                  # inherits the alpha path (~/Workspace
                                     # in *that* host's home)
-  "user@lab.example.com:/srv/project",
-  "/mnt/backup/project",            # local paths work too
+  "dev@build.audi.de:/home/dev/workspace",
 ]
-ignores = ["target"]        # appended to the defaults' ignores
+ignores = ["target", "node_modules"]   # appended to the defaults' ignores
 
-[groups.dotfiles]
-alpha = "~/.config/shell"
-betas = ["build.example.com"]
-mode = "one-way-alpha"
+[groups.backup]             # the same folder onto a disk that keeps a
+mode = "one-way-alpha"      # copy: one way, and the disk is made
+alpha = "~/Workspace"       # identical — a backup that can push a
+betas = ["/Volumes/Backup/Workspace"]  # deletion back is not one
+interval = 300              # nothing is waiting on it
+
+[groups.photos]
+alpha = "~/Pictures/Lightroom"
+betas = ["nas.porsche.de:/volume1/photos"]
+disabled = true             # turns the whole group off
 ```
 
 ### Endpoint Syntax

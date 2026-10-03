@@ -33,7 +33,7 @@ For sync mode, recommend `two-way-conflict` for editing on both sides. Explain t
 For a remote destination, test key-based SSH using the chosen host:
 
 ```sh
-ssh -o BatchMode=yes -o ConnectTimeout=10 user@build.example.com true
+ssh -o BatchMode=yes -o ConnectTimeout=10 dev@build.audi.de true
 ```
 
 If access fails, help the user fix authentication or verify the host key before continuing. Autobahn installs its matching remote agent automatically; no separate remote CLI installation is needed.

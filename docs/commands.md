@@ -18,9 +18,9 @@ These commands work with a foreground `watch` supervisor or the login service:
 
 ```sh
 autobahn status            # what every session is doing, or last did
-autobahn status project    # ...filtered to one group
+autobahn status work       # ...filtered to one group
 autobahn status .          # ...to whatever syncs the working directory
-autobahn status ~/project  # ...or any folder inside a synchronized root
+autobahn status ~/Workspace  # ...or any folder inside a synchronized root
 autobahn status --conflicts   # list every conflicting path, not a count
 autobahn status --live     # ...repainting, as it happens (Ctrl-C leaves)
 autobahn status --json     # the same, as one versioned document
@@ -165,19 +165,19 @@ For an already synchronized 160,000-file pair, a recorded one-off run took 0.7 s
 
 ```sh
 # One bidirectional pass, then exit:
-autobahn sync ~/project /mnt/backup/project
+autobahn sync ~/Workspace /Volumes/Backup/Workspace
 
 # Local ↔ remote over SSH:
-autobahn sync ~/project user@host:/srv/project
+autobahn sync ~/Workspace dev@build.audi.de:/home/dev/workspace
 
 # Every session in the configuration, once each:
 autobahn sync
 
 # Keep watching, like a one-group `watch`:
-autobahn sync ~/project user@host:/srv/project --watch
+autobahn sync ~/Workspace dev@build.audi.de:/home/dev/workspace --watch
 
 # Mirror exactly, ignoring build artifacts:
-autobahn sync ~/project host:/srv/project \
+autobahn sync ~/Workspace build.audi.de:/home/dev/workspace \
     --watch --mode one-way-alpha --ignore target --ignore '*.log'
 ```
 

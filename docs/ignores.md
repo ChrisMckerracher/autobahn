@@ -38,7 +38,7 @@ Store reusable pattern lists in `~/.autobahn/ignores` and reference them from th
 
 ```toml
 [defaults]
-ignores = ["file:common.gitignore"]
+ignores = ["file:Essential.gitignore"]
 
 [groups.work]
 ignores = [
