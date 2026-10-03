@@ -5,7 +5,7 @@ The latest recorded comparison measures Autobahn v1.0.0 against mutagen 0.19.0-d
 
 The [matrix](./benchmark-matrix.md#provenance--build-metadata) identifies the measured builds. These results do not establish the performance of later commits.
 
-The [aggregate](../benchmarks/2026-10-02.json) contains every published figure. See the [harness guide](../bench/README.md) for methods.
+The [aggregate](../benchmarks/2026-10-02.json) contains every published figure. The harness that produced them is not in the repository; `bench/README.md` in a working checkout documents the methods.
 
 ## Headline
 

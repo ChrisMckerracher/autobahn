@@ -107,7 +107,7 @@ A difference smaller than variation between legs is noise. A difference that rev
 
 The `50k-burst` and `chromium-burst` cells copy a module five times per job and measure each burst through convergence. They measure cycle work rather than isolated-edit latency.
 
-See [Benchmark harness](../bench/README.md) and [Benchmarks](./benchmarks.md).
+The harness lives in `bench/`, which is not tracked — hundreds of megabytes of corpora and run output. Its own `README.md` documents it; the figures it produced are in [Benchmarks](./benchmarks.md).
 
 ## Compatibility epochs
 

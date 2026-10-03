@@ -1,14 +1,15 @@
 /target
 # Local agent builds; releases build and publish their own
 /dist/
-bench/verify/hosts-*.json
 apps/tray/Autobahn.app/
 
 # TLC scratch (spec/check.sh)
 spec/states/
 
-# A/B, burst and matrix runs made here; the published ones are committed deliberately
-bench/results-bench-*/
+# The benchmark harness: hundreds of megabytes of corpora and run
+# output, and nothing a build or a release needs. The figures it
+# produces are committed, under benchmarks/.
+/bench/
 
 # The dash window's bundle and its build directory: the script makes
 # both, and neither belongs in the repository.

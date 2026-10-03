@@ -1,21 +1,37 @@
-# The specification
+# Specification
 
-`Autobahn.tla` is the reconciler's rules over a hierarchy of paths — files, directories, and the unit rule that decides a subtree at the shallowest path where the sides disagree — played by one primary and any number of replicas, and the properties the design promises: trees stay well-formed, nothing a user wrote vanishes without its fate on record, `two-way-conflict` discards nothing, the primary never loses to a replica in the primary-wins modes, a pair that reported no conflict is levelled, and once the users stop everything converges except at reported conflicts. TLC checks all of it exhaustively, per mode — two replicas, a directory of two files beside a file, two values, four user actions: about half a million states and ten minutes per mode (`MC.tla` holds the path hierarchy, which the configuration format cannot spell):
+`Autobahn.tla` models reconciliation over a path hierarchy with one primary and multiple replicas. It includes files, directories, and the rule that resolves a subtree at the shallowest disagreement.
+
+The model checks well-formed trees, recorded outcomes for user data, preservation under `two-way-conflict`, primary authority, and agreement after conflict-free cycles. Once user changes stop, it also checks convergence except at reported conflicts.
+
+The standard bounds use two replicas, a directory containing two files, one adjacent file, two values, and four user actions. TLC explores about half a million states in ten minutes per mode. `MC.tla` defines the hierarchy because the configuration format cannot express it.
 
 ```sh
 spec/check.sh            # every mode
 spec/check.sh strict     # one
 ```
 
-The `_n3` configurations check the invariants for three replicas, with the replicas' symmetry folding permuted states into one — about 900,000 distinct states and two minutes per mode. Liveness stays with the two-replica runs, since TLC's symmetry reduction is not sound for it:
+The `_n3` configurations use three replicas and symmetry reduction. They check safety over about 900,000 distinct states in two minutes per mode. Liveness uses the two-replica runs because TLC symmetry reduction is not sound for that check.
 
 ```sh
 spec/check.sh strict_n3 primary_n3 conflict_n3
 ```
 
-It needs Java 11+ and the `tla2tools.jar` that `spec/tla2tools.version` pins by version, URL and SHA-256. It is fetched into `~/.local/lib` on first use and checked against that digest, and `spec/check.sh --fetch` fetches it without running anything. `TLA2TOOLS` names another copy, which must match the same digest: a jar that does not — named or cached — is refused, and `TLA2TOOLS_TRUST=1` runs the one `TLA2TOOLS` names regardless. To move to a newer TLC, change the pin, not the check.
+## Running TLC
 
-The implementation is held to the spec by `tests/spec_replay.rs`. It plays the same game with the real `reconcile()` making every cycle's move, asserts the same properties in Rust on thousands of random games (always on), and writes games out as traces that TLC validates against the spec — a step the spec does not allow is a deadlock, and a rejection:
+Java 11+ is required. `spec/tla2tools.version` pins the jar version, URL, and SHA-256.
+
+On first use, the script downloads the jar to `~/.local/lib` and checks its digest. `spec/check.sh --fetch` downloads without running models.
+
+`TLA2TOOLS` selects another copy, which must match the pinned digest. `TLA2TOOLS_TRUST=1` bypasses that check for the explicitly selected jar.
+
+For a TLC upgrade, update the pin rather than removing verification.
+
+## Implementation replay
+
+`tests/spec_replay.rs` runs real `reconcile()` cycles and checks the same properties across thousands of random games. These Rust checks always run.
+
+Optional TLC tests export implementation traces. TLC validates each step against the specification. An impossible step produces a deadlock and rejects the trace.
 
 ```sh
 AUTOBAHN_TLC=1 cargo test --test spec_replay -- --include-ignored
@@ -23,22 +39,52 @@ AUTOBAHN_TLC=1 AUTOBAHN_TLC_TRACES=50 AUTOBAHN_TLC_KEEP=1 cargo test --test spec
 spec/check.sh --traces DIR                                                                                      # validate kept traces again
 ```
 
-## P2P
+## Peering
 
-`P2P.tla` is the star with failover: the same reconciliation (`Reconcile.tla` holds the rules both specs share), plus leases and terms, the fence, takeover in the configured order, the primary's handoff, replication of each session's ancestor with any lag, and hosts that crash and recover. Two replicas, two files, two values, two edits, one crash, two changes of leadership; takeovers may happen at any moment (`Flaky`), standing for a clock that misjudged staleness, since the fence, not the clock, is the guarantee. About 31 to 35 million distinct states and half an hour per mode for the safety properties: no host is ever written by two controllers at one term, the term a host is written at never falls, a value a user removed never comes back on its own, and Reconcile's properties still hold across a failover and a handoff. The liveness configurations (`Flaky = FALSE`) check that once users and failures stop, a leader stands and every host it reaches is level with it.
+`Peering.tla` adds failover to the shared rules in `Reconcile.tla`. It models leases, terms, write fencing, takeover order, primary handoff, lagging ancestor replication, crashes, and recovery.
 
-A host that comes to lead takes up its copy of a session's ancestor when the copy was written after its own store (`later`), as the implementation compares the two stores' write times on the host: generations cannot tell, once a copy that lagged at a takeover has carried on from where it lagged. It sets aside every path where the copy disagrees with its own tree, which the next cycle then reconciles as new, and the primary takes the lead back only once its copy is level with the leader's. `DisputedKept` checks that a value a host held where a copy it adopted disagreed is never lost. `P2P_conflict_lies.cfg` adds a partner that may write any copy at all, once — a buggy or dishonest leader — at one edit, since a lie widens the space past what two edits can finish; it leaves `Accounted` out on purpose, because a copy that agrees with a host's tree is believed, as a partner changing its own side would be.
+Safety bounds use two replicas, two files, two values, two edits, one crash, and two leadership changes. `Flaky` allows takeover at any time to represent inaccurate staleness judgments.
+
+Each safety mode explores about 31–35 million states in half an hour. Properties include single-controller writes per host and term, nondecreasing write terms, no spontaneous return of removed values, and reconciliation safety across handoffs.
+
+Liveness configurations use `Flaky = FALSE`. After user activity and failures stop, they require a stable leader and agreement with reachable hosts.
+
+A new leader adopts an ancestor copy if it is `later` than its local store. The implementation compares local write times because generation numbers become incomparable after lagging copies advance independently.
+
+The model sets aside copy paths that disagree with local content and reconciles them as new. The primary resumes leadership only after its copy catches up.
+
+`DisputedKept` checks preservation of local values disputed by adopted copies. `Peering_conflict_lies.cfg` allows one arbitrary copy from a buggy or dishonest partner and uses one edit to bound the larger state space.
+
+That configuration omits `Accounted`: a copy agreeing with local content remains trusted, as a partner’s ordinary change can be.
 
 ```sh
-spec/check.sh p2p_conflict_safety p2p_primary_safety
-spec/check.sh p2p_conflict_lies
-spec/check.sh p2p_conflict_liveness p2p_primary_liveness
+spec/check.sh peering_conflict_safety peering_primary_safety
+spec/check.sh peering_conflict_lies
+spec/check.sh peering_conflict_liveness peering_primary_liveness
 ```
 
-Leadership changes are budgeted like edits and crashes: every change bumps the term, so without a bound the state space is infinite — the first attempt ran seven hours and filled 73 GB before that was clear. `Autobahn_quick.cfg` is the star spec at three edits, half a minute, for checking a change to the shared rules before the full runs.
+Leadership changes require a bound because each increments the term. An unbounded first attempt ran seven hours and consumed 73 GB.
 
-`tests/spec_p2p_replay.rs` holds the fence to the spec: every host is a directory with a real lease file, presented leases go through `read_lease` / `Lease::admits` / `write_lease` exactly as the agent's `Request::Lease` handler does, staleness is the real `is_stale_at` on a simulated clock, the failover order is the real `takeover_wait`, and the reconciler makes every cycle's move. Random games of three replicas keep the spec's invariants in Rust; games of two are written out as traces TLC validates against `P2P.tla`, matching trees, liveness, leases and roles and leaving the ancestor stores to the spec.
+`Autobahn_quick.cfg` checks the star with three edits in about half a minute. Use it before full runs after changes to shared rules.
 
-What is not in the p2p model: the clock (staleness is a nondeterministic judgement), partitions as distinct from crashes, `yield`, the one-off commands the fence does not cover, and who writes a copy (a host takes one up only from its session's partner, which the model's copies always are). The model sets aside every path a copy disagrees on; the implementation keeps the copy's record where the host's file changed after the copy was written, which only keeps an honest record the host has since moved past. The replay harness does not yet drive the p2p state machine; the code-level coupling for p2p is the state-machine tests in `tests/supervisor.rs` and `src/supervisor/peer.rs`.
+## Peering replay
 
-The reconciliation models cover the three two-way policies (`two-way-conflict`, `two-way-primary`, and `two-way-primary-strict`). They do not model the one-way modes, the optional `guard_dir_deletes_over` rule, untracked or problematic content, or the transfer and transition machinery. A rename can be represented as a removal and a creation. Collision tests in `tests/e2e.rs` check the transition contract; the separate p2p model and its limits are described above.
+`tests/spec_peering_replay.rs` uses real lease files and the agent’s `read_lease`, `Lease::admits`, and `write_lease` sequence.
+
+It uses real `is_stale_at` with a simulated clock, real `takeover_wait`, and real reconciliation.
+
+Three-replica random games check invariants in Rust. Two-replica games also produce TLC traces. Replay matches trees, liveness, leases, and roles while leaving ancestor stores to the model.
+
+## Model limits
+
+The peering model represents staleness nondeterministically. It does not model clock behavior, network partitions separately from crashes, `yield`, or unfenced one-off commands.
+
+Model copies always come from the session partner, so writer authentication is outside the model.
+
+The model discards every copy path that disagrees locally. The implementation retains a copy record if the local file changed after the copy’s write time. That case preserves an honest older record.
+
+Replay does not yet drive the complete peering state machine. State-machine coverage is in `tests/supervisor.rs` and `src/supervisor/peer.rs`.
+
+Reconciliation models cover `two-way-conflict`, `two-way-primary`, and `two-way-primary-strict`. They exclude one-way modes, `guard_directory_deletes_over`, untracked or problematic content, and transfer/transition machinery.
+
+Renames can appear as removal plus creation. Collision tests in `tests/e2e.rs` cover the transition contract.
