@@ -25,19 +25,22 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$TARGET/release/autobahn-app" "$APP/Contents/MacOS/autobahn-app"
 
-# The command goes in beside it: the window shells out to `autobahn` for
-# the work that is the command's — resolve, diff, clean — and finds it by
-# looking next to itself first.
-if [ -x target/release/autobahn ]; then
-    cp target/release/autobahn "$APP/Contents/MacOS/autobahn"
-fi
+# The command does not travel in here. The window shells out to
+# `autobahn` for the work that is the command's — resolve, diff, clean
+# — and a copy inside the bundle would be found before the installed
+# one, because `looked_in` checks the executable's own directory first.
+# That is the wrong way round: it would override the command the
+# supervisor is actually running, on the machine of somebody who
+# installed properly, and the mismatch it caused would be reported as
+# a mismatch rather than as this. The welcome screen handles the
+# machine that has none.
 
-# The bundle is the window; there is no subcommand to pass.
-cat > "$APP/Contents/MacOS/Autobahn Dash" <<'LAUNCH'
-#!/bin/sh
-exec "$(dirname "$0")/autobahn-app" "$@"
-LAUNCH
-chmod +x "$APP/Contents/MacOS/Autobahn Dash"
+# No launcher script. CFBundleExecutable names the binary directly,
+# because a shell script as a bundle's main executable cannot carry the
+# hardened runtime: the process that starts is /bin/sh, which is
+# Apple's, and notarisation refuses the arrangement. The script existed
+# only to redirect to a differently named file, which the plist can do
+# for nothing.
 
 # The same icon the tray app wears, compiled the same way: Assets.car
 # carries the Icon Composer rendering macOS 26 draws, and the committed
@@ -62,7 +65,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleName</key><string>Autobahn Dash</string>
   <key>CFBundleDisplayName</key><string>Autobahn Dash</string>
   <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.app</string>
-  <key>CFBundleExecutable</key><string>Autobahn Dash</string>
+  <key>CFBundleExecutable</key><string>autobahn-app</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$VERSION</string>

@@ -7,13 +7,13 @@ Autobahn Dash is an easy-to-use app for managing your sync sessions. If you don'
 Dash is built by the `app.yml` workflow and published to the moving `app-latest` prerelease: macOS Apple Silicon and Linux x86-64/arm64. This channel is unsigned and separate from the signed command-line releases. A platform whose build failed is simply absent, so check the release notes for the build commit and what it contains.
 
 - **macOS** — open `Autobahn Dash.app`. These builds are not Developer ID signed or notarised, so a downloaded copy is quarantined; the release notes explain the step to clear it.
-- **Linux** — extract the archive and run `./autobahn-app`, keeping the companion `autobahn` executable beside it. You need a graphical session (Wayland or X11), a Vulkan driver, and the desktop libraries the workflow lists.
+- **Linux** — extract the archive and run `./autobahn-app`. You need a graphical session (Wayland or X11), a Vulkan driver, and the desktop libraries the workflow lists.
 
 ## First Run
 
 ![The welcome screen, offering to install the autobahn command](../assets/screenshots/welcome.png)
 
-Dash needs the `autobahn` command. It looks beside itself first, then in `~/.local/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, and your PATH.
+Dash needs the `autobahn` command, which is a separate download — no copy travels inside the app. It looks beside itself first, then in `~/.local/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, and your PATH.
 
 If it finds none, a welcome screen offers to run the installer for you or to copy the shell command and run it yourself. Installer output goes to `install.log` under the state root, and the Log pane shows it as it happens.
 

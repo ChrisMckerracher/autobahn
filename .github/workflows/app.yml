@@ -114,23 +114,12 @@ jobs:
       - name: Build
         run: cargo build --release --locked --features app --bin autobahn-app
 
-      # The command the window shells out to for resolve, diff and clean.
-      # It travels with the app: a tester has neither on their machine.
-      - name: Build the command beside it
-        run: cargo build --release --locked --bin autobahn
-
       - name: Bundle the app
         if: runner.os == 'macOS'
         run: |
           APP="Autobahn Dash.app"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
           cp target/release/autobahn-app "$APP/Contents/MacOS/autobahn-app"
-          cp target/release/autobahn "$APP/Contents/MacOS/autobahn"
-          cat > "$APP/Contents/MacOS/Autobahn Dash" <<'LAUNCH'
-          #!/bin/sh
-          exec "$(dirname "$0")/autobahn-app" "$@"
-          LAUNCH
-          chmod +x "$APP/Contents/MacOS/Autobahn Dash"
           if xcrun actool assets/Autobahn.icon --compile "$APP/Contents/Resources" \
                --app-icon Autobahn --platform macosx --minimum-deployment-target 11.0 \
                --output-partial-info-plist "$(mktemp)" >/dev/null 2>&1; then
@@ -148,7 +137,7 @@ jobs:
             <key>CFBundleName</key><string>Autobahn Dash</string>
             <key>CFBundleDisplayName</key><string>Autobahn Dash</string>
             <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.app</string>
-            <key>CFBundleExecutable</key><string>Autobahn Dash</string>
+            <key>CFBundleExecutable</key><string>autobahn-app</string>
             <key>CFBundlePackageType</key><string>APPL</string>
             <key>CFBundleShortVersionString</key><string>$VERSION</string>
             <key>CFBundleVersion</key><string>$VERSION</string>
@@ -166,7 +155,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           mkdir -p stage
-          cp target/release/autobahn-app target/release/autobahn stage/
+          cp target/release/autobahn-app stage/
           tar -C stage -czf "autobahn-app-${{ matrix.platform }}.tar.gz" .
 
       - uses: actions/upload-artifact@v7
@@ -206,14 +195,13 @@ jobs:
             echo
             echo '    xattr -dr com.apple.quarantine "Autobahn Dash.app"'
             echo
-            echo "**Linux** — untar, and keep \`autobahn\` beside \`autobahn-app\`: the app"
-            echo "shells out to it. Needs a Vulkan driver, either Wayland or X11, and"
-            echo "the shared libraries the build links against:"
+            echo "**Linux** — untar and run \`./autobahn-app\`. Needs a Vulkan driver,"
+            echo "either Wayland or X11, and the shared libraries the build links against:"
             echo
             echo "    sudo apt install libgtk-3-0 libayatana-appindicator3-1 libxdo3 libvulkan1"
             echo
-            echo "Both archives carry the \`autobahn\` command next to the app, so there is"
-            echo "nothing else to install."
+            echo "The \`autobahn\` command is a separate download and is not in here. The"
+            echo "app offers to install it on first run if it cannot find one."
           } > notes.md
           # Deleting and recreating, rather than editing, so the asset list
           # never mixes this build's files with the last one's.

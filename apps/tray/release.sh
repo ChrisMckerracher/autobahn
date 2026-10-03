@@ -59,7 +59,23 @@ if [ "$BUILD" = yes ]; then apps/tray/build.sh --unsigned "$APP"; fi
 xattr -cr "$APP"
 # The hardened runtime and a secure timestamp are both what notarisation
 # requires, so there is no fallback without the timestamp here: better to
-# fail now than after an upload. No --deep, as in build.sh.
+# fail now than after an upload.
+#
+# Inner first, and no --deep. Signing a bundle signs its main executable
+# and seals its resources; a *second* Mach-O beside it in MacOS/ is
+# reached by neither, and notarisation rejects the bundle for the
+# unsigned one. The window's bundle carries the command next to it for
+# exactly that reason, so this is not hypothetical. --deep would find
+# them, but it signs everything with one set of options and Apple has
+# told people not to use it for years.
+MAIN="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \
+        "$APP/Contents/Info.plist")"
+for nested in "$APP/Contents/MacOS/"*; do
+    [ -f "$nested" ] || continue
+    [ "$(basename "$nested")" = "$MAIN" ] && continue
+    echo "  nested: $(basename "$nested")"
+    codesign --force --options runtime --timestamp --sign "$IDENTITY" "$nested"
+done
 codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP"
 codesign --verify --strict "$APP"
 echo "signed as: $IDENTITY"
