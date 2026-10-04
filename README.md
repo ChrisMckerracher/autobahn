@@ -2,19 +2,22 @@
 
 _Subsecond sync with German precision._
 
-Keep your files in sync as fast as you (or an agent) edit them across a fleet.
+Autobahn keeps your files in sync as fast as you (or an agent) edit them across a fleet.
+
+<img src="assets/screenshots/groups.png" alt="Dash showing three sync groups across four sessions, all synchronized" width="900">
+
+Install the latest version of the [app](docs/app.md) from its [releases page](https://github.com/fny/autobahn/releases) or as a standalone CLI service:
 
 ```sh
 curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh | sh
 ```
 
-You can also point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup or install [Dash](docs/app.md) from its [releases page](https://github.com/fny/autobahn/releases).
-
-<img src="assets/screenshots/groups.png" alt="Dash showing three sync groups across four sessions, all synchronized" width="900">
+```
+For AI: Follow the instructions here http://github.com/fny/autobahn/blob/main/INSTALL.md to drive an interactive setup of Autobahn.
+```
 
 > ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3?
->
-> ✨ Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
+> Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
 
 ## The Problem
 
