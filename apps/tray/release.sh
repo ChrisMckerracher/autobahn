@@ -39,6 +39,9 @@ case $# in
 esac
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 source apps/tray/notary.sh
+# plist_string: reads Info.plist without Apple's tools, so the checks
+# below run under apps/tray/test.sh on Linux too.
+source apps/tray/plist.sh
 ZIP_OUT="${AUTOBAHN_RELEASE_ZIP:-}"
 
 # Whatever the bundle calls its main executable. The menu bar app's is
@@ -49,8 +52,7 @@ if [ "$BUILD" = no ]; then
         echo "not an app bundle: $APP (no Contents/Info.plist)" >&2
         exit 1
     fi
-    MAIN="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \
-            "$APP/Contents/Info.plist" 2>/dev/null || true)"
+    MAIN="$(plist_string "$APP/Contents/Info.plist" CFBundleExecutable)"
     if [ -z "$MAIN" ] || [ ! -x "$APP/Contents/MacOS/$MAIN" ]; then
         echo "not a built app: $APP has no runnable Contents/MacOS/${MAIN:-<unset>}" >&2
         exit 1
@@ -78,8 +80,7 @@ xattr -cr "$APP"
 # exactly that reason, so this is not hypothetical. --deep would find
 # them, but it signs everything with one set of options and Apple has
 # told people not to use it for years.
-MAIN="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \
-        "$APP/Contents/Info.plist")"
+MAIN="$(plist_string "$APP/Contents/Info.plist" CFBundleExecutable)"
 for nested in "$APP/Contents/MacOS/"*; do  # shellcheck disable=SC2043
     [ -f "$nested" ] || continue
     [ "$(basename "$nested")" = "$MAIN" ] && continue

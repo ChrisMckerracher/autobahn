@@ -34,3 +34,27 @@ render_info_plist() {
         return 1
     fi
 }
+
+# Prints one <key>'s <string> value from an Info.plist. Both layouts this
+# repository writes are read: the committed template puts the string on
+# the line after the key, and the bundles assembled inline put them on
+# one line. sed and awk, not PlistBuddy, for the reason at the top of
+# this file — release.sh is exercised on Linux by apps/tray/test.sh, and
+# /usr/libexec/PlistBuddy is not there.
+plist_string() {
+    local plist="$1" key="$2"
+    awk -v key="$key" '
+        index($0, "<key>" key "</key>") {
+            line = $0
+            # Same line: take the <string> that follows the key.
+            if (match(line, /<string>[^<]*<\/string>/)) {
+                value = substr(line, RSTART + 8, RLENGTH - 17)
+                print value; exit
+            }
+            # Otherwise the next line carries it.
+            if ((getline line) > 0 && match(line, /<string>[^<]*<\/string>/)) {
+                print substr(line, RSTART + 8, RLENGTH - 17); exit
+            }
+            exit
+        }' "$plist"
+}
