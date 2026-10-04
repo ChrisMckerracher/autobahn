@@ -225,7 +225,7 @@ One-way modes retain their direction for missing directories. The optional guard
 
 The reconciliation properties and ignored-entry root guard include mutation checks.
 
-**Boundary.** Unobserved mounts below the optional count threshold can escape protection. See [accepted-risks §1](./accepted-risks.md#1-mounts-that-were-never-observed-mounted).
+**Boundary.** Unobserved mounts below the optional count threshold can escape protection. See [accepted-risks §1](./accepted-risks.md#1-a-mount-autobahn-never-saw-mounted).
 
 A root containing one empty directory is not empty because that directory itself synchronizes. Distinguishing that shape from intentional clearing requires a different threshold policy.
 

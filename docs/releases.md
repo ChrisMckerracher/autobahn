@@ -86,7 +86,7 @@ apps/tray/release.sh --sign-only "apps/app/Autobahn Dash.app"
 
 It signs whatever bundle it is given: the executable to check and to sign is the one `CFBundleExecutable` names, not a fixed `autobahn`. Any other Mach-O in `Contents/MacOS` is signed first, inner out — signing a bundle reaches its main executable and its resources and nothing else, and notarisation refuses the bundle for an unsigned neighbour.
 
-`--sign-only` compiles nothing: it takes a bundle either `build.sh` already assembled and signs it, replacing whatever signature was there. That split is what CI uses, so every build happens before the signing identity exists.
+`--sign-only` compiles nothing: it takes a bundle `build.sh` already assembled and signs it, replacing whatever signature was there. That split is what CI uses, so every build happens before the signing identity exists.
 
 On a laptop it signs with the Developer ID certificate in your keychain and notarises with credentials stored once:
 

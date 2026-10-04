@@ -2,19 +2,19 @@
 
 This document records unresolved risks associated with [the invariants](./invariants.md). Each entry explains the limitation, why it remains, evidence that can justify further work, and a possible fix.
 
-## 1. Mounts that were never observed mounted
+## 1. A mount autobahn never saw mounted
 
-**Risk.** Scans record mount boundaries. With `ignore_mounts = false`, a recorded mount that disappears or empties over ancestor content halts the session at any size. With `ignore_mounts = true`, recorded paths remain excluded on both sides after unmount.
+**Risk.** The guard is keyed on having *seen* a mount. A scan records the mount boundaries it crosses, in `sessions/<id>/mounts`, and every cycle checks each remembered path: still mounted, or holding content, is fine; hollow where the ancestor recorded children halts the session (`Session::account_for_mounts`). With `ignore_mounts = true` the path stays excluded on both sides instead.
 
-An unobserved mount has no recorded identity. Below the root, its disappearance follows ordinary reconciliation unless `guard_dir_deletes_over` applies. Content below the count threshold, including one large file, receives no additional guard.
+A path never recorded gets none of that. Unplug the disk before autobahn first runs, and the first scan sees an ordinary empty directory and records it as one. Plug it in and its contents arrive as creations. Unplug it again and they leave as deletions, against an ancestor that now holds them, with nothing in the mount machinery firing — because the path was never in `remembered`.
 
-The whole-root emptying guard requires two ancestor entries. A missing primary has a separate refusal.
+What is left then is the generic guard, `guard_dir_deletes_over`, which is **off unless set**; a single large file is under any count threshold in any case. The whole-root emptying guard needs two ancestor entries and does not reach a subdirectory. A missing primary is refused separately.
 
-**Reason retained.** An unseen unmount and deliberate deletion have the same tree shape. Byte thresholds also interrupt intentional large-file deletion and cannot establish mount identity.
+**Reason retained.** An unseen unmount and a deliberate deletion are the same tree shape — an empty directory where content used to be. Nothing in the result distinguishes them, and a byte threshold would interrupt intentional large deletions while still establishing nothing about mount identity.
 
-**Reason to revisit.** Actual losses from mounts that appear and disappear between scans, or a requirement to declare mounts before initial scanning.
+**Reason to revisit.** Real losses from a disk absent at first scan, or a deployment that can declare its mounts before synchronizing.
 
-**Possible fix.** Add expected-mount configuration or OS mount-event tracking. Test unplugged-at-startup and mounted-between-scans cases.
+**Possible fix.** Expected-mount configuration is the obvious answer and fails open in the worst place: a list written once and never updated omits exactly the mount you later lose. Asking the kernel instead — `statfs`, or comparing `st_dev` against the parent — answers "is this a mount point" for any path, seen before or not, and the scanner already walks these directories. That narrows the hole from "never observed mounted" to "not a mount point at the moment it is looked at", which is as far as anything can go: a disk that is absent at every scan is indistinguishable from an empty directory, and no amount of checking changes that.
 
 ## 2. A save landing between a check and a replacement
 
@@ -92,6 +92,25 @@ The racy-timestamp margin covers accidental same-granule edits. This is the deli
 Weekly bounds how long a change can hide. There is nothing to build for this, and a setting to do it internally would only move the schedule inside the configuration.
 
 Two things to know before relying on it. `verify` turns off checksum reuse and nothing else: what it finds reconciles as an ordinary change, and nothing marks it as having been hidden. So a verification that discovers a *tampered* file propagates it to the other side like any edit — containment is a side effect of not having looked. That is a reason to treat this as a correctness measure for build output, and not as tamper detection.
+
+## 6. P2P trusts every machine in the group
+
+**Risk.** P2P is the one mode the project calls dangerously experimental, and the reason is not reliability. Leadership moves between hosts, which means the replicas talk to each other, which means each one can reach the others.
+
+By default that reach is a shell. Peer traffic goes over SSH with no restriction on what may be run, so a key that lets one replica hand the lead on also lets whoever holds it run anything on the others as that user. One compromised member of the group is all of them.
+
+Two settings narrow it, and neither is on by default:
+
+- `manage_keys = true` gives each replica a dedicated key registered against the gate — `restrict,command="…autobahn-gate gate"` — which admits only `agent`, `p2p attach`, and a signed `gate install`. That turns "any command" into three.
+- `~/.autobahn/host.toml` with `roots = [...]` bounds which directory trees an agent will serve, since even a gated agent runs with the user's privileges and would otherwise serve any path asked for.
+
+The lease that decides who leads is a file in `~/.autobahn/p2p/lease.json`, renewed once a cycle. Collision handling when two peers believe they lead is open, as `src/config.rs` states beside the mode names.
+
+**Reason retained.** The mode is marked dangerously experimental in the configuration template, in `docs/p2p.md`, and in the name itself — `p2p-conflict-dangerously-experimental`. It is not reachable by accident: a configuration has to spell that out. The containment exists, it is documented, and it is off by default because turning it on changes what the peers may do to each other.
+
+**Reason to revisit.** Before p2p stops carrying "dangerously experimental" in its name. That rename is the commitment, and this entry is what has to be answered first — restricted keys and a root whitelist on by default rather than available, and the collision question settled.
+
+**Possible fix.** Default `manage_keys` to true, so the gate is the floor rather than an upgrade. Refuse a p2p group whose hosts have no `host.toml`, the way a missing ignore file is refused rather than assumed. See [P2P](../p2p.md#security-boundaries--access-control).
 
 ## See also
 
