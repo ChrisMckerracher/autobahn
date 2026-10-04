@@ -32,7 +32,7 @@ set -eu
 REPO="fny/autobahn"
 # The public half of the release signing key, the same one the binary
 # carries (release.pub). docs/releases.md says how it is rotated.
-RELEASE_PUBLIC_KEY="RWTTmFV9GHpLmH3sw8KlWiSqiqJK1AUrb9W3+UUi6/ja1uJ/MRGjGBUQ"
+RELEASE_PUBLIC_KEY="RWS3HbhwCUSo45VKntoj+uWQrIS5m8FtkPruyFUuc3xYpNomDsfoSa45"
 # The earlier name, AUTOBAHN_PREFIX, is still honoured: it was never a
 # prefix in the GNU sense (the binary went straight into it, not into
 # its bin/), which is why it was renamed.

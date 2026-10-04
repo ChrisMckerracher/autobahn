@@ -58,7 +58,7 @@ To guarantee zero service disruption and atomic rollbacks, `autobahn update` exe
 Autobahn releases are signed with Minisign using public key `release.pub`:
 
 ```
-RWTTmFV9GHpLmH3sw8KlWiSqiqJK1AUrb9W3+UUi6/ja1uJ/MRGjGBUQ
+RWS3HbhwCUSo45VKntoj+uWQrIS5m8FtkPruyFUuc3xYpNomDsfoSa45
 ```
 
 To manually verify downloaded release artifacts:
