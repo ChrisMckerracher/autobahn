@@ -155,7 +155,7 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 
 ### Architecture & Design
 
-- [System Architecture & Internals](docs/how-it-works.md)
+- [Architecture](docs/architecture.md)
 - [Safety Guarantees](docs/safety.md)
 - [Limitations](docs/limitations.md)
 - [Failover P2P (Experimental)](docs/p2p.md)
@@ -174,7 +174,7 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 
 - **Supported Platforms:** Linux (`x86_64`, `aarch64`) and macOS (`Apple Silicon`).
 - **Filesystems:** Requires local POSIX filesystems. Network filesystems (NFS, SMB, CIFS) receive best-effort support only.
-- **Editor Saves on macOS:** On macOS, atomic save operations (write-temporary and rename) lack immediate completion events from the kernel, occasionally requiring an extra polling cycle compared to Linux. Details are available in [How Autobahn Works](docs/how-it-works.md).
+- **Editor Saves on macOS:** On macOS, atomic save operations (write-temporary and rename) lack immediate completion events from the kernel, occasionally requiring an extra polling cycle compared to Linux. Details are available in [Architecture](docs/architecture.md).
 
 ## License
 

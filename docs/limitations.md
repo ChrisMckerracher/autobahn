@@ -67,4 +67,4 @@ Certain editors (such as Vim or JetBrains IDEs) save files by creating a hidden 
 - [Safety](./safety.md) — what is guaranteed, as against what is merely supported
 - [Accepted risks](./correctness/accepted-risks.md) — the known gaps, each with its reasoning
 - [P2P](./p2p.md) — the one feature that is dangerously experimental
-- [How it works](./how-it-works.md) — why some of these boundaries are where they are
+- [Architecture](./architecture.md) — why some of these boundaries are where they are

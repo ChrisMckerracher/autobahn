@@ -400,5 +400,5 @@ Extend existing harness operation sets where possible.
 
 - [Accepted risks](./accepted-risks.md) — where each guarantee stops, with its reasoning
 - [Safety](../safety.md) — the same guarantees, in prose
-- [How it works](../how-it-works.md) — the design that makes them enforceable
+- [Architecture](../architecture.md) — the design that makes them enforceable
 - [Development](../development.md) — running the tests and the specification

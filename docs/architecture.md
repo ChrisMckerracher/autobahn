@@ -1,4 +1,4 @@
-# System Architecture & Internals
+# Architecture
 
 This document details the internal design, architectural trade-offs, and operational mechanisms implemented in Autobahn.
 

@@ -83,6 +83,6 @@ The status tray interface (`apps/tray`) compiles behind the optional `tray` Carg
 
 ## See also
 
-- [How it works](./how-it-works.md) — the design these would change
+- [Architecture](./architecture.md) — the design these would change
 - [Accepted risks](./correctness/accepted-risks.md) — known gaps, some of which these would close
 - [Limitations](./limitations.md) — what is out of scope rather than merely unbuilt

@@ -67,5 +67,5 @@ Cells used different machine groups. The fan-out result does not show that addin
 ## See also
 
 - [Benchmark matrix](./benchmark-matrix.md) — every cell, and which builds were measured
-- [How it works](./how-it-works.md) — the design these numbers come out of
+- [Architecture](./architecture.md) — the design these numbers come out of
 - [Development](./development.md) — the A/B gate, and how a run is reproduced
