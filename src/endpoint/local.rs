@@ -2643,26 +2643,21 @@ impl<'a> Transitioner<'a> {
     /// directories: every component is verified with `symlink_metadata`, so a
     /// symbolic link anywhere along the way is a refusal rather than a
     /// redirection.
+    ///
+    /// A refusal is reported as a problem at `path`, not returned.
     fn resolve_parent<'p>(&mut self, path: &'p str) -> Option<(PathBuf, &'p str)> {
-        let (parent, name) = match path.rfind('/') {
-            Some(index) => (&path[..index], &path[index + 1..]),
-            None => ("", path),
-        };
-        let mut current = self.root.to_path_buf();
-        if let Err(message) = verify_directory(&current) {
-            self.problem(path, format!("unable to resolve path: {message}"));
-            return None;
-        }
-        if !parent.is_empty() {
-            for component in parent.split('/') {
-                current.push(component);
-                if let Err(message) = verify_directory(&current) {
-                    self.problem(path, format!("unable to resolve path: {message}"));
-                    return None;
-                }
+        match walk_to_parent(&self.root, path, None) {
+            Ok(found) => Some(found),
+            Err(WalkError::Refused(message)) => {
+                self.problem(path, format!("unable to resolve path: {message}"));
+                None
+            }
+            // Nothing is created without a mode, so nothing can fail to be.
+            Err(WalkError::Create(error)) => {
+                self.problem(path, format!("unable to resolve path: {error:#}"));
+                None
             }
         }
-        Some((current, name))
     }
 
     /// Returns the node the last scan recorded at a root-relative path.
@@ -3962,15 +3957,8 @@ fn resolve_confined(root: &Path, path: &str) -> Result<PathBuf> {
     if path.is_empty() {
         bail!("the synchronization root itself cannot be named here");
     }
-    let (parent, name) = path.rsplit_once('/').unwrap_or(("", path));
-    let mut current = root.to_path_buf();
-    verify_directory(&current).map_err(|error| anyhow!("unable to resolve {path:?}: {error}"))?;
-    for component in parent.split('/').filter(|component| !component.is_empty()) {
-        current.push(component);
-        verify_directory(&current)
-            .map_err(|error| anyhow!("unable to resolve {path:?}: {error}"))?;
-    }
-    Ok(current.join(name))
+    let (parent, name) = walk_to_parent(root, path, None).map_err(|error| error.at(path))?;
+    Ok(parent.join(name))
 }
 
 /// Like [`resolve_confined`], but creates missing parent directories, one
@@ -3983,30 +3971,67 @@ fn create_confined_parents(root: &Path, path: &str, directory_mode: u32) -> Resu
     if path.is_empty() {
         bail!("the synchronization root itself cannot be named here");
     }
+    let (parent, name) =
+        walk_to_parent(root, path, Some(directory_mode)).map_err(|error| error.at(path))?;
+    Ok(parent.join(name))
+}
+
+/// Why [`walk_to_parent`] stopped.
+enum WalkError {
+    /// A component that is not a real directory — a symbolic link, a file,
+    /// or nothing — described for the caller to report in its own words.
+    Refused(String),
+    /// A missing directory that could not be created, already described.
+    Create(anyhow::Error),
+}
+
+impl WalkError {
+    /// The error a walk to `path` reports when it fails.
+    fn at(self, path: &str) -> anyhow::Error {
+        match self {
+            WalkError::Refused(message) => anyhow!("unable to resolve {path:?}: {message}"),
+            WalkError::Create(error) => error,
+        }
+    }
+}
+
+/// Walks from `root` to the directory that holds `path`, one component at
+/// a time, refusing anything along the way that is not a real directory: a
+/// symbolic link is a refusal, never a redirection out of the root. With
+/// `create`, a missing directory is made first, with that mode, rather
+/// than refused — `create_dir_all` would follow a symbolic link anywhere
+/// along the way. Returns that directory and the final component of
+/// `path`, unresolved; callers decide whether to follow it.
+fn walk_to_parent<'p>(
+    root: &Path,
+    path: &'p str,
+    create: Option<u32>,
+) -> Result<(PathBuf, &'p str), WalkError> {
     let (parent, name) = path.rsplit_once('/').unwrap_or(("", path));
     let mut current = root.to_path_buf();
-    verify_directory(&current).map_err(|error| anyhow!("unable to resolve {path:?}: {error}"))?;
+    verify_directory(&current).map_err(WalkError::Refused)?;
     for component in parent.split('/').filter(|component| !component.is_empty()) {
         current.push(component);
-        match fs::DirBuilder::new().mode(directory_mode).create(&current) {
-            Ok(()) => {
-                // The mode given at creation is narrowed by the umask; the
-                // configured mode is what every created directory gets.
-                fs::set_permissions(&current, Permissions::from_mode(directory_mode))
-                    .with_context(|| {
-                        format!("unable to set permissions on {}", current.display())
-                    })?;
-            }
-            Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
-            Err(error) => {
-                return Err(error)
-                    .with_context(|| format!("unable to create {}", current.display()))
-            }
+        if let Some(mode) = create {
+            make_directory(&current, mode).map_err(WalkError::Create)?;
         }
-        verify_directory(&current)
-            .map_err(|error| anyhow!("unable to resolve {path:?}: {error}"))?;
+        verify_directory(&current).map_err(WalkError::Refused)?;
     }
-    Ok(current.join(name))
+    Ok((current, name))
+}
+
+/// Makes a directory with `mode`, unless one is already there.
+fn make_directory(path: &Path, mode: u32) -> Result<()> {
+    match fs::DirBuilder::new().mode(mode).create(path) {
+        Ok(()) => {
+            // The mode given at creation is narrowed by the umask; the
+            // configured mode is what every created directory gets.
+            fs::set_permissions(path, Permissions::from_mode(mode))
+                .with_context(|| format!("unable to set permissions on {}", path.display()))
+        }
+        Err(error) if error.kind() == ErrorKind::AlreadyExists => Ok(()),
+        Err(error) => Err(error).with_context(|| format!("unable to create {}", path.display())),
+    }
 }
 
 /// Whether a staged file's bytes hash to the digest its name claims. Used
