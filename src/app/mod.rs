@@ -2806,7 +2806,11 @@ impl Dash {
                         cx.notify();
                     })),
             )
-            .children(note.map(|note| div().text_size(px(11.)).text_color(rgb(FAINT)).child(note)))
+            // The loader's own words, often a path or a parse error naming
+            // a line and column. Drawn through `said` like every other
+            // complaint, so it can be selected and pasted rather than
+            // retyped off the screen.
+            .children(note.map(|note| said("welcome-note", note.as_ref(), FAINT, 11.)))
             .into_any_element()
     }
 
