@@ -5,7 +5,7 @@ Autobahn keeps configuration and session state under `~/.autobahn` by default, o
 `AUTOBAHN_HOME` moves that directory, whole: the installer puts the agent bundle there, and every command reads its configuration and state from there. `autobahn install` writes the variable into the login service it registers, since a service inherits nothing from the shell it was installed from; re-run it after changing the variable. The variable is the controller's own — a remote host keeps its agent under its own `~/.autobahn` regardless. `--state-root` and `--config` on a command still override it.
 
 | path | holds |
-|---|---|
+| --- | --- |
 | `config.toml` | the configuration — the source of truth |
 | `app.toml` | what this machine asked of the app, separate from the fleet configuration: `presence` (`"both"`, `"window"`, or `"menubar"`) and `notify`, whether it raises desktop notifications itself |
 | `install.log` | the desktop app's installer output |
@@ -16,7 +16,7 @@ Autobahn keeps configuration and session state under `~/.autobahn` by default, o
 | `staging/` | in-flight content, held aside until verified, then renamed into place; swept at the end of every cycle, so a version that changed while in flight does not linger |
 | `endpoint-locks/` | one lock per pair of roots, so two sessions never write one tree from independent ancestors |
 | `agents/` | the agent bundle — binaries for platforms other than this one |
-| `bin/autobahn-<version>-<digest>` | on a *remote* host: the agent this controller streamed there, named by its version and its content |
+| `bin/autobahn-<version>-<digest>` | on a _remote_ host: the agent this controller streamed there, named by its version and its content |
 | `ignores/` | ignore files, named from the config — see [Ignores](./ignores.md) |
 | `p2p/` | experimental: the lease, this host's name in the star, the pushed configuration, and the ancestor copies a leader keeps here — see [P2P](./p2p.md). `clean` leaves it alone |
 | `service.log` | the supervisor's log — see [The log](./logging.md) |
@@ -38,7 +38,7 @@ It removes ancestors, status records, staged content, and endpoint locks for any
 
 A session that is only turned off — its group `disabled = true`, or its host in `disabled_hosts` — is still described by the config, so `clean` keeps its state and enabling it resumes where it left off. `clean --include-disabled` lets that state go too, after asking (`--yes` skips the question). A disabled group whose settings no longer validate cannot say which state was its own, so while one is present `clean` keeps anything it cannot attribute and says so.
 
-Staged content this machine holds *as an agent* for sessions driven from other machines cannot be attributed from here, so it is left alone unless `--agent-staging-older-than DAYS` asks for it by age.
+Staged content this machine holds _as an agent_ for sessions driven from other machines cannot be attributed from here, so it is left alone unless `--agent-staging-older-than DAYS` asks for it by age.
 
 ## Agents
 
@@ -55,13 +55,13 @@ autobahn clean --agents --keep-agents 3  # more rollback headroom
 
 The version in use is never a candidate and never spends a `--keep-agents` slot. It is off by default because everything else `clean` does is local and this reaches out over SSH; a host that cannot be reached is reported and stepped over rather than failing the run. Removal is by exact name under the one directory, never a glob.
 
-One thing to know: "in use" means the version of the binary *running `clean`*, which is normally the supervisor's version too. If you have built a newer binary but not yet restarted, they differ, and the default `--keep-agents 1` is what protects the running supervisor's agent.
+One thing to know: "in use" means the version of the binary _running `clean`_, which is normally the supervisor's version too. If you have built a newer binary but not yet restarted, they differ, and the default `--keep-agents 1` is what protects the running supervisor's agent.
 
 ## Compatibility epochs
 
 The agent's version must match the controller's exactly. A change that breaks the wire protocol, or one that makes the two sides disagree about a tree — a scan rule, an ignore rule — bumps a compatibility epoch that rides inside the version string (`1.0.0+e1`). A mismatched agent fails the handshake, and the installer places the new agent at a path the old one never occupied, so both sides are enforced with no protocol change.
 
-A *stale bundle* — an `agents/` binary left over from an older build — is refused before upload when the bundle has a `MANIFEST`, which every released bundle does: the message names the bundle, the build it is for, and `autobahn update` as the fix. A bundle built by hand has no manifest; its stale binary is uploaded, the handshake refuses it, and the message names the bundle and its age.
+A _stale bundle_ — an `agents/` binary left over from an older build — is refused before upload when the bundle has a `MANIFEST`, which every released bundle does: the message names the bundle, the build it is for, and `autobahn update` as the fix. A bundle built by hand has no manifest; its stale binary is uploaded, the handshake refuses it, and the message names the bundle and its age.
 
 ## See also
 

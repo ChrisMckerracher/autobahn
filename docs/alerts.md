@@ -23,7 +23,7 @@ On Linux, it inherits the systemd user manager’s environment, including `HOME`
 When `on_alert` is executed, Autobahn populates the following environment variables:
 
 | Variable | Description | Example Content |
-| :--- | :--- | :--- |
+| :-- | :-- | :-- |
 | `$AUTOBAHN_SUMMARY` | High-level summary of active issues | `"myproject → remotehost: 1 conflict"` |
 | `$AUTOBAHN_DETAIL` | Indented per-session diagnostic details | `"src/app.rs (content mismatch)"` |
 | `$AUTOBAHN_ICON` | Absolute path to the Autobahn application icon | `"/Users/user/.autobahn/icon.png"` |
@@ -34,18 +34,16 @@ When `on_alert` is executed, Autobahn populates the following environment variab
 
 Hooks execute asynchronously and do not block synchronization cycles. Any hook exceeding the configured execution timeout (30 seconds default) is terminated.
 
-
 ## State Hold Durations
 
 To avoid false alarms from transient network interruptions or brief locks, conditions must persist continuously for a specific duration before triggering an alert:
 
 | State | Default Hold Duration | Rationale |
-| :--- | :---: | :--- |
-| `halted` | `0s` *(immediate)* | Safety halts (damaged ancestor, conflicting roots) are non-transient. Exception: a missing primary root waits 2m to accommodate drive remounts. |
+| :-- | :-: | :-- |
+| `halted` | `0s` _(immediate)_ | Safety halts (damaged ancestor, conflicting roots) are non-transient. Exception: a missing primary root waits 2m to accommodate drive remounts. |
 | `conflicts`, `blocked` | `30s` | Requires human intervention, but allows brief window for automated tooling or manual resolution. |
 | `errored` | `2m` | Allows transient filesystem or connection errors to heal automatically. |
 | `unreachable` | `5m` | Accommodates routine laptop sleep or brief network re-connections. |
-
 
 ## Coalescing and Anti-Flap Behavior
 

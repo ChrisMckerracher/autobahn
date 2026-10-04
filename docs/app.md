@@ -30,7 +30,7 @@ Keep the command matched to the running supervisor. A version mismatch is report
 ![The Groups pane: three groups across four sessions, all synchronized](../assets/screenshots/groups.png)
 
 | Pane | What it does |
-|---|---|
+| --- | --- |
 | **Groups** | The configured groups, their destinations, current work, and anything wrong. |
 | **Hosts** | The same sessions collected by host, with host controls. |
 | **Conflicts** | Disagreements and diffs, with actions to keep one side or both. |
@@ -69,7 +69,7 @@ notify = true       # whether the app raises desktop notifications itself
 
 ## Notifications
 
-Dash raises desktop notifications under exactly the rules an `on_alert` hook would use: a condition has to hold before it counts, only something *joining* the set in trouble is news, a cascade is gathered into one, and recovery is silent. See [Alerts](./alerts.md).
+Dash raises desktop notifications under exactly the rules an `on_alert` hook would use: a condition has to hold before it counts, only something _joining_ the set in trouble is news, a cascade is gathered into one, and recovery is silent. See [Alerts](./alerts.md).
 
 This does not depend on showing a menu bar item. A window with no menu bar still notifies — choosing where the app appears is not a choice about whether anything tells you a session has halted. Exactly one thing speaks per app: the menu bar item when there is one, the window when there is not.
 

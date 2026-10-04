@@ -2,6 +2,7 @@
 
 Autobahn supports automatic failover in star topologies. The primary coordinates synchronization during normal operation. If the primary becomes unreachable for an extended period, an eligible replica assumes temporary leadership, coordinating synchronization across remaining peers. When the primary reconnects, leadership goes back to it automatically.
 
+<!-- prettier-ignore -->
 > [!WARNING]
 > P2P is classified as **dangerously experimental**. Because leadership transition requires peer-to-peer communication across the replica hosts, enabling it requires explicit trust across all member machines unless you use SSH in restricted mode. Review [Security Boundaries & Access Control](#security-boundaries--access-control) prior to deployment.
 
@@ -35,29 +36,38 @@ manage_keys    = true      # Automatically provisions restricted SSH keys
 ## Architectural Mechanics
 
 ### Lease-Based Write Fencing
-2. 
+
+2.
+
 Leadership authority is established via a cryptographic lease file (`~/.autobahn/p2p/lease.json`) renewed each cycle:
+
 ```json
 { "leader": "primary", "term": 7, "renewed_at": 1789544514, "ttl_seconds": 30 }
 ```
+
 - **Monotonic Terms:** The term number increments with each leadership transition.
 - **Write Fence:** The local Autobahn agent rejects write requests from any controller whose term is lower than the active lease. This fence prevents split-brain concurrent writes.
 - **Local Expiration:** Lease expiration is evaluated using the local host's monotonic clock, avoiding clock-skew vulnerabilities across machines.
 
 ### State Replication
+
 To ensure clean failover without treating the existing tree as un-synchronized, the active leader replicates:
+
 - Group configurations and ignore rules.
 - Ancestor journal checkpoints and incremental delta records.
 
 When a Replica assumes leadership, it adopts the replicated ancestor, allowing three-way reconciliation to proceed without false conflicts or data loss.
 
 ### Failover Sequence
+
 1. Each replica monitors its local lease.
 2. If the primary's lease expires and remains unrenewed for `failover_after + (index * ttl)`, the candidate node increments the term and publishes a new lease.
 3. The new leader initiates a reversed supervisor topology, treating itself as the primary and the remaining nodes as its replicas.
 
 ### Reverse Connection Attachment
+
 Because the primary may reside behind NAT, a firewall, or dynamic networking, replicas never dial it directly.
+
 - Upon reconnecting, the primary initiates an outbound SSH tunnel to the current leader:
   ```sh
   ssh <leader> autobahn p2p attach
@@ -70,7 +80,9 @@ Because the primary may reside behind NAT, a firewall, or dynamic networking, re
 ## Security Boundaries & Access Control
 
 ### Restricted SSH Keys (`manage_keys = true`)
+
 By default, inter-peer communication over SSH grants full shell execution rights across the replica hosts. Enabling `manage_keys = true` enforces strict command containment:
+
 1. Each replica generates a dedicated key pair (`~/.autobahn/p2p/id_ed25519`).
 2. Public keys are registered in `~/.ssh/authorized_keys` restricted to the Autobahn security gate:
    ```
@@ -79,12 +91,14 @@ By default, inter-peer communication over SSH grants full shell execution rights
 3. The gate permits only verified protocol invocations (`agent`, `p2p attach`, and signed `gate install`).
 
 ### Directory Whitelisting (`host.toml`)
+
 Even with restricted SSH keys, agents execute with user privileges. To restrict which directory trees an agent can access on each Replica, define explicit boundaries in `~/.autobahn/host.toml`:
 
 ```toml
 # ~/.autobahn/host.toml
 roots = ["~/Workspace"]
 ```
+
 The agent strictly rejects any connection requesting access to paths outside the configured whitelist.
 
 ## See also

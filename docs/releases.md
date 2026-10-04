@@ -7,7 +7,7 @@ This document describes the distribution architecture, release validation pipeli
 A standard release publishes three independent artifacts:
 
 | Artifact | Source Target | Destination Path |
-| :--- | :--- | :--- |
+| :-- | :-- | :-- |
 | **Controller Executable** | `cargo build --profile dist` | `~/.local/bin/autobahn` |
 | **Remote Agents Bundle** | `scripts/build-agents.sh` | `~/.autobahn/agents/` |
 | **macOS Menu Bar App** | `apps/tray/build.sh` | `/Applications/Autobahn.app` |
@@ -15,6 +15,7 @@ A standard release publishes three independent artifacts:
 ## Release Pipeline Architecture
 
 Pushing a version tag (`v*`) triggers `.github/workflows/release.yml`:
+
 1. **Gate Verification:** Compares the tag against `version` in `Cargo.toml` and confirms that all required CI matrix jobs (`linux`, `linux-arm`, `mac`, `spec`) passed on the tagged commit.
 2. **Binary Compilation:** Compiles static musl binaries for Linux (`x86_64`, `aarch64`) and native macOS binaries.
 3. **macOS Notarization:** Imports Developer ID certificates, signs the command-line binaries and both application bundles, and submits each to Apple's notarization service.
@@ -22,8 +23,8 @@ Pushing a version tag (`v*`) triggers `.github/workflows/release.yml`:
 5. **Publishing:** Publishes binary archives, agent tarballs, signatures, and installation scripts via GitHub Releases.
 
 ### Prerelease Terminology
-Autobahn designates early test builds as **prereleases** (`v0.5.0-dev.1`, `v0.5.0-rc.1`). The terms "primary" and "replica" are strictly avoided in version naming to prevent ambiguity with synchronization endpoint roles.
 
+Autobahn designates early test builds as **prereleases** (`v0.5.0-dev.1`, `v0.5.0-rc.1`). The terms "primary" and "replica" are strictly avoided in version naming to prevent ambiguity with synchronization endpoint roles.
 
 ## Automated In-Place Upgrades (`autobahn update`)
 
@@ -43,6 +44,7 @@ autobahn update --dry-run
 ### Upgrade Execution Lifecycle
 
 To guarantee zero service disruption and atomic rollbacks, `autobahn update` executes an ordered 7-step sequence:
+
 1. **Service Registration Inspection:** Detects the path registered with `launchd` or `systemd`.
 2. **Staged Retrieval & Cryptographic Verification:** Downloads assets to `~/.autobahn/tmp/`, validates `minisign` signatures, and verifies SHA-256 digests before touching active binaries.
 3. **Compatibility Inspection:** Executes the candidate binary in a subprocess to confirm support for existing on-disk ancestor formats.
@@ -104,7 +106,7 @@ The job builds everything first — the binaries and both bundles — and checks
 It is the only job holding the certificate, and it uses the protected `release` environment, which must hold five secrets:
 
 | secret | what it is |
-| :--- | :--- |
+| :-- | :-- |
 | `DEVELOPER_ID_P12` | the Developer ID Application certificate and its private key, exported as a `.p12` and base64-encoded |
 | `DEVELOPER_ID_P12_PASSWORD` | the password the `.p12` was exported with |
 | `NOTARY_API_KEY` | an App Store Connect API key, the contents of its `AuthKey_….p8` file |

@@ -4,9 +4,7 @@ With appropriate configurations, Autobahn can synchronize active Git repositorie
 
 ## Configuration
 
-To carry the history, do not exclude `.git` wholesale. The patterns that
-must come out are the same for every repository, so they live in one
-file rather than in each group:
+To carry the history, do not exclude `.git` wholesale. The patterns that must come out are the same for every repository, so they live in one file rather than in each group:
 
 ```toml
 # ~/.autobahn/config.toml
@@ -22,13 +20,7 @@ ignores = [
 ]
 ```
 
-`Essential.gitignore` excludes `.git` whole by default, which is right
-for most people — a checkout arrives as a working tree, and the history
-comes from the remote. Uncomment its Git block to do what this page
-describes instead: carry objects, refs, `HEAD` and config, and leave out
-only the bookkeeping that cannot cross — the index, the locks, the
-reflog, the scratch files, the worktree links, and any half-finished
-merge or rebase.
+`Essential.gitignore` excludes `.git` whole by default, which is right for most people — a checkout arrives as a working tree, and the history comes from the remote. Uncomment its Git block to do what this page describes instead: carry objects, refs, `HEAD` and config, and leave out only the bookkeeping that cannot cross — the index, the locks, the reflog, the scratch files, the worktree links, and any half-finished merge or rebase.
 
 ### Excluded vs. Synchronized Git State
 
@@ -38,17 +30,22 @@ merge or rebase.
 ## Operational Considerations
 
 ### Working Tree and Index Alignment
+
 When a branch checkout occurs on the primary (`git checkout feature`), the changed working tree files and `HEAD` reference synchronize to the replica within milliseconds. However, because `.git/index` is excluded, Git on the replica still has the prior commit's cached stat entries.
+
 - Running `git status` on the replica may temporarily display modified files.
 - Run `git reset` (mixed reset) on the replica to refresh the local index against `HEAD`.
 
 ### Garbage Collection (`git gc`)
+
 `git gc` repacks loose objects into unified packfiles. While Autobahn safely propagates packfiles, run `git gc` on one host at a time, avoiding concurrent active commits on opposing endpoints.
 
 ### Concurrent Branch Commits
+
 If both the primary and the replica commit to the same branch simultaneously during a single synchronization interval, a conflict is flagged on the corresponding ref file under `.git/refs/heads/<branch>`. Resolve the ref via `autobahn resolve`, then align the losing endpoint with `git reset --hard`.
 
 ### Git Linked Worktrees
+
 Linked worktrees created via `git worktree add` embed absolute filesystem paths into `.git/worktrees/`. To synchronize linked worktrees across machines with differing directory paths, enable relative worktree paths (requires Git 2.48+):
 
 ```sh

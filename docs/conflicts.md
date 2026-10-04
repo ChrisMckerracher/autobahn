@@ -26,6 +26,7 @@ autobahn diff ./src/main.rs
 autobahn diff mygroup src/main.rs
 ```
 
+<!-- prettier-ignore -->
 > [!NOTE]
 > `autobahn conflicts` is an alias of `autobahn issues`. In addition to content discrepancies, the command reports mode/permission conflicts, symbolic link targets, and filesystem type mismatches (e.g., file vs. directory).
 
@@ -52,19 +53,15 @@ autobahn resolve ~/Workspace/project --all --keep primary --yes
 
 ## Resolution Mechanics
 
-1. **Retiring the Non-Authoritative Copy:**
-   `autobahn resolve` does not perform a direct byte transfer immediately. Instead, it retires the non-winning copy on the opposing endpoint (or moves it to an adjacent backup name if `--keep both` is specified) and removes the path entry from the session ancestor database.
-2. **Re-propagation:**
-   Upon the subsequent synchronization cycle, the winning file is detected as a fresh creation and cleanly propagated across all endpoints in the group.
-3. **Atomic Verification:**
-   Removal transitions validate the path state against the latest scan. If a file changed after the `resolve` command was initiated, the deletion is rejected to protect against race conditions.
-4. **Immediate Flush:**
-   If a background supervisor is active, `resolve` automatically issues a flush over the supervisor control socket so the winning state propagates immediately. If no supervisor is active, execute `autobahn sync <group>` to complete propagation.
-
+1. **Retiring the Non-Authoritative Copy:** `autobahn resolve` does not perform a direct byte transfer immediately. Instead, it retires the non-winning copy on the opposing endpoint (or moves it to an adjacent backup name if `--keep both` is specified) and removes the path entry from the session ancestor database.
+2. **Re-propagation:** Upon the subsequent synchronization cycle, the winning file is detected as a fresh creation and cleanly propagated across all endpoints in the group.
+3. **Atomic Verification:** Removal transitions validate the path state against the latest scan. If a file changed after the `resolve` command was initiated, the deletion is rejected to protect against race conditions.
+4. **Immediate Flush:** If a background supervisor is active, `resolve` automatically issues a flush over the supervisor control socket so the winning state propagates immediately. If no supervisor is active, execute `autobahn sync <group>` to complete propagation.
 
 ## Blocked Paths
 
 A **blocked path** occurs when an endpoint cannot read or write an entry due to filesystem permissions, missing directory structures, or unsupported filename characters:
+
 - `autobahn issues` prints the root cause and suggested remediation commands (e.g., `chmod` or `chown`).
 - Once filesystem permissions or paths are corrected, the subsequent sync cycle clears the blocked status automatically.
 

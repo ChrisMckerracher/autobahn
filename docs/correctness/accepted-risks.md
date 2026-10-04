@@ -4,7 +4,7 @@ This document records unresolved risks associated with [the invariants](./invari
 
 ## 1. A mount autobahn never saw mounted
 
-**Risk.** The guard is keyed on having *seen* a mount. A scan records the mount boundaries it crosses, in `sessions/<id>/mounts`, and every cycle checks each remembered path: still mounted, or holding content, is fine; hollow where the ancestor recorded children halts the session (`Session::account_for_mounts`). With `ignore_mounts = true` the path stays excluded on both sides instead.
+**Risk.** The guard is keyed on having _seen_ a mount. A scan records the mount boundaries it crosses, in `sessions/<id>/mounts`, and every cycle checks each remembered path: still mounted, or holding content, is fine; hollow where the ancestor recorded children halts the session (`Session::account_for_mounts`). With `ignore_mounts = true` the path stays excluded on both sides instead.
 
 A path never recorded gets none of that. Unplug the disk before autobahn first runs, and the first scan sees an ordinary empty directory and records it as one. Plug it in and its contents arrive as creations. Unplug it again and they leave as deletions, against an ancestor that now holds them, with nothing in the mount machinery firing — because the path was never in `remembered`.
 
@@ -26,10 +26,10 @@ What is left then is the generic guard, `guard_dir_deletes_over`, which is **off
 
 **What closes the rest.** Each replacement or removal (`Transitioner::put_in_place` and `Transitioner::remove_checked_file` in `src/endpoint/local.rs`):
 
-- **Checks the target again just before acting**, on every platform. Preparing new content (copying or verifying a large file) takes seconds, all of it after the first validation. *`a_save_landing_while_the_replacement_is_prepared_is_never_replaced`*
-- **Replaces by exchange**, on Linux (`RENAME_EXCHANGE`) and macOS (`RENAME_SWAP`): the new file is swapped in, and what came out is checked against the version validated. A save that landed after the last check came out instead, and is swapped back, with the replacement refused as a disagreement for the next cycle to reconcile. *`a_save_landing_after_the_last_check_is_swapped_back_not_replaced`*
-- **Removes by moving aside first**, on every platform: the file is renamed out of the way, checked, and only then deleted, or put back. *`a_save_landing_while_a_file_is_removed_is_put_back`*
-- **Leaves a file another program holds open**, on Linux. A write lease is granted only on a file nobody else has open, so one is taken and handed straight back as a probe. *`a_file_another_program_has_open_is_left_for_now_then_replaced`* and *`a_file_held_open_past_the_grace_is_replaced_anyway`*
+- **Checks the target again just before acting**, on every platform. Preparing new content (copying or verifying a large file) takes seconds, all of it after the first validation. _`a_save_landing_while_the_replacement_is_prepared_is_never_replaced`_
+- **Replaces by exchange**, on Linux (`RENAME_EXCHANGE`) and macOS (`RENAME_SWAP`): the new file is swapped in, and what came out is checked against the version validated. A save that landed after the last check came out instead, and is swapped back, with the replacement refused as a disagreement for the next cycle to reconcile. _`a_save_landing_after_the_last_check_is_swapped_back_not_replaced`_
+- **Removes by moving aside first**, on every platform: the file is renamed out of the way, checked, and only then deleted, or put back. _`a_save_landing_while_a_file_is_removed_is_put_back`_
+- **Leaves a file another program holds open**, on Linux. A write lease is granted only on a file nobody else has open, so one is taken and handed straight back as a probe. _`a_file_another_program_has_open_is_left_for_now_then_replaced`_ and _`a_file_held_open_past_the_grace_is_replaced_anyway`_
 
 When putting a save back fails, it is kept visibly beside its name, as `<name>.kept`, and reported.
 
@@ -59,7 +59,7 @@ One path is outside it. Supplying content (`open_scanned`) opens a file by name,
 
 **Risk.** The support boundary is one supervisor per folder; see [Limitations](../limitations.md#one-supervisor-per-folder). Nothing enforces it.
 
-Within one configuration the loader refuses nested writable endpoints, and *warns* about equal ones, because an equal one is fan-out: one source to several destinations, which is a supported topology. The endpoint-pair lock then excludes a second run of the same pair, machine-wide per user, from the real `~/.autobahn` — so `--state-root` and `--state-dir` cannot dodge it. Different machines, users, and `AUTOBAHN_HOME` directories are outside it entirely.
+Within one configuration the loader refuses nested writable endpoints, and _warns_ about equal ones, because an equal one is fan-out: one source to several destinations, which is a supported topology. The endpoint-pair lock then excludes a second run of the same pair, machine-wide per user, from the real `~/.autobahn` — so `--state-root` and `--state-dir` cannot dodge it. Different machines, users, and `AUTOBAHN_HOME` directories are outside it entirely.
 
 What is left is one folder paired with something different in two configurations. Each takes a different pair lock, both run, and each writes the folder from its own ancestor.
 
@@ -91,7 +91,7 @@ The racy-timestamp margin covers accidental same-granule edits. This is the deli
 
 Weekly bounds how long a change can hide. There is nothing to build for this, and a setting to do it internally would only move the schedule inside the configuration.
 
-Two things to know before relying on it. `verify` turns off checksum reuse and nothing else: what it finds reconciles as an ordinary change, and nothing marks it as having been hidden. So a verification that discovers a *tampered* file propagates it to the other side like any edit — containment is a side effect of not having looked. That is a reason to treat this as a correctness measure for build output, and not as tamper detection.
+Two things to know before relying on it. `verify` turns off checksum reuse and nothing else: what it finds reconciles as an ordinary change, and nothing marks it as having been hidden. So a verification that discovers a _tampered_ file propagates it to the other side like any edit — containment is a side effect of not having looked. That is a reason to treat this as a correctness measure for build output, and not as tamper detection.
 
 ## 6. P2P trusts every machine in the group
 

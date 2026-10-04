@@ -25,9 +25,9 @@ autobahn watch --debug
 ### Verbosity Definitions
 
 | Level | Events Logged |
-| :--- | :--- |
+| :-- | :-- |
 | `quiet` | Errors and critical safety halts only. |
-| `normal` *(default)* | Errors, summary lines for cycles that transferred data, and updates to the conflict/blocked path queues. |
+| `normal` _(default)_ | Errors, summary lines for cycles that transferred data, and updates to the conflict/blocked path queues. |
 | `debug` | Detailed stage timings, SSH connection durations, digest verifications, and staging retry traces. |
 
 ## Log Rotation and Retention

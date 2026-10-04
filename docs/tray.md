@@ -8,12 +8,12 @@ It watches the supervisor and holds no state of its own. The supervisor runs in 
 
 The Autobahn sign — two lanes to the horizon under a bridge — drawn in the menu bar's own ink, with a dot at its corner for the state of every session:
 
-| | |
-|---|---|
-| **Green** | everything synchronized |
-| **Amber** | something is in conflict |
-| **Red** | something is halted or unreachable |
-| **Struck through, no dot** | nothing is running |
+|                            |                                    |
+| -------------------------- | ---------------------------------- |
+| **Green**                  | everything synchronized            |
+| **Amber**                  | something is in conflict           |
+| **Red**                    | something is halted or unreachable |
+| **Struck through, no dot** | nothing is running                 |
 
 The ink comes from the menu bar itself, which matters on macOS 26, where the bar picks black or white from the wallpaper behind it — so a light system over a dark wallpaper still gets a white sign. It follows a change on the next poll.
 
@@ -27,7 +27,7 @@ Choices are queued rather than run where you click. They go to a worker thread i
 
 ## Two ways to have one
 
-**Inside [Autobahn Dash](./app.md).** Dash includes the item and runs it in the same process. Choose *Menu Bar* in its Service pane for the item alone, or *Both* for the item and the window. This is the easier route if you already want Dash.
+**Inside [Autobahn Dash](./app.md).** Dash includes the item and runs it in the same process. Choose _Menu Bar_ in its Service pane for the item alone, or _Both_ for the item and the window. This is the easier route if you already want Dash.
 
 **The standalone app.** The `autobahn` binary with `--features tray` and nothing else — no window, no GPUI, no graphics stack. Worth it on a machine where you want a status light and not an application. On macOS, build it from the repository:
 
@@ -42,7 +42,7 @@ From a terminal, `autobahn tray` runs the same thing, but only in a binary built
 
 ## Notifications
 
-With no `on_alert` hook configured, the item raises desktop notifications itself, under exactly the rules the hook would use: a condition has to hold before it counts, only something *joining* the set in trouble is news, a cascade is gathered into one, and recovery is silent. See [Alerts](./alerts.md).
+With no `on_alert` hook configured, the item raises desktop notifications itself, under exactly the rules the hook would use: a condition has to hold before it counts, only something _joining_ the set in trouble is news, a cascade is gathered into one, and recovery is silent. See [Alerts](./alerts.md).
 
 With a hook configured it stays quiet. The hook is then the one place notifications come from — two sources following identical rules would still say everything twice.
 
@@ -74,6 +74,7 @@ Desktop notifications go through the freedesktop notification service, and the d
   ```
 
   That list comes from the tray libraries' own requirements and has not been checked here. Other distributions name these packages differently.
+
 - A desktop that shows tray icons through AppIndicator or StatusNotifierItem. KDE and most others do; GNOME needs an extension such as "AppIndicator and KStatusNotifierItem Support".
 
 **Build and run**

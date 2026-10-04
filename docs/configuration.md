@@ -6,7 +6,7 @@ Everything autobahn does is described in one file, `~/.autobahn/config.toml`. Th
 
 ## The shape
 
-Each **group** fans one source root (the *primary*) out to any number of destinations (the *replicas*). Each (primary, replica) pair becomes its own session.
+Each **group** fans one source root (the _primary_) out to any number of destinations (the _replicas_). Each (primary, replica) pair becomes its own session.
 
 ```toml
 # ~/.autobahn/config.toml
@@ -52,7 +52,7 @@ Autobahn uses SSH key-based authentication, s you need to have your target machi
 Top-level keys must precede section headers in the TOML document. Unknown keys are rejected on load.
 
 | Key | Type | Default | Description |
-| :--- | :---: | :---: | :--- |
+| :-- | :-: | :-: | :-- |
 | `on_alert` | string | `""` | Shell command executed when an alert condition persists. See [Alerts](alerts.md). |
 | `disabled_hosts` | list of strings | `[]` | Excludes listed hosts across all groups. Disabling a primary host suspends its entire group. |
 | `log_level` | string | `"normal"` | Supervisor logging verbosity: `"quiet"`, `"normal"`, or `"debug"`. |
@@ -69,10 +69,10 @@ Top-level keys must precede section headers in the TOML document. Unknown keys a
 Settings defined in `[defaults]` are inherited by all groups. Group-level definitions take precedence over defaults, except `ignores`, which appends group rules to defaults.
 
 | Setting | Scope | Default | Description |
-| :--- | :---: | :---: | :--- |
-| `primary` | Group | *(Required)* | Source root path (local path or `[user@]host:path`). |
+| :-- | :-: | :-: | :-- |
+| `primary` | Group | _(Required)_ | Source root path (local path or `[user@]host:path`). |
 | `replicas` | Group | `[]` | List of destination endpoints. |
-| `mode` | Both | *(Required)* | Synchronization policy. See [Sync Modes](modes.md). |
+| `mode` | Both | _(Required)_ | Synchronization policy. See [Sync Modes](modes.md). |
 | `ignores` | Both | `[]` | Gitignore-compatible exclusion patterns. |
 | `interval` | Both | `5` | Fallback polling interval in seconds between idle synchronization checks. Minimum: 1. |
 | `disabled` | Group | `false` | Suspends synchronization for this group while retaining session baselines. |
@@ -86,8 +86,6 @@ Settings defined in `[defaults]` are inherited by all groups. Group-level defini
 | `default_owner` / `default_group` | Both | — | Explicit user/group ownership for created entries (requires root/elevated permissions). |
 | `durability` | Both | `"process"` | Persistence level: `"process"` (survives application crashes) or `"power"` (syncs intent to disk, surviving power failure). |
 | `acknowledge_secrets` | Group | `false` | Suppresses warnings when synchronizing directories containing sensitive tokens (`.ssh`, `.aws`, `.kube`). |
-
-
 
 ## Validation & Refusal Rules
 

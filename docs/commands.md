@@ -119,12 +119,12 @@ Conflicts, blocked paths, halts, unreachable hosts, pauses, and long scans expan
 
 Both displays support these controls:
 
-| Keys | Action |
-| --- | --- |
-| Arrows or `j`/`k` | Move one line |
-| PgUp/PgDn or space/`b` | Move one screen |
-| `g`/`G` or Home/End | Move to the beginning or end |
-| `q` or Ctrl-C | Leave |
+| Keys                   | Action                       |
+| ---------------------- | ---------------------------- |
+| Arrows or `j`/`k`      | Move one line                |
+| PgUp/PgDn or space/`b` | Move one screen              |
+| `g`/`G` or Home/End    | Move to the beginning or end |
+| `q` or Ctrl-C          | Leave                        |
 
 A footer shows the current position. The display continues to refresh during scrolling. Exiting preserves terminal scrollback.
 
@@ -184,7 +184,7 @@ autobahn sync ~/Workspace build.audi.de:/home/dev/workspace \
 A completed command returns one of these exit codes. Across multiple sessions, `1` takes precedence over `2`, which takes precedence over `0`.
 
 | Code | Meaning |
-|---|---|
+| --- | --- |
 | `0` | Every session converged, with no conflicts and no blocked paths. |
 | `1` | An error stopped a session: unreachable, halted, a bad configuration. |
 | `2` | Every session finished its pass, but conflicts or blocked paths remain. |

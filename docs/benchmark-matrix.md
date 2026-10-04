@@ -2,18 +2,16 @@
 
 This document presents the complete benchmark measurement matrix comparing **Autobahn 1.0.0** against **Mutagen 0.19.0-dev** on Linux. The [summary](./benchmarks.md) explains the headline results. Machine-readable metrics, per-run ranges, exclusions and problem records are in [`benchmarks/2026-10-02.json`](../benchmarks/2026-10-02.json). Raw samples and logs are kept out of the repository.
 
-
 This is one complete set, refreshed through October 2: every cell, both tools, from identified builds rather than a single run of today's HEAD. The five patch cells were re-run on `0c72865`; every other cell is the base run.
 
 ## Provenance & Build Metadata
 
 | Test Cells | Autobahn Build | Run Identifier | Date |
-| :--- | :--- | :--- | :---: |
+| :-- | :-- | :-- | :-: |
 | Base Matrix (all cells except 5 patch runs below) | `e7b3ac0` (1.4.0+e16, musl `dist`, mimalloc) | `bench-1790601586` | 2026-09-28 |
 | `chromium-10-fan-patch` | `0c72865` | `bench-1790869509` | 2026-10-01 |
 | `chromium-1-patch`, `chromium-10-patch` | `0c72865` | `bench-1790873270` | 2026-10-01 |
 | `50k-1-patch`, `50k-10-patch` | `0c72865` | `bench-1790941679` | 2026-10-02 |
-
 
 **Harness Environment:** Ubuntu 24.04 LTS, 8 cores, 16 GB RAM, 3.5 GHz Intel Xeon 8375C
 
@@ -22,7 +20,7 @@ This is one complete set, refreshed through October 2: every cell, both tools, f
 All percentiles are pooled milliseconds across five repeats. `ab` is Autobahn, `mu` is mutagen. Samples and skipped ticks are shown as `ab / mu`. `-bidir` measures each direction separately; `-fan` has ten destinations; `-patch` changes ranges within large files instead of replacing small files. The direction labels retain the corpus identity for two-tree cells.
 
 | Cell | Direction | ab p50 | ab p90 | ab p99 | mu p50 | mu p90 | mu p99 | p50 ratio | Samples ab / mu | Skipped ab / mu |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| --- | --- | --: | --: | --: | --: | --: | --: | --: | --: | --: |
 | 50k-1-patch | sub50k:a-to-b | 22.1 | 24.4 | 27.5 | 430.8 | 507.2 | 625.4 | 19.5× | 2,714 / 2,711 | 0 / 0 |
 | 50k-1 | sub50k:a-to-b | 13.6 | 14.2 | 44.1 | 426.5 | 533.9 | 1,927.5 | 31.4× | 2,756 / 2,722 | 0 / 0 |
 | 50k-10-fan | sub50k:a-to-b | 17.2 | 29.8 | 89.6 | 4,820.0 | 5,320.0 | 5,602.1 | 280.2× | 2,736 / 2,720 | 0 / 0 |
@@ -62,7 +60,7 @@ Median of each run's peak resident memory, in MiB (the aggregate's `/proc` KiB d
 ### Workload
 
 | Test Cell | Host Endpoint | ab RSS (MiB) | mu RSS (MiB) | ab CPU % | mu CPU % |
-| :--- | :--- | ---:| ---:| ---:| ---:|
+| :-- | :-- | --: | --: | --: | --: |
 | 50k-1-patch | local / remote | 69.4 / 52.1 | 268.5 / 194.6 | 2.8 / 1.3 | 87.2 / 60.5 |
 | 50k-1 | local / remote | 76.7 / 51.4 | 273.4 / 195.6 | 2.7 / 0.8 | 84.5 / 58.3 |
 | 50k-10-fan | local / remote | 565.7 / 404.8 | 2,716.9 / 1,745.1 | 58.8 / 43.3 | 293.2 / 218.0 |
@@ -93,11 +91,12 @@ Median of each run's peak resident memory, in MiB (the aggregate's `/proc` KiB d
 ### Idle
 
 During idle state on a 505k Chromium repository:
+
 - **Autobahn Controller:** 386.5 MiB RSS, **0.1% CPU**.
 - **Mutagen Controller:** 1,713.3 MiB RSS, **49.9% CPU**.
 
 | Test Cell | Host Endpoint | ab RSS (MiB) | mu RSS (MiB) | ab CPU % | mu CPU % |
-| :--- | :--- | ---:| ---:| ---:| ---:|
+| :-- | :-- | --: | --: | --: | --: |
 | 50k-1-patch | local / remote | 67.9 / 43.3 | 229.3 / 159.5 | 0.1 / 0.0 | 5.7 / 5.5 |
 | 50k-1 | local / remote | 67.1 / 43.3 | 214.8 / 163.7 | 0.1 / 0.0 | 5.8 / 5.6 |
 | 50k-10-fan | local / remote | 516.2 / 398.5 | 1,824.4 / 1,591.0 | 0.7 / 0.2 | 56.2 / 59.0 |
@@ -137,23 +136,23 @@ Dedicated `coldsync-*` cells start with empty destinations. Values are median di
 
 Ordinary latency cells are seeded and do not measure first-sync throughput.
 
-| Cell | Autobahn seconds | mutagen seconds |
-|---|---:|---:|
-| coldsync-50k-fan | 23.9 | 57.8 |
-| coldsync-50k | 21.9 | 52.1 |
-| coldsync-5k-fan | 7.7 | 23.0 |
-| coldsync-5k | 4.9 | 7.3 |
-| coldsync-chromium-fan | 221.3 | 505.4 |
-| coldsync-chromium | 228.1 | 454.8 |
+| Cell                  | Autobahn seconds | mutagen seconds |
+| --------------------- | ---------------: | --------------: |
+| coldsync-50k-fan      |             23.9 |            57.8 |
+| coldsync-50k          |             21.9 |            52.1 |
+| coldsync-5k-fan       |              7.7 |            23.0 |
+| coldsync-5k           |              4.9 |             7.3 |
+| coldsync-chromium-fan |            221.3 |           505.4 |
+| coldsync-chromium     |            228.1 |           454.8 |
 
 ## Bursts
 
 These values are median wall seconds for repeated module copies, including convergence verification. Internal Autobahn cycle duration is a separate metric retained in the aggregate.
 
-| Cell | Autobahn seconds | mutagen seconds |
-|---|---:|---:|
-| 50k-burst | 3.5 | 7.5 |
-| chromium-burst | 4.5 | 6.9 |
+| Cell           | Autobahn seconds | mutagen seconds |
+| -------------- | ---------------: | --------------: |
+| 50k-burst      |              3.5 |             7.5 |
+| chromium-burst |              4.5 |             6.9 |
 
 ## See also
 

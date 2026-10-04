@@ -14,7 +14,6 @@ A useful easter egg. The Autobahn Mi shop preseents you your sessions as orders 
     werk   → lager   🥖[▓░░░░░░░░░░░]  disputed  checking the pantry · 14s · 1 waiting
 ```
 
-
 Each row shows the last cycle’s outcome separately from current work. The phase column appears only after the work passes the same duration threshold as `status`.
 
 Press `?` for definitions of the interface labels.
@@ -37,19 +36,19 @@ A `⚠ configuration refused …` line means the supervisor rejected a configura
 
 ## Keys
 
-| key | does |
-|---|---|
-| `↑` `↓` | move |
-| `ret` or `→` | open an order, or a branch of its tree |
-| `←` | close a branch, then the counter |
-| `o` | keep ours |
-| `t` | keep theirs |
-| `b` | keep both |
-| `spc` | mark a dispute, to settle several together |
-| `c` | copy the fix for a blocked path to the clipboard |
-| `f` | rush an order (flush it now) |
-| `?` | help |
-| `q` | close the shop |
+| key          | does                                             |
+| ------------ | ------------------------------------------------ |
+| `↑` `↓`      | move                                             |
+| `ret` or `→` | open an order, or a branch of its tree           |
+| `←`          | close a branch, then the counter                 |
+| `o`          | keep ours                                        |
+| `t`          | keep theirs                                      |
+| `b`          | keep both                                        |
+| `spc`        | mark a dispute, to settle several together       |
+| `c`          | copy the fix for a blocked path to the clipboard |
+| `f`          | rush an order (flush it now)                     |
+| `?`          | help                                             |
+| `q`          | close the shop                                   |
 
 Resolution actions ask for confirmation. They can replace edited files across every destination in the group.
 

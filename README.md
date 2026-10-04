@@ -1,6 +1,6 @@
 # Autobahn <picture><source media="(prefers-color-scheme: dark)" srcset="assets/sign-readme-white.svg"><img src="assets/sign-readme.svg" alt="" height="23"></picture>
 
-*Subsecond sync with German precision.*
+_Subsecond sync with German precision._
 
 Keep your files in sync as fast as you (or an agent) edit them across a fleet.
 
@@ -88,7 +88,7 @@ Read [P2P](docs/p2p.md) before P2P use.
 Autobahn began as an effort to reduce the memory use of [Mutagen](https://mutagen.io/) which offers similar sync features, and then I got carried away.
 
 | Measurement | Autobahn | mutagen | Ratio |
-|---|---:|---:|---:|
+| --- | --: | --: | --: |
 | Small-file edit, Chromium, 1 editor, p50 | **23.8 ms** | 6,232.2 ms | 261.9× |
 | Small-file edit, 50k subset, 10 editors, p50 | **13.4 ms** | 1,809.8 ms | 135.1× |
 | Peak controller memory, Chromium, 1 editor | **479 MiB** | 2,081 MiB | 4.3× |
@@ -116,6 +116,7 @@ See [Safety](docs/safety.md) for guarantees and the related invariants in [Corre
 ## UI Goodness
 
 In addition to the standard CLI, several user interfaces are available:
+
 - **[Autobahn Dash](docs/app.md):** Experimental desktop window.
 - **[Menu bar item](docs/tray.md):** Status light and a menu without need for the full app.
 - **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn shop`).

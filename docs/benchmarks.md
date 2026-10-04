@@ -2,7 +2,6 @@
 
 The latest recorded comparison measures Autobahn v1.0.0 against mutagen 0.19.0-dev.
 
-
 The [matrix](./benchmark-matrix.md#provenance--build-metadata) identifies the measured builds. These results do not establish the performance of later commits.
 
 The [aggregate](../benchmarks/2026-10-02.json) contains every published figure. The harness that produced them is not in the repository; `bench/README.md` in a working checkout documents the methods.
@@ -10,7 +9,7 @@ The [aggregate](../benchmarks/2026-10-02.json) contains every published figure. 
 ## Headline
 
 | Measurement | Autobahn | mutagen | Ratio |
-|---|---:|---:|---:|
+| --- | --: | --: | --: |
 | Small-file edit, Chromium, 1 editor, p50 | **23.8 ms** | 6,232.2 ms | 261.9× |
 | Small-file edit, 50k subset, 10 editors, p50 | **13.4 ms** | 1,809.8 ms | 135.1× |
 | Large-file patch, Chromium, 1 editor, p50 | **33.1 ms** | 7,575.9 ms | 228.9× |
@@ -38,11 +37,11 @@ On Chromium with 100 editors per side, base-build primary-to-replica p50 was 232
 
 The October 1 Chromium patch runs measured later fixes:
 
-| Workload | p50 | p90 | p99 |
-| --- | --- | --- | --- |
-| One editor, one destination | 33.1 ms | 44.4 ms | 48.2 ms |
-| Ten editors, one destination | 34.0 ms | 44.8 ms | 58.1 ms |
-| Ten destinations | 42.0 ms | 67.0 ms | 107.8 ms |
+| Workload                     | p50     | p90     | p99      |
+| ---------------------------- | ------- | ------- | -------- |
+| One editor, one destination  | 33.1 ms | 44.4 ms | 48.2 ms  |
+| Ten editors, one destination | 34.0 ms | 44.8 ms | 58.1 ms  |
+| Ten destinations             | 42.0 ms | 67.0 ms | 107.8 ms |
 
 These cells cover temporary-file deferral and moving timed audits off foreground scans. They do not establish effects on other workloads.
 
@@ -56,12 +55,12 @@ Neither figure defines a universal per-file cost. The matrix reports idle and wo
 
 Dedicated first-sync medians were:
 
-| Corpus | Autobahn | mutagen |
-| --- | --- | --- |
-| 5k subset | 4.9 s | 7.3 s |
-| 50k subset | 21.9 s | 52.1 s |
-| Chromium | 228.1 s | 454.8 s |
-| Chromium, ten destinations | 221.3 s | 505.4 s |
+| Corpus                     | Autobahn | mutagen |
+| -------------------------- | -------- | ------- |
+| 5k subset                  | 4.9 s    | 7.3 s   |
+| 50k subset                 | 21.9 s   | 52.1 s  |
+| Chromium                   | 228.1 s  | 454.8 s |
+| Chromium, ten destinations | 221.3 s  | 505.4 s |
 
 Cells used different machine groups. The fan-out result does not show that adding destinations accelerates the same machine.
 

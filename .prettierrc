@@ -1,0 +1,9 @@
+# Markdown here is not hard-wrapped — a paragraph is one line, and the editor
+# or the browser wraps it. Without this, `prettier --write` re-flows every
+# paragraph at 80 columns, which makes a one-word edit rewrite the paragraph
+# and every diff unreadable.
+#
+# One thing prettier gets wrong even so: a GitHub alert needs its `[!NOTE]`
+# marker on a line of its own, and joining the blockquote into one line breaks
+# the callout. Those three blocks carry `<!-- prettier-ignore -->`.
+proseWrap: never

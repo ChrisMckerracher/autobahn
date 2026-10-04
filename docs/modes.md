@@ -15,9 +15,8 @@ A **mode** defines two things:
 | `two-way-primary` | Primary ↔ Replica | Primary wins | Active editing on both sides, with the primary having the final say. |
 | `two-way-primary-strict` | Primary ↔ Replica | Primary wins (strict) | The primary is authoritative, and its deletions override the replica's edits. |
 | `one-way-conflict` | Primary → Replica | Replica changes pause | Deployments where the replica generates local files (logs, caches) that the primary must not touch. |
-| `one-way-primary` *(alias: `mirror`)* | Primary → Replica | Primary mirrors strictly | Backups and releases where the replica must be an exact, identical copy of the primary. |
-| `p2p-*-dangerously-experimental` | Failover mesh | Conflict or primary wins | Multi-node failover when the primary goes offline. *(See [P2P](./p2p.md))* |
-
+| `one-way-primary` _(alias: `mirror`)_ | Primary → Replica | Primary mirrors strictly | Backups and releases where the replica must be an exact, identical copy of the primary. |
+| `p2p-*-dangerously-experimental` | Failover mesh | Conflict or primary wins | Multi-node failover when the primary goes offline. _(See [P2P](./p2p.md))_ |
 
 ## Behavior Matrix
 
@@ -39,19 +38,19 @@ The modes behave identically for standard actions: unchanged files remain untouc
 
 ### 1. `one-way-conflict` vs. `one-way-primary`
 
-* **`one-way-conflict` protects the replica from data loss:** It pushes updates from the primary to the replica, but if the replica modifies a file locally, the engine refuses to overwrite it and flags a conflict. New local files on the replica are ignored and preserved.
-* **`one-way-primary` enforces parity:** The replica is made to match the primary within the synchronized scope. Files only on the replica—including runtime logs, caches, and build artifacts—are **deleted** unless they are excluded by policy. Ignored entries are not mirrored individually, but deleting their parent can remove them; see [Ignores](./ignores.md#interaction-between-ignores-and-deletions).
+- **`one-way-conflict` protects the replica from data loss:** It pushes updates from the primary to the replica, but if the replica modifies a file locally, the engine refuses to overwrite it and flags a conflict. New local files on the replica are ignored and preserved.
+- **`one-way-primary` enforces parity:** The replica is made to match the primary within the synchronized scope. Files only on the replica—including runtime logs, caches, and build artifacts—are **deleted** unless they are excluded by policy. Ignored entries are not mirrored individually, but deleting their parent can remove them; see [Ignores](./ignores.md#interaction-between-ignores-and-deletions).
 
 ### 2. Deletions vs. Edits: Standard vs. Strict
 
 Because a deletion contains no file content, reconciling a deletion against an active edit risks permanently destroying someone's work.
 
-* **`two-way-conflict` & `two-way-primary` (Edit Wins):** If the primary deletes a file that the replica modified, the system prioritizes preserving data: the replica's edit survives and is copied back to the primary. (This commonly happens during renames: the primary renames `foo` to `bar` while the replica edits `foo`; `foo` reappears on the primary with the replica's changes).
-* **`two-way-primary-strict` (Deletion Wins):** Removes this safety fallback. The primary's deletion is absolute. If the primary deletes a file, the replica's local edits to that file are discarded. The replica can still push newly created files back to the primary.
+- **`two-way-conflict` & `two-way-primary` (Edit Wins):** If the primary deletes a file that the replica modified, the system prioritizes preserving data: the replica's edit survives and is copied back to the primary. (This commonly happens during renames: the primary renames `foo` to `bar` while the replica edits `foo`; `foo` reappears on the primary with the replica's changes).
+- **`two-way-primary-strict` (Deletion Wins):** Removes this safety fallback. The primary's deletion is absolute. If the primary deletes a file, the replica's local edits to that file are discarded. The replica can still push newly created files back to the primary.
 
 ### 3. Large Directory Protection (`guard_dir_deletes_over`)
 
-When a mounted drive disconnects, an operating system often presents the mount point as a valid, empty folder. Standard three-way sync engines interpret this as: *"Every file inside was intentionally deleted,"* propagating mass deletions to the other side.
+When a mounted drive disconnects, an operating system often presents the mount point as a valid, empty folder. Standard three-way sync engines interpret this as: _"Every file inside was intentionally deleted,"_ propagating mass deletions to the other side.
 
 A setting rather than a mode, so it works alongside any direction:
 
@@ -62,8 +61,8 @@ guard_dir_deletes_over = 8
 
 Set it, and a directory the ancestor recorded with that many entries or more — **counted recursively**, so one subfolder of seven files reaches eight — is no longer trusted when it disappears from exactly one side:
 
-* **Directory emptied on one side:** Flags a **directory conflict** at that path and moves nothing beneath it. Resolve with `resolve --keep <full-side>` to restore the files, or `resolve --keep <empty-side>` to approve deleting the entire tree.
-* **Directory missing entirely on one side, in a two-way mode:** If the remaining side matches the last-known synchronized state, the directory is **restored**, not deleted. To intentionally delete it, remove it on both sides or empty it first and resolve the conflict. In a one-way mode, the ordinary directional rules still apply to a missing directory: this setting does not restore the primary from the replica.
+- **Directory emptied on one side:** Flags a **directory conflict** at that path and moves nothing beneath it. Resolve with `resolve --keep <full-side>` to restore the files, or `resolve --keep <empty-side>` to approve deleting the entire tree.
+- **Directory missing entirely on one side, in a two-way mode:** If the remaining side matches the last-known synchronized state, the directory is **restored**, not deleted. To intentionally delete it, remove it on both sides or empty it first and resolve the conflict. In a one-way mode, the ordinary directional rules still apply to a missing directory: this setting does not restore the primary from the replica.
 
 Unset—the default—this extra directory guard is off. The independent safeguards for a missing primary, an emptied root with at least two ancestor entries, and a previously recorded mount still apply; see [Safety](./safety.md).
 
@@ -73,8 +72,8 @@ Unset—the default—this extra directory guard is off. The independent safegua
 
 When a Primary syncs concurrently to multiple Replicas, each pair runs an independent session. The chosen mode determines how concurrent edits from different Replicas are handled:
 
-* **Under `two-way-conflict`:** If replica A's edit reaches the primary before the session with a differently edited replica B reconciles, that session reports a conflict against its old ancestor. Both edits are preserved until manually reviewed.
-* **Under `two-way-primary`:** Once replica A's edit reaches the primary, a competing edit on replica B against the old ancestor loses to the version now on the primary. A replica edit still travels to the primary when the primary is unchanged against that pair's ancestor. This is per-session three-way reconciliation, not a last-writer-wins policy; transition validation refuses writes based on stale scans. Use `two-way-conflict` when competing edits need review.
+- **Under `two-way-conflict`:** If replica A's edit reaches the primary before the session with a differently edited replica B reconciles, that session reports a conflict against its old ancestor. Both edits are preserved until manually reviewed.
+- **Under `two-way-primary`:** Once replica A's edit reaches the primary, a competing edit on replica B against the old ancestor loses to the version now on the primary. A replica edit still travels to the primary when the primary is unchanged against that pair's ancestor. This is per-session three-way reconciliation, not a last-writer-wins policy; transition validation refuses writes based on stale scans. Use `two-way-conflict` when competing edits need review.
 
 ---
 

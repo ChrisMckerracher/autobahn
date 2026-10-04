@@ -4,8 +4,8 @@ Autobahn comes with a strict copyleft license: if you choose to embed it in you 
 
 To free yourself of that requirement, make a one-time donation to [Justice-In-Education](https://justiceineducation.columbia.edu/get-involved/donate/) at Columbia.
 
- - If you're an indiviudal, donate at least $50
- - If you're a business, donate at least $200
+- If you're an indiviudal, donate at least $50
+- If you're a business, donate at least $200
 
 Afterwards, file an issue with a copy of the receipt, and I'll add you or your company to the `DONORS.md` file and to the README. This grants you Autobahn's source code under the [Commercial License](../COMMERCIAL-LICENSE.md).
 
@@ -21,8 +21,8 @@ Justice-In-Education provides higher education access to incarcerated population
 
 Rehabilitative programs like these have been proven to reduce recidivism:
 
- - The Vera Institute showed College-in-prison programs [reduce the risk of reconviction by about two-thirds](https://www.vera.org/publications/the-impacts-of-college-in-prison)
- - According to comprehensive tracking by the Department of Justice and the RAND Corporation, individuals who participate in any correctional education program [have up to 43% lower odds of recidivating than those who do not](https://bja.ojp.gov/sites/bja/files/Publications/RAND_Correctional-Education-Meta-Analysis.pdf).
+- The Vera Institute showed College-in-prison programs [reduce the risk of reconviction by about two-thirds](https://www.vera.org/publications/the-impacts-of-college-in-prison)
+- According to comprehensive tracking by the Department of Justice and the RAND Corporation, individuals who participate in any correctional education program [have up to 43% lower odds of recidivating than those who do not](https://bja.ojp.gov/sites/bja/files/Publications/RAND_Correctional-Education-Meta-Analysis.pdf).
 
 ## See also
 
