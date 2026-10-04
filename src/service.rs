@@ -551,7 +551,7 @@ pub const TOLD_STATE: &str = "AUTOBAHN_SERVICE_STATE";
 
 /// The service's current state.
 pub fn state() -> Result<ServiceState> {
-    if let Some(told) = std::env::var(TOLD_STATE).ok() {
+    if let Ok(told) = std::env::var(TOLD_STATE) {
         match told.as_str() {
             "not-installed" => return Ok(ServiceState::NotInstalled),
             "stopped" => return Ok(ServiceState::Stopped),
