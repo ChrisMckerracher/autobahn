@@ -14,10 +14,10 @@ The [aggregate](../benchmarks/2026-10-02.json) contains every published figure. 
 | Small-file edit, 50k subset, 10 editors, p50 | **13.4 ms** | 1,809.8 ms | 135.1× |
 | Large-file patch, Chromium, 1 editor, p50 | **33.1 ms** | 7,575.9 ms | 228.9× |
 | Peak controller memory, Chromium, 1 editor | **479 MiB** | 2,081 MiB | 4.3× |
-| Idle controller CPU, Chromium, 1 editor | **0.1% of a core** | 49.9% | rounded measurements |
+| Idle controller CPU, Chromium, 1 editor | **0.1% of a core** | 49.9% | >300× |
 | First sync, Chromium, one destination | **228.1 s** | 454.8 s | 2.0× |
 
-Memory is the median of per-run peak RSS during the workload. It is controller-side process-tree memory, including transport children, not the sum of both hosts. The idle CPU values are rounded to a tenth of a percentage point, so a precise speedup ratio would be misleading.
+Memory is the median of per-run peak RSS during the workload. It is controller-side process-tree memory, including transport children, not the sum of both hosts. The idle CPU values are rounded to a tenth of a percentage point. At 0.1% that rounding is half the value, so dividing gives anywhere from 332× to 999× and a precise figure would be invented. The table states the floor.
 
 ## Methodology
 

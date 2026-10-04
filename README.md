@@ -95,7 +95,7 @@ Autobahn began as an effort to reduce the memory use of [Mutagen](https://mutage
 | Small-file edit, Chromium, 1 editor, p50 | **23.8 ms** | 6,232.2 ms | 261.9× |
 | Small-file edit, 50k subset, 10 editors, p50 | **13.4 ms** | 1,809.8 ms | 135.1× |
 | Peak controller memory, Chromium, 1 editor | **479 MiB** | 2,081 MiB | 4.3× |
-| Idle controller CPU, Chromium | **0.1% of a core** | 49.9% | rounded values |
+| Idle controller CPU, Chromium | **0.1% of a core** | 49.9% | >300× |
 | First sync, Chromium | **228.1 s** | 454.8 s | 2.0× |
 
 See [Benchmarks](docs/benchmarks.md) for details.
