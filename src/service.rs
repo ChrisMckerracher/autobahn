@@ -20,7 +20,7 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 
 /// The service's name under the platform's service manager.
-const LABEL: &str = "io.autobahn.supervisor";
+const LABEL: &str = "vip.faraz.autobahn.supervisor";
 
 /// What the service manager knows about the service.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
