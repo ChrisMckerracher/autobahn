@@ -16,7 +16,7 @@ site_url: https://fny.github.io/autobahn/
 repo_url: https://github.com/fny/autobahn
 repo_name: fny/autobahn
 edit_uri: edit/main/docs/
-copyright: AGPL-3.0-or-later OR LicenseRef-Donor
+copyright: AGPL-3.0-or-later OR LicenseRef-Commercial
 
 # Pinned in docs/requirements.txt. The theme is 0.x and essentially one
 # maintainer, so it moves on our schedule rather than its own. Nothing in the

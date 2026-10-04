@@ -178,7 +178,7 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 
 ## License
 
-Autobahn is dual licensed: `AGPL-3.0-or-later OR LicenseRef-Donor`.
+Autobahn is dual licensed: `AGPL-3.0-or-later OR LicenseRef-Commercial`.
 
 - **[AGPL-3.0-or-later](LICENSE)**: free for any use with copy left caveats
 - **[Donor's](DONOR-LICENSE.md)** [donate to Justice-In-Education](docs/donations.md) to use Autobahn free of GPL
