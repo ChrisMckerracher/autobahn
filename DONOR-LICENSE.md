@@ -1,4 +1,4 @@
-# Autobahn Commercial License
+# Autobahn Donor's License
 
 ### 1. How this license works
 
@@ -44,7 +44,7 @@ You can keep your changes to the Software private. You do not have to share them
 ### 7. Notices
 
 - Keep our copyright and license notices in the Software’s source code.
-- Put this notice in the third-party or open-source notices of Your Products: “Autobahn, Copyright (c) 2026 Faraz Yashar. Used under the Autobahn Commercial License.”
+- Put this notice in the third-party or open-source notices of Your Products: “Autobahn, Copyright (c) 2026 Faraz Yashar. Used under the Autobahn Donor's License.”
 
 ### 8. Your customers
 

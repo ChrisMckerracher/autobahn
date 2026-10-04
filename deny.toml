@@ -75,7 +75,7 @@ allow = [
 #
 # Not in the list above, deliberately. An AGPL *dependency* would be a
 # problem this project cannot absorb: its terms would reach anyone
-# building on Autobahn, and no commercial licence granted here could
+# building on Autobahn, and no donor's licence granted here could
 # release them from it. So the copyleft is allowed exactly where it is
 # ours to grant.
 [[licenses.exceptions]]

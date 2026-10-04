@@ -7,7 +7,7 @@ To free yourself of that requirement, make a one-time donation to [Justice-In-Ed
 - If you're an indiviudal, donate at least $50
 - If you're a business, donate at least $200
 
-Afterwards, file an issue with a copy of the receipt, and I'll add you or your company to the `DONORS.md` file and to the README. This grants you Autobahn's source code under the [Commercial License](../COMMERCIAL-LICENSE.md).
+Afterwards, file an issue with a copy of the receipt, and I'll add you or your company to the `DONORS.md` file and to the README. This grants you Autobahn's source code under the [Donor's License](../DONOR-LICENSE.md).
 
 If total donations surpass $10K I will gladly relicense Autobahn under the MIT License.
 
@@ -26,5 +26,5 @@ Rehabilitative programs like these have been proven to reduce recidivism:
 
 ## See also
 
-- [Commercial licence](../COMMERCIAL-LICENSE.md) — the terms a donation puts you under
+- [Donor's licence](../DONOR-LICENSE.md) — the terms a donation puts you under
 - [Limitations](./limitations.md) — what you would be building on

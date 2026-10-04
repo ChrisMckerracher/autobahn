@@ -50,4 +50,4 @@ This is the part worth reading before you point it at anything you care about.
 
 ## Licence
 
-AGPL-3.0-or-later, or a commercial licence free of the AGPL if you [donate to the Justice-in-Education Initiative](donations.md).
+AGPL-3.0-or-later, or a donor's licence free of the AGPL if you [donate to the Justice-in-Education Initiative](donations.md).
