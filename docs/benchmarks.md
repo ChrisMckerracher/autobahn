@@ -1,4 +1,4 @@
-# Benchmark: Autobahn vs mutagen
+# Benchmark: Autobahn vs Mutagen
 
 The latest recorded comparison measures Autobahn v1.0.0 against mutagen 0.19.0-dev.
 

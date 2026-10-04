@@ -16,7 +16,7 @@ Autobahn requires local POSIX-compliant filesystems (e.g., ext4, XFS, Btrfs, APF
 
 - **Network Mounts (NFS, SMB/CIFS, FUSE):** Supported only on a best-effort, single-writer basis. Remote file attribute caching can mask modifications from scanners and safety validation checks. Change events are frequently dropped or unsupported by the kernel driver. Autobahn warns when network mount points are detected.
 
-### One supervisor per folder
+### One Supervisor per Folder
 
 A folder is synchronized by one supervisor. That supervisor may run as many sessions over it as the configuration asks for — fanning one source out to several destinations is a supported topology, because one supervisor decides in order what happens to the folder.
 

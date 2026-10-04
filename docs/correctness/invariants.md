@@ -4,7 +4,7 @@ This reference states the system’s guarantees, enforcement points, tests, and 
 
 References use paths and symbols rather than line numbers. Mutation-checked tests must fail when their enforcing code is deliberately broken. [RETAINED](./accepted-risks.md) explains unresolved risks and reasons to revisit them.
 
-## I1. A scan describes the tree at a generation
+## I1. A Scan Describes the Tree at a Generation
 
 **Statement.** A snapshot cannot be served as current after an announced change that it did not observe. Announcements include delivered watcher events and pre-write `invalidate` calls.
 
@@ -41,7 +41,7 @@ Mutation checks cover path recording, stale-offer refusal, the serve gate, and p
 
 **Boundary.** Unannounced writes remain invisible until OS event delivery or an audit. Network filesystems can omit events entirely. See [accepted-risks §3](./accepted-risks.md#3-network-filesystems-can-hide-changes).
 
-## I2. The ancestor records only acknowledged agreement
+## I2. The Ancestor Records Only Acknowledged Agreement
 
 **Statement.** Ancestor entries represent completed cycles acknowledged by both endpoints. An interrupted cycle can remove provenance but cannot invent agreement. Unknown provenance normally becomes a conflict. Interrupted deletions can instead restore content.
 
@@ -86,7 +86,7 @@ Under default durability, power loss can remove an unsynced achieved-record tail
 
 A remote acknowledgement means a decoded response from the authenticated agent. It does not independently prove remote disk state (I2-A).
 
-## I3. A digest names exactly its bytes
+## I3. A Digest Names Exactly Its Bytes
 
 **Statement.** Content addressed by digest must match that digest at use. Unverified incoming content cannot enter staging or publish to a tree.
 
@@ -112,7 +112,7 @@ Disabling the receive digest gate causes the corrupt-frame test to publish corru
 
 `a_same_granule_rewrite_is_reread_not_trusted` covers accidental timestamp-granule collisions. `a_verified_scan_sees_what_metadata_hides` covers explicit content verification.
 
-## I4. Transitions validate against their lease
+## I4. Transitions Validate Against Their Lease
 
 **Statement.** A transition validates against the snapshot used for its reconciliation, called its lease. A conflicting live state causes a reported refusal.
 
@@ -140,7 +140,7 @@ Linux and macOS provide atomic no-replace rename. FreeBSD and other BSDs do not.
 
 Validation compares metadata, not live content. Same-length rewrites with restored metadata can pass (I4-B, accepted-risks §5).
 
-## I5. No crash leaves torn bytes
+## I5. No Crash Leaves Torn Bytes
 
 **Statement.** At staging, transition, and remote frame boundaries, a process crash leaves each file equal to a legitimate version.
 
@@ -164,7 +164,7 @@ The C2 harness covers local lifecycle faults. The C3 sweep cuts real agent conne
 
 **Boundary.** This is a process-crash guarantee. Publication does not sync file data, so power loss can expose unsynced bytes under a renamed path (I5-A). I2 and I10 protect ancestor recovery. Later content checks and transfers repair the tree.
 
-## I6. One writer per tree region
+## I6. One Writer per Tree Region
 
 **Statement.** One configuration cannot contain nested writable local roots. Identical shared roots remain legal, with a warning, for fan-out, star, and relay topologies.
 
@@ -188,7 +188,7 @@ Endpoint resolution is frozen through validation, locking, and construction for 
 
 Identical-root sharing relies on generations and lease validation, rather than exclusive root ownership.
 
-## I7. Reconciliation never destroys silently
+## I7. Reconciliation Never Destroys Silently
 
 **Statement.** Two-way conflict mode reports competing non-deletion changes and restores an edit against a deletion. One-way conflict mode preserves replica-only changes without copying them to the primary.
 
@@ -231,7 +231,7 @@ A root containing one empty directory is not empty because that directory itself
 
 A forged ancestor can invalidate the policy’s provenance assumptions (I7-B).
 
-## I8. Both ends speak the same safety semantics
+## I8. Both Ends Speak the Same Safety Semantics
 
 **Statement.** Controller and agent package versions and compatibility epochs must match exactly. Mismatch errors name both versions.
 
@@ -242,7 +242,7 @@ A forged ancestor can invalidate the policy’s provenance assumptions (I7-B).
 - `a_stale_epoch_fails_the_handshake`
 - `a_failed_handshake_reaps_the_spawned_process`
 
-## I9. The wire is hostile until proven otherwise
+## I9. The Wire Is Hostile Until Proven Otherwise
 
 **Statement.** Received lengths, flags, and compressed sizes require validation before they control allocation.
 
@@ -276,7 +276,7 @@ Each delta operation must fit the declared output length before application. The
 
 **Boundary.** Outgoing messages are serialized before their size check, so the cap does not protect sender memory (I9-A). Decoded structures have no explicit depth cap beyond input length (I9-B). Hostile-peer availability remains outside the broader guarantee.
 
-## I10. Persisted state is atomic or absent
+## I10. Persisted State Is Atomic or Absent
 
 **Statement.** State publication leaves a complete previous state or detectable partial state after interruption, rather than silently combining versions.
 
@@ -304,7 +304,7 @@ Reset guarantees program order, not all power-loss ordering. Recovery yields the
 
 Observer caches and status files have no content checksum against torn-sector corruption (I10-C). Cache corruption can resemble forged metadata. Explicit verification bypasses cached digests.
 
-## I11. A peer is confined to the root, genuine or not
+## I11. A Peer Is Confined to the Root, Genuine or Not
 
 **Statement.** Peer requests can access only scanned content inside the synchronization root and the session’s state, including staging and p2p ancestor copies. This applies to hostile protocol peers as well as genuine binaries.
 
@@ -363,7 +363,7 @@ Raw symbolic links synchronize as data, including targets outside the root. Auto
 
 P2P followers apply their own `host.toml` restrictions and ignore pushed `agent_command`. Attached primary serves only its configured sessions. Without restricted keys, peer SSH credentials still provide shell access. See [P2P](../p2p.md).
 
-## The threat-model note
+## The Threat-Model Note
 
 I11 confinement and I9 size checks apply even to hostile protocol peers, subject to the stated local filesystem boundaries.
 
@@ -371,7 +371,7 @@ Other integrity and availability guarantees assume genuine binaries at both endp
 
 Large or deeply nested valid messages can exhaust resources (I9-B). Defending against fabricated results and resource abuse requires independent result validation and semantic limits beyond the current design.
 
-## The review of record
+## The Review of Record
 
 An independent model-lineage review on 2026-08-30 produced 22 findings. Separate verifiers assessed the leading findings.
 
@@ -379,7 +379,7 @@ Six confirmed issues were fixed: I1-A, I2-B, I3-A, I7-A, I10-B, and I6-C. Each r
 
 Other findings clarified the statements and boundaries. Remaining limits include hostile-peer integrity and availability, cross-process writer overlap, power-loss content publication, and unobserved mounts.
 
-## How to attack this document
+## How to Attack This Document
 
 Prioritize these cases:
 
@@ -392,7 +392,7 @@ Prioritize these cases:
 
 Extend existing harness operation sets where possible.
 
-## The specification
+## The Specification
 
 `spec/Autobahn.tla` models reconciliation across one primary and multiple replicas. TLC checks bounded states, and `tests/spec_replay.rs` compares implementation behavior. See [Specification guide](../../spec/README.md).
 

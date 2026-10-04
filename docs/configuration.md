@@ -4,7 +4,7 @@ Everything autobahn does is described in one file, `~/.autobahn/config.toml`. Th
 
 `autobahn init` writes that file for you: the defaults, every mode explained in a comment, and one example group to edit. The rest of this page is every key it can hold.
 
-## The shape
+## The Shape
 
 Each **group** fans one source root (the _primary_) out to any number of destinations (the _replicas_). Each (primary, replica) pair becomes its own session.
 
@@ -95,7 +95,7 @@ Configurations are validated prior to execution. The supervisor halts or rejects
 2. **State Directory Collisions:** Synchronized roots cannot encompass Autobahn's internal state directories (`~/.autobahn`), configuration files, or log directories unless explicitly excluded via `ignores = [".autobahn"]`.
 3. **Privilege Escalation:** Running as root via `sudo` where `$HOME` belongs to a non-root user is explicitly rejected.
 
-### Symbolic links
+### Symbolic Links
 
 `raw` copies the link target verbatim, including absolute targets and targets outside the root. Autobahn treats links as entries and never follows one: it refuses a linked parent, and holds each directory open from the check to the write, so a parent replaced by a link in between cannot redirect a write. See [Accepted risks](./correctness/accepted-risks.md#2-a-file-can-change-after-the-last-check).
 

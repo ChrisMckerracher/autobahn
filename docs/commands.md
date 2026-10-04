@@ -82,7 +82,7 @@ autobahn update --dry-run  # ...or just say what it would install
 
 See [Configuration](./configuration.md) for service installation and [Releases](./releases.md) for updates.
 
-## What `status` shows
+## What `status` Shows
 
 After a session works for five seconds, `status` shows its phase, elapsed time, and available progress:
 

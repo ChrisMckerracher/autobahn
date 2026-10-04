@@ -1,4 +1,4 @@
-# Benchmark matrix: September–October 2026
+# Benchmark Matrix: September–October 2026
 
 This document presents the complete benchmark measurement matrix comparing **Autobahn 1.0.0** against **Mutagen 0.19.0-dev** on Linux. The [summary](./benchmarks.md) explains the headline results. Machine-readable metrics, per-run ranges, exclusions and problem records are in [`benchmarks/2026-10-02.json`](../benchmarks/2026-10-02.json). Raw samples and logs are kept out of the repository.
 
@@ -15,7 +15,7 @@ This is one complete set, refreshed through October 2: every cell, both tools, f
 
 **Harness Environment:** Ubuntu 24.04 LTS, 8 cores, 16 GB RAM, 3.5 GHz Intel Xeon 8375C
 
-## Propagation latency
+## Propagation Latency
 
 All percentiles are pooled milliseconds across five repeats. `ab` is Autobahn, `mu` is mutagen. Samples and skipped ticks are shown as `ab / mu`. `-bidir` measures each direction separately; `-fan` has ten destinations; `-patch` changes ranges within large files instead of replacing small files. The direction labels retain the corpus identity for two-tree cells.
 
@@ -130,7 +130,7 @@ During idle state on a 505k Chromium repository:
 | two50k-10 | local / remote | 115.0 / 70.8 | 343.9 / 284.5 | 0.2 / 0.0 | 9.9 / 10.6 |
 | two50k-100 | local / remote | 115.4 / 64.4 | 349.7 / 288.6 | 0.2 / 0.0 | 10.0 / 10.2 |
 
-## First synchronization
+## First Synchronization
 
 Dedicated `coldsync-*` cells start with empty destinations. Values are median digest-verified seconds across five repeats, including verification and completion polling.
 

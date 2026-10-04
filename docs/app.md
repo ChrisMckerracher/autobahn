@@ -44,7 +44,7 @@ Conflict actions run the same operations as the command line — see [Conflicts]
 
 ![The Conflicts pane with a unified diff open between the primary and a replica](../assets/screenshots/conflicts.png)
 
-## Editing configuration
+## Editing Configuration
 
 ![The Configuration pane, editing the top-level settings](../assets/screenshots/configuration.png)
 
@@ -54,7 +54,7 @@ Advanced fields fold away. Experimental controls appear after five clicks on the
 
 A running supervisor picks up a saved file through [live reload](./configuration.md#live-reload-behavior). With live reload off, restart it to apply the change.
 
-## Choosing what shows
+## Choosing What Shows
 
 ![The Service pane: the supervisor, login service, notifications, and what the app shows](../assets/screenshots/service.png)
 
@@ -77,7 +77,7 @@ Turn them off with the switch in the Service pane.
 
 **Do not leave them on alongside an `on_alert` hook.** The hook follows the same rules, so both means being told everything twice. The Service pane says so when it finds a hook configured and the switch still on; turn off whichever you want less. A hook you add while Dash is open is noticed within a few seconds, without a restart.
 
-## Starting at login
+## Starting at Login
 
 **The app does not start itself.** Add it under System Settings → General → Login Items on macOS, or your desktop's autostart settings on Linux.
 

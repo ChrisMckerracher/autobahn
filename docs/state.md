@@ -25,7 +25,7 @@ Autobahn keeps configuration and session state under `~/.autobahn` by default, o
 | `icon.png` | autobahn's icon, for notifiers |
 | `on-alert.sh` | the example alert hook `init` writes — see [Alerts](./alerts.md). Yours to edit; never replaced |
 
-## Sessions outlive the config
+## Sessions Outlive the Config
 
 Removing a group from the config stops its sessions but keeps their state, so that adding the group back later resumes from memory rather than re-merging two drifted trees. `clean` is how that state is eventually let go:
 
@@ -57,7 +57,7 @@ The version in use is never a candidate and never spends a `--keep-agents` slot.
 
 One thing to know: "in use" means the version of the binary _running `clean`_, which is normally the supervisor's version too. If you have built a newer binary but not yet restarted, they differ, and the default `--keep-agents 1` is what protects the running supervisor's agent.
 
-## Compatibility epochs
+## Compatibility Epochs
 
 The agent's version must match the controller's exactly. A change that breaks the wire protocol, or one that makes the two sides disagree about a tree — a scan rule, an ignore rule — bumps a compatibility epoch that rides inside the version string (`1.0.0+e1`). A mismatched agent fails the handshake, and the installer places the new agent at a path the old one never occupied, so both sides are enforced with no protocol change.
 

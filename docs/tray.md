@@ -4,7 +4,7 @@
 
 It watches the supervisor and holds no state of its own. The supervisor runs in the background whether the item is there or not.
 
-## What it shows
+## What It Shows
 
 The Autobahn sign — two lanes to the horizon under a bridge — drawn in the menu bar's own ink, with a dot at its corner for the state of every session:
 
@@ -17,7 +17,7 @@ The Autobahn sign — two lanes to the horizon under a bridge — drawn in the m
 
 The ink comes from the menu bar itself, which matters on macOS 26, where the bar picks black or white from the wallpaper behind it — so a light system over a dark wallpaper still gets a white sign. It follows a change on the next poll.
 
-## The menu
+## The Menu
 
 Each group, and each destination with its state. Under a conflict, the ways to settle it: diff, keep the primary's version, keep that destination's, or keep both. It also starts, stops and restarts the login service, and opens its log.
 
@@ -25,7 +25,7 @@ When the running supervisor has refused an edit to the configuration, the menu s
 
 Choices are queued rather than run where you click. They go to a worker thread in the order you made them, and the menu says how many are waiting — so a second choice made while the first is still going is kept instead of lost, and a slow resolve cannot freeze the menu bar.
 
-## Two ways to have one
+## Two Ways to Have One
 
 **Inside [Dash](./app.md).** Dash includes the item and runs it in the same process. Choose _Menu Bar_ in its Service pane for the item alone, or _Both_ for the item and the window. This is the easier route if you already want Dash.
 
@@ -48,7 +48,7 @@ With a hook configured it stays quiet. The hook is then the one place notificati
 
 Inside Dash, the item is what speaks, and Dash's notification switch turns it off. Dash notifies for itself only when no item is running. See [the app](./app.md#notifications).
 
-## Starting at login
+## Starting at Login
 
 **It does not start itself.** Add it under System Settings → General → Login Items on macOS, or your desktop's autostart settings on Linux.
 
