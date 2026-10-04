@@ -74,10 +74,7 @@ fn runs_for(line: &str, at: usize, out: &mut Vec<(Range<usize>, HighlightStyle)>
     // The message. Its first word, when it ends in a colon, is the news.
     let rest = &line[cut..];
     let start = rest.len() - rest.trim_start().len();
-    let word = rest[start..]
-        .split(|c: char| c == ':' || c == ' ')
-        .next()
-        .unwrap_or("");
+    let word = rest[start..].split([':', ' ']).next().unwrap_or("");
     let labelled = !word.is_empty() && rest[start + word.len()..].starts_with(':');
     if labelled {
         push(

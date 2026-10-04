@@ -1558,16 +1558,8 @@ impl Dash {
                     }
                 }
             }
-            Pane::Log => {
-                if self.log.is_none() {
-                    self.read_log(window, cx);
-                }
-            }
-            Pane::Config => {
-                if self.sheet.is_none() {
-                    self.read_sheet();
-                }
-            }
+            Pane::Log if self.log.is_none() => self.read_log(window, cx),
+            Pane::Config if self.sheet.is_none() => self.read_sheet(),
             _ => {}
         }
     }
@@ -3930,6 +3922,9 @@ impl Dash {
             .into_any_element()
     }
 
+    // One parameter per thing the schema knows about the field, plus the
+    // two GPUI asks of every render.
+    #[allow(clippy::too_many_arguments)]
     fn widget(
         &mut self,
         part: &Section,
@@ -4222,6 +4217,7 @@ impl Dash {
     /// key this machine has taught you, and it undoes. One per field,
     /// live — there is nothing to open or close, and Save takes what
     /// they hold.
+    #[allow(clippy::too_many_arguments)] // as `widget` above
     fn value(
         &mut self,
         part: &Section,

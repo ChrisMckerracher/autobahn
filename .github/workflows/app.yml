@@ -111,6 +111,15 @@ jobs:
             cmake \
             clang
 
+      # Lints here rather than in ci.yml: the app's half of the tree is
+      # gpui-kit, which ordinary CI never compiles, so linting it there
+      # would make every push pay for a dependency only this workflow
+      # builds. One platform is enough — the lint is the same on all
+      # three, and the other two would only repeat it.
+      - name: Lints
+        if: matrix.platform == 'linux-x86_64'
+        run: cargo clippy --release --locked --all-targets --features app -- -D warnings
+
       - name: Build
         run: cargo build --release --locked --features app --bin autobahn-app
 

@@ -405,7 +405,7 @@ pub(crate) fn table_for<'a>(
 }
 
 /// The `[experimental]` table, made if the file has none.
-fn experimental<'a>(document: &'a mut toml_edit::DocumentMut) -> Option<&'a mut toml_edit::Table> {
+fn experimental(document: &mut toml_edit::DocumentMut) -> Option<&mut toml_edit::Table> {
     document
         .entry("experimental")
         .or_insert(toml_edit::Item::Table(toml_edit::Table::new()))
@@ -771,7 +771,7 @@ pub(crate) fn thousands(n: u64) -> String {
     let digits = n.to_string();
     let mut out = String::with_capacity(digits.len() + digits.len() / 3);
     for (index, ch) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index) % 3 == 0 {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
             out.push(',');
         }
         out.push(ch);
@@ -1053,7 +1053,7 @@ pub(crate) fn found() -> Option<PathBuf> {
         let told = PathBuf::from(told);
         return runnable(&told).then_some(told);
     }
-    if let Some(here) = std::env::current_exe().ok() {
+    if let Ok(here) = std::env::current_exe() {
         if here.file_name().is_some_and(|name| name == "autobahn") {
             return Some(here);
         }
