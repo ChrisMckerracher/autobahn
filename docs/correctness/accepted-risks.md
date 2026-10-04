@@ -16,21 +16,26 @@ The whole-root emptying guard requires two ancestor entries. A missing primary h
 
 **Possible fix.** Add expected-mount configuration or OS mount-event tracking. Test unplugged-at-startup and mounted-between-scans cases.
 
-## 2. Pathname TOCTOU outside Linux creations
+## 2. A save landing between a check and a replacement
 
-**Risk.** Linux `RENAME_NOREPLACE` and macOS `RENAME_EXCL` provide atomic creation without replacement. Replacements and removals still validate and then act by pathname.
+**Risk.** A transition checks an entry against the last scan, then acts on it: replaces it, removes it, or changes its mode. A save landing on that entry between the check and the act is overwritten or removed. The window is microseconds wide, and far more likely to be hit by a program writing than by a person: a build writing output while a cycle replaces it.
 
-A save within that short check/use window can be lost. A local process can replace a checked directory with a symlink and redirect an operation outside the root. Other platforms and unsupported-flag fallbacks also retain the creation race.
+Creations are not exposed on Linux and macOS, where `RENAME_NOREPLACE` and `RENAME_EXCL` refuse to replace anything that appeared since the check. Other platforms, and filesystems without those flags, keep the window for creations too.
 
-**Reason retained.** Closing the race requires descriptor-relative traversal through `openat2` or `openat` with `O_NOFOLLOW`. Directory descriptors must remain open through relative rename and unlink operations.
+**No longer at risk: redirection out of the root.** The same window once let a local process replace a checked directory with a symbolic link and redirect the operation outside the root. Under `--allow-root`, that reached anything the daemon can. A transition now walks to an entry's directory once and holds each directory open by descriptor: `openat2` with `RESOLVE_BENEATH` on Linux, `openat` with `O_NOFOLLOW` elsewhere. It then acts relative to that descriptor, and nothing it does follows a symbolic link (`src/endpoint/dir.rs`). Reading a file, moving one, and opening a delta base go through the same walk.
 
-This changes the transitioner’s core and needs a separate design and review. The save race is brief. Symlink redirection requires a local writer, within the current single-user threat model.
+That rests on the mechanism, not on a test winning the race. `a_held_directory_is_not_redirected_by_a_link_swapped_in_for_it` and `a_parent_replaced_by_a_link_after_resolution_does_not_redirect_a_move` swap a directory for a link inside the window, and show the operation stays where it was resolved.
 
-**Reason to revisit.** A privileged daemon synchronizing user-writable trees turns this race into privilege escalation. Significant transitioner work also provides an opportunity for the refactor.
+Two paths are outside it:
 
-Root is refused by default. Controllers require `--allow-root` or `experimental.allow_root`. Agents accept root only for sessions with `default_owner` or `default_group`. Root with another user’s `$HOME` remains forbidden.
+- **Staging writes.** Received content is written into the staging directory by name. In the default `state` placement that directory lies in the user's own state area. With `staging = "inside-root"` it sits in the synchronized root, where a local writer could replace it with a link between its check and a write.
+- **Supplying content.** `open_scanned` opens a file by name, then compares the opened file's inode and size with the scan, so a redirected open is refused rather than served.
 
-**Possible fix.** Implement descriptor-relative operations and explicit `ENOSYS`/`EOPNOTSUPP` handling. Use the staging and transition fault harness to validate the refactor.
+**Reason retained.** Closing the save window needs a replacement that acts only if the entry is still the one checked, and no platform offers a compare-and-replace. The window is brief and needs a write landing inside it.
+
+**Reason to revisit.** Saves lost in practice, most plausibly build output synchronized while it is written. For staging, inside-root staging under `--allow-root`.
+
+**Possible fix.** For the save window on Linux: `renameat2` with `RENAME_EXCHANGE`, then compare what was swapped out against the scan and swap it back on a mismatch. For staging: hold the staging directory open and write relative to it, as transitions do.
 
 ## 3. Network filesystems beyond warn-and-document
 

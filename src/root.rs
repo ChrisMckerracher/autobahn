@@ -1,9 +1,11 @@
 //! Refusing to run as root by default.
 //!
 //! Autobahn is a single-user tool: its state, its configuration and the
-//! commands that configuration runs all belong to one user, and the races
-//! it accepts (accepted-risks §2) are harmless only because nobody with more
-//! rights than that user acts on what it scans. Root breaks both halves.
+//! commands that configuration runs all belong to one user, and the one
+//! race it still has that can reach outside a root — writes into an
+//! inside-root staging directory (accepted-risks §2) — is harmless only
+//! because nobody with more rights than that user acts on what it scans.
+//! Root breaks both halves.
 //! Under `sudo` on macOS `$HOME` stays the calling user's, so a root run
 //! leaves root-owned state in their `~/.autobahn` that breaks every later
 //! run; and a root service reads a configuration the user can edit, whose

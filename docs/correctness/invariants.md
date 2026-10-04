@@ -120,7 +120,7 @@ Refusals that establish stale observation invalidate the baseline. Predictable r
 
 **Enforcement.** `Transitioner` in `src/endpoint/local.rs` uses `last_snapshot`. `Problem.disagreement` selects when `distrust_baseline` requires a new scan.
 
-`publish_rename` uses Linux `RENAME_NOREPLACE` or macOS `RENAME_EXCL` to protect creations from concurrent arrivals.
+`dir::rename` (`src/endpoint/dir.rs`) uses Linux `RENAME_NOREPLACE` or macOS `RENAME_EXCL` to protect creations from concurrent arrivals.
 
 **Tests and source references:**
 
@@ -130,9 +130,9 @@ Refusals that establish stale observation invalidate the baseline. Predictable r
 
 I5’s lifecycle harness also exercises transitions.
 
-**Boundary.** Replacements and removals use pathname checks followed by separate operations on every platform. Creation has the same gap outside atomic no-replace platforms and in unsupported fallbacks.
+**Boundary.** Replacements and removals check an entry and then act on it in a separate operation, on every platform. A save landing between the two is lost. Creation has the same gap outside atomic no-replace platforms and in unsupported fallbacks. The directory the entry lives in is held open throughout, so the gap cannot redirect the operation elsewhere.
 
-Linux and macOS provide atomic no-replace rename. FreeBSD and other BSDs do not. Findings I4-A and I4-C clarify this scope. See [accepted-risks §2](./accepted-risks.md#2-pathname-toctou-outside-linux-creations).
+Linux and macOS provide atomic no-replace rename. FreeBSD and other BSDs do not. Findings I4-A and I4-C clarify this scope. See [accepted-risks §2](./accepted-risks.md#2-a-save-landing-between-a-check-and-a-replacement).
 
 Validation compares metadata, not live content. Same-length rewrites with restored metadata can pass (I4-B, accepted-risks §5).
 
@@ -337,6 +337,10 @@ Observer caches and status files have no content checksum against torn-sector co
 - `a_symlinked_inside_root_staging_directory_is_refused`
 - `a_staging_directory_owned_by_another_user_is_refused`
 - `a_mode_change_never_reaches_a_hardlink_outside_the_root`
+- `a_held_directory_is_not_redirected_by_a_link_swapped_in_for_it`
+- `a_parent_replaced_by_a_link_after_resolution_does_not_redirect_a_move`
+- `a_walk_refuses_a_symbolic_link_anywhere_along_the_way`
+- `src/endpoint/dir.rs`
 - `path_validation_rejects_escapes`
 - `refuses_root_deletion_and_unsafe_paths`
 - `src/endpoint/local.rs`
@@ -348,7 +352,7 @@ Observer caches and status files have no content checksum against torn-sector co
 - `a_traversal_session_fails_its_open_and_touches_nothing`
 - `src/transport/mux.rs`
 
-**Boundary.** A local writer can race pathname checks by swapping a parent for a symlink. See [accepted-risks §2](./accepted-risks.md#2-pathname-toctou-outside-linux-creations).
+**Boundary.** Transitions, file reads and moves hold each directory open from the walk to the act, so a parent swapped for a symlink in between cannot redirect them. Writes into an inside-root staging directory still go by name. See [accepted-risks §2](./accepted-risks.md#2-a-save-landing-between-a-check-and-a-replacement).
 
 Raw symbolic links synchronize as data, including targets outside the root. Autobahn does not follow them during these operations, but other tools can.
 

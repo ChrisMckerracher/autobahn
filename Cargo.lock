@@ -632,6 +632,7 @@ dependencies = [
  "objc2-user-notifications 0.3.2",
  "postcard",
  "proptest",
+ "rustix 1.1.4",
  "schemars",
  "serde",
  "serde_json",

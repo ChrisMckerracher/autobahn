@@ -25,9 +25,9 @@
 //!   abandoned) transition is never mistaken for synchronizable content.
 
 use std::collections::{HashMap, HashSet};
-use std::fs::{self, File, Metadata, OpenOptions, Permissions};
+use std::fs::{self, File, OpenOptions, Permissions};
 use std::io::{self, Cursor, ErrorKind, Read, Seek, SeekFrom, Write};
-use std::os::unix::fs::{symlink, DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
@@ -40,11 +40,13 @@ use crate::rsync::{self, Signature};
 // scanner's own constant, so temporaries are invisible to the
 // synchronization hierarchy wherever they live, and the refusal in
 // `validate_name` cannot drift from what scans hide.
+use crate::endpoint::dir::{self, Dir, Stat};
 use crate::scan::{
     self, recompose, validate_portable_target, FilesystemBehavior, IgnoreSet, SymlinkMode,
     TEMPORARY_PREFIX,
 };
 use crate::tree::{path_join, Change, Content, Digest, FileMetadata, Node, Problem, Snapshot};
+use rustix::fs::OFlags;
 
 /// The default permission bits applied to created directories. The default
 /// is deliberately conservative (owner-only, matching Mutagen): synchronized
@@ -1559,11 +1561,13 @@ fn folded_name(name: &str, behavior: &crate::scan::probes::FilesystemBehavior) -
 /// be a default that claims names never fold — the observer probes when
 /// the root exists, and a session that started before it did carries the
 /// default forward.
-fn folded_twin(parent: &Path, name: &str) -> Option<(String, &'static str)> {
-    let names: Vec<String> = fs::read_dir(parent)
+fn folded_twin(parent: &Dir, name: &str) -> Option<(String, &'static str)> {
+    let names: Vec<String> = parent
+        .entries()
         .ok()?
+        .into_iter()
         .flatten()
-        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .map(|entry| entry.name.to_string_lossy().into_owned())
         .collect();
     // Spelled exactly this way, so nothing was folded.
     if names.iter().any(|other| other == name) {
@@ -1852,16 +1856,13 @@ impl Endpoint for LocalEndpoint {
     }
 
     fn read_file(&mut self, path: &str) -> Result<Option<Vec<u8>>> {
-        let full = resolve_confined(&self.root, path)?;
+        let (directory, name) = resolve_confined(&self.root, path)?;
+        let full = directory.join(name);
         // Opened before its type is checked, so the check describes the
         // very file that is read. `O_NOFOLLOW` turns a symbolic link in
         // the final component into ELOOP — not a file, so `None`, as
         // before — and `O_NONBLOCK` keeps a FIFO from stalling the open.
-        let file = match fs::OpenOptions::new()
-            .read(true)
-            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
-            .open(&full)
-        {
+        let file = match directory.open_file(name, OFlags::RDONLY | OFlags::NONBLOCK, 0) {
             Ok(file) => file,
             Err(error) if error.kind() == ErrorKind::NotFound => return Ok(None),
             Err(error) if error.raw_os_error() == Some(libc::ELOOP) => return Ok(None),
@@ -1889,15 +1890,20 @@ impl Endpoint for LocalEndpoint {
     }
 
     fn rename(&mut self, from: &str, to: &str) -> Result<()> {
-        let source = resolve_confined(&self.root, from)?;
-        let target = create_confined_parents(&self.root, to, self.directory_mode)?;
+        let (source_directory, source_name) = resolve_confined(&self.root, from)?;
+        let (target_directory, target_name) =
+            create_confined_parents(&self.root, to, self.directory_mode)?;
+        let (source, target) = (
+            source_directory.join(source_name),
+            target_directory.join(target_name),
+        );
         // Refused rather than overwritten. The caller is preserving
         // something, so a name that is already taken means the caller has
         // guessed wrong about what is free — and `fs::rename` would
         // replace the occupant without a word. This check gives the
         // common case its message; the no-replace rename below is what
         // holds against a name taken after it.
-        if fs::symlink_metadata(&target).is_ok() {
+        if target_directory.stat(target_name).is_ok() {
             bail!("{to} already exists; move it out of the way first");
         }
         // Both paths are announced before and after, exactly as a
@@ -1908,7 +1914,14 @@ impl Endpoint for LocalEndpoint {
         if let Some(hook) = &self.between_announce_and_writes {
             hook();
         }
-        let result = publish_rename(&source, &target, false).map_err(|error| {
+        let result = dir::rename(
+            &source_directory,
+            Path::new(source_name),
+            &target_directory,
+            target_name,
+            false,
+        )
+        .map_err(|error| {
             if error.kind() == ErrorKind::AlreadyExists {
                 anyhow!("{to} already exists; move it out of the way first")
             } else {
@@ -2640,13 +2653,13 @@ impl<'a> Transitioner<'a> {
     }
 
     /// Resolves the on-disk directory containing `path`, descending only real
-    /// directories: every component is verified with `symlink_metadata`, so a
+    /// directories and holding the last one open (see [`walk_to_parent`]): a
     /// symbolic link anywhere along the way is a refusal rather than a
-    /// redirection.
+    /// redirection, then or later.
     ///
     /// A refusal is reported as a problem at `path`, not returned.
-    fn resolve_parent<'p>(&mut self, path: &'p str) -> Option<(PathBuf, &'p str)> {
-        match walk_to_parent(&self.root, path, None) {
+    fn resolve_parent<'p>(&mut self, path: &'p str) -> Option<(Dir, &'p str)> {
+        match walk_to_parent(self.root, path, None) {
             Ok(found) => Some(found),
             Err(WalkError::Refused(message)) => {
                 self.problem(path, format!("unable to resolve path: {message}"));
@@ -2678,12 +2691,7 @@ impl<'a> Transitioner<'a> {
     /// somebody else's data: the digest ties the file to what reconciliation
     /// decided about, and the metadata ties that decision to content that
     /// hasn't moved since.
-    fn validate_file(
-        &self,
-        path: &str,
-        metadata: &Metadata,
-        expected: &Digest,
-    ) -> Result<(), String> {
+    fn validate_file(&self, path: &str, metadata: &Stat, expected: &Digest) -> Result<(), String> {
         if !metadata.file_type().is_file() {
             return Err("expected a regular file, but found other content".into());
         }
@@ -2739,7 +2747,7 @@ impl<'a> Transitioner<'a> {
                     format!("unable to set the synchronization root's permissions: {error}"),
                 );
             }
-            self.apply_ownership(path, root);
+            self.apply_root_ownership(path, root);
             // The root did not exist when the observer probed, so the
             // behavior in hand is a default that claims names never fold.
             // Creating children under that assumption on a case- or
@@ -2749,7 +2757,19 @@ impl<'a> Transitioner<'a> {
             // deletion and propagated back to the source. Probe the real
             // filesystem now that it exists.
             self.behavior = crate::scan::probes::probe(root);
-            let created = self.create_children(path, root, children);
+            // The children are created through the root held open, as
+            // everything below a root is (see [`walk_to_parent`]).
+            let root_directory = match Dir::open(root) {
+                Ok(directory) => directory,
+                Err(error) => {
+                    self.problem(
+                        path,
+                        format!("unable to resolve path: {}", refusal(root, &error)),
+                    );
+                    return Some(Node::directory(new.name.clone(), Vec::new()));
+                }
+            };
+            let created = self.create_children(path, &root_directory, children);
             return Some(Node::directory(new.name.clone(), created));
         }
 
@@ -2760,7 +2780,7 @@ impl<'a> Transitioner<'a> {
         // Creating over existing content would destroy something nobody
         // asked to destroy: the change carries no expectation about what's
         // there, so there's nothing to validate it against.
-        if fs::symlink_metadata(parent.join(name)).is_ok() {
+        if parent.stat(name).is_ok() {
             // The kind goes last, because that is the part read as the
             // cause when these are grouped: twenty files that collided the
             // same way are one problem, and the name in front of it
@@ -2781,17 +2801,14 @@ impl<'a> Transitioner<'a> {
     /// directory contents. The returned node describes what was actually
     /// created, which for a partially created directory is a partial
     /// hierarchy.
-    fn create_node(&mut self, path: &str, parent: &Path, name: &str, node: &Node) -> Option<Node> {
-        let target = parent.join(name);
+    fn create_node(&mut self, path: &str, parent: &Dir, name: &str, node: &Node) -> Option<Node> {
         match &node.content {
             Content::Directory(children) => {
-                if let Err(error) = fs::create_dir(&target) {
+                if let Err(error) = parent.create_dir(name, self.directory_mode) {
                     self.problem(path, format!("unable to create directory: {error}"));
                     return None;
                 }
-                if let Err(error) =
-                    fs::set_permissions(&target, Permissions::from_mode(self.directory_mode))
-                {
+                if let Err(error) = parent.set_mode(name, self.directory_mode) {
                     // The directory exists and is usable; only its mode is
                     // off, so this is reported without abandoning its
                     // contents.
@@ -2800,15 +2817,31 @@ impl<'a> Transitioner<'a> {
                         format!("unable to set directory permissions: {error}"),
                     );
                 }
-                self.apply_ownership(path, &target);
-                let created = self.create_children(path, &target, children);
+                self.apply_ownership(path, parent, name);
+                // Its contents are created through the directory held
+                // open. One that is no longer a real directory a moment
+                // after it was made has been replaced, and nothing is
+                // created through what replaced it.
+                let directory = match parent.open_dir(name) {
+                    Ok(directory) => directory,
+                    Err(error) => {
+                        self.problem(
+                            path,
+                            format!(
+                                "unable to resolve path: {}",
+                                refusal(&parent.join(name), &error)
+                            ),
+                        );
+                        return None;
+                    }
+                };
+                let created = self.create_children(path, &directory, children);
                 Some(Node::directory(name, created))
             }
             Content::File {
                 digest, executable, ..
             } => {
-                let metadata =
-                    self.publish_file(path, parent, &target, digest, *executable, false)?;
+                let metadata = self.publish_file(path, parent, name, digest, *executable, false)?;
                 Some(Node {
                     name: name.to_owned(),
                     content: Content::File {
@@ -2842,11 +2875,11 @@ impl<'a> Transitioner<'a> {
                     }
                     SymlinkMode::Raw => {}
                 }
-                if let Err(error) = symlink(link, &target) {
+                if let Err(error) = parent.symlink(Path::new(link), name) {
                     self.problem(path, format!("unable to create symbolic link: {error}"));
                     return None;
                 }
-                self.apply_ownership(path, &target);
+                self.apply_ownership(path, parent, name);
                 Some(Node {
                     name: name.to_owned(),
                     content: node.content.clone(),
@@ -2862,7 +2895,7 @@ impl<'a> Transitioner<'a> {
     /// Creates a directory's children, returning those that were actually
     /// created. A child that can't be created is reported and skipped, so
     /// that its siblings still land.
-    fn create_children(&mut self, path: &str, directory: &Path, children: &[Node]) -> Vec<Node> {
+    fn create_children(&mut self, path: &str, directory: &Dir, children: &[Node]) -> Vec<Node> {
         let mut created = Vec::with_capacity(children.len());
         // On a volume with name equivalence rules — case-insensitive
         // lookups, or Unicode-normalization-insensitive ones (decomposing
@@ -2932,8 +2965,8 @@ impl<'a> Transitioner<'a> {
     fn publish_file(
         &mut self,
         path: &str,
-        parent: &Path,
-        target: &Path,
+        parent: &Dir,
+        name: &str,
         digest: &Digest,
         executable: bool,
         replace: bool,
@@ -3027,7 +3060,7 @@ impl<'a> Transitioner<'a> {
         // reads and hashes the whole staged file: straight to the copy,
         // which hashes it once as it moves it. A device that cannot be
         // read is tried as before.
-        let same_device = match (self.staging_device, fs::metadata(parent)) {
+        let same_device = match (self.staging_device, parent.stat_self()) {
             (Some(staging), Ok(metadata)) => metadata.dev() == staging,
             _ => true,
         };
@@ -3036,7 +3069,7 @@ impl<'a> Transitioner<'a> {
             && input.set_permissions(Permissions::from_mode(mode)).is_ok()
             && match input.metadata() {
                 Ok(opened) if opened.file_type().is_file() => {
-                    published = Some(file_metadata(&opened));
+                    published = Some(file_metadata(&Stat::from(&opened)));
                     content_matches(&mut input, digest, self.progress)
                         && fs::symlink_metadata(&staged).is_ok_and(|named| {
                             (named.dev(), named.ino()) == (opened.dev(), opened.ino())
@@ -3044,9 +3077,9 @@ impl<'a> Transitioner<'a> {
                 }
                 _ => false,
             }
-            && publish_rename(&staged, target, replace).is_ok();
+            && dir::rename(rustix::fs::CWD, &staged, parent, name, replace).is_ok();
         if !moved {
-            let temporary = parent.join(temporary_name("apply"));
+            let temporary = temporary_name("apply");
             // The copy digests what it moves: staged content is normally
             // verified when it is received, but a file surviving from an
             // interrupted earlier run carries only its name's claim, and a
@@ -3057,11 +3090,18 @@ impl<'a> Transitioner<'a> {
                 .seek(SeekFrom::Start(0))
                 .with_context(|| format!("unable to read {}", staged.display()))
                 .and_then(|_| {
-                    copy_into_private(&mut input, &staged, &temporary, digest, self.progress)
+                    copy_into_private(
+                        &mut input,
+                        &staged,
+                        parent,
+                        &temporary,
+                        digest,
+                        self.progress,
+                    )
                 }) {
                 Ok(true) => Ok(()),
                 Ok(false) => {
-                    let _ = fs::remove_file(&temporary);
+                    let _ = parent.remove_file(&temporary);
                     let _ = fs::remove_file(&staged);
                     self.retransfer(
                         path,
@@ -3077,7 +3117,7 @@ impl<'a> Transitioner<'a> {
                 let error = match error.downcast::<io::Error>() {
                     Ok(io_error) => io_error,
                     Err(other) => {
-                        let _ = fs::remove_file(&temporary);
+                        let _ = parent.remove_file(&temporary);
                         self.problem(
                             path,
                             format!("unable to stage content into place: {other:#}"),
@@ -3085,7 +3125,7 @@ impl<'a> Transitioner<'a> {
                         return None;
                     }
                 };
-                let _ = fs::remove_file(&temporary);
+                let _ = parent.remove_file(&temporary);
                 // NotFound can also mean the target's parent vanished
                 // concurrently, so the staged side is confirmed missing
                 // (specifically absent, not merely unprobeable) before
@@ -3106,21 +3146,21 @@ impl<'a> Transitioner<'a> {
                 }
                 return None;
             }
-            if let Err(error) = fs::set_permissions(&temporary, Permissions::from_mode(mode)) {
-                let _ = fs::remove_file(&temporary);
+            if let Err(error) = parent.set_mode(&temporary, mode) {
+                let _ = parent.remove_file(&temporary);
                 self.problem(path, format!("unable to set file permissions: {error}"));
                 return None;
             }
-            match fs::symlink_metadata(&temporary) {
+            match parent.stat(&temporary) {
                 Ok(metadata) => published = Some(file_metadata(&metadata)),
                 Err(error) => {
-                    let _ = fs::remove_file(&temporary);
+                    let _ = parent.remove_file(&temporary);
                     self.problem(path, format!("unable to probe staged content: {error}"));
                     return None;
                 }
             }
-            if let Err(error) = publish_rename(&temporary, target, replace) {
-                let _ = fs::remove_file(&temporary);
+            if let Err(error) = dir::rename(parent, Path::new(&temporary), parent, name, replace) {
+                let _ = parent.remove_file(&temporary);
                 if !replace && error.kind() == ErrorKind::AlreadyExists {
                     // A creation carries no expectation about existing
                     // content, so anything that appeared since the absence
@@ -3137,7 +3177,7 @@ impl<'a> Transitioner<'a> {
             }
         }
 
-        self.apply_ownership(path, target);
+        self.apply_ownership(path, parent, name);
         published
     }
 
@@ -3150,23 +3190,24 @@ impl<'a> Transitioner<'a> {
     ///
     /// Called before publishing into a directory that already existed;
     /// each directory is listed once per transition.
-    fn sweep_leftovers(&mut self, directory: &Path) {
+    fn sweep_leftovers(&mut self, directory: &Dir) {
         if !self
             .swept
             .lock()
             .expect("the swept set is never poisoned")
-            .insert(directory.to_path_buf())
+            .insert(directory.path().to_path_buf())
         {
             return;
         }
-        let Ok(entries) = fs::read_dir(directory) else {
+        let Ok(entries) = directory.entries() else {
             return;
         };
-        for entry in entries.flatten() {
-            let name = entry.file_name();
-            let Some(name) = name.to_str() else { continue };
-            if stale_publish_leftover(name, &entry) {
-                let _ = fs::remove_file(entry.path());
+        for entry in entries.into_iter().flatten() {
+            let Some(name) = entry.name_str() else {
+                continue;
+            };
+            if stale_publish_leftover(name, || directory.stat(name).ok()) {
+                let _ = directory.remove_file(name);
             }
         }
     }
@@ -3186,11 +3227,22 @@ impl<'a> Transitioner<'a> {
     /// a failure is a reported problem, not a reason to abandon content
     /// that is already correctly in place). `lchown` never follows the
     /// final path component, so it is safe for every entry kind.
-    fn apply_ownership(&mut self, path: &str, disk_path: &Path) {
+    fn apply_ownership(&mut self, path: &str, directory: &Dir, name: &str) {
         if self.owner.is_none() && self.group.is_none() {
             return;
         }
-        if let Err(error) = std::os::unix::fs::lchown(disk_path, self.owner, self.group) {
+        if let Err(error) = directory.chown(name, self.owner, self.group) {
+            self.problem(path, format!("unable to set ownership: {error}"));
+        }
+    }
+
+    /// [`Transitioner::apply_ownership`] for a root this transition created:
+    /// the root is the configured path itself, reached by name.
+    fn apply_root_ownership(&mut self, path: &str, root: &Path) {
+        if self.owner.is_none() && self.group.is_none() {
+            return;
+        }
+        if let Err(error) = std::os::unix::fs::lchown(root, self.owner, self.group) {
             self.problem(path, format!("unable to set ownership: {error}"));
         }
     }
@@ -3206,15 +3258,21 @@ impl<'a> Transitioner<'a> {
         let Some((parent, name)) = self.resolve_parent(path) else {
             return Some(expectation.clone());
         };
-        self.remove_entry(path, &parent.join(name), expectation)
+        self.remove_entry(path, &parent, name, expectation)
     }
 
     /// Removes one entry, validating it against the last scan first and
     /// recursing bottom-up through directories. Returns the content that
     /// survived: `None` when the entry is gone, and a partial hierarchy when
     /// some of it had to be left in place.
-    fn remove_entry(&mut self, path: &str, target: &Path, expectation: &Node) -> Option<Node> {
-        let metadata = match fs::symlink_metadata(target) {
+    fn remove_entry(
+        &mut self,
+        path: &str,
+        directory: &Dir,
+        name: &str,
+        expectation: &Node,
+    ) -> Option<Node> {
+        let metadata = match directory.stat(name) {
             Ok(metadata) => metadata,
             // Already absent: the intended state, reached by other means.
             Err(error) if error.kind() == ErrorKind::NotFound => return None,
@@ -3230,7 +3288,7 @@ impl<'a> Transitioner<'a> {
                     self.disagreement(path, format!("refusing to remove this file: {message}"));
                     return Some(expectation.clone());
                 }
-                match fs::remove_file(target) {
+                match directory.remove_file(name) {
                     Ok(()) => None,
                     Err(error) => {
                         self.problem(path, format!("unable to remove file: {error}"));
@@ -3246,7 +3304,7 @@ impl<'a> Transitioner<'a> {
                     );
                     return Some(expectation.clone());
                 }
-                match fs::read_link(target) {
+                match directory.read_link(name) {
                     Ok(actual) if actual.to_str() == Some(expected.as_str()) => {}
                     Ok(_) => {
                         self.disagreement(
@@ -3260,7 +3318,7 @@ impl<'a> Transitioner<'a> {
                         return Some(expectation.clone());
                     }
                 }
-                match fs::remove_file(target) {
+                match directory.remove_file(name) {
                     Ok(()) => None,
                     Err(error) => {
                         self.problem(path, format!("unable to remove symbolic link: {error}"));
@@ -3268,7 +3326,9 @@ impl<'a> Transitioner<'a> {
                     }
                 }
             }
-            Content::Directory(_) => self.remove_directory(path, target, &metadata, expectation),
+            Content::Directory(_) => {
+                self.remove_directory(path, directory, name, &metadata, expectation)
+            }
             Content::Untracked | Content::Problematic { .. } => {
                 self.problem(path, "refusing to remove unsynchronizable content");
                 Some(expectation.clone())
@@ -3283,8 +3343,9 @@ impl<'a> Transitioner<'a> {
     fn remove_directory(
         &mut self,
         path: &str,
-        target: &Path,
-        metadata: &Metadata,
+        parent: &Dir,
+        name: &str,
+        metadata: &Stat,
         expectation: &Node,
     ) -> Option<Node> {
         if !metadata.file_type().is_dir() {
@@ -3294,7 +3355,17 @@ impl<'a> Transitioner<'a> {
             );
             return Some(expectation.clone());
         }
-        let entries = match fs::read_dir(target) {
+        // Listed, and emptied, through the directory itself held open: one
+        // replaced by a symbolic link since it was checked is not a
+        // directory to open, so nothing beyond it is listed or removed.
+        let directory = match parent.open_dir(name) {
+            Ok(directory) => directory,
+            Err(error) => {
+                self.problem(path, format!("unable to list directory: {error}"));
+                return Some(expectation.clone());
+            }
+        };
+        let entries = match directory.entries() {
             Ok(entries) => entries,
             Err(error) => {
                 self.problem(path, format!("unable to list directory: {error}"));
@@ -3313,7 +3384,7 @@ impl<'a> Transitioner<'a> {
                     continue;
                 }
             };
-            let raw_name = entry.file_name();
+            let raw_name = entry.name.clone();
             let Some(name) = raw_name.to_str() else {
                 // Scanning records non-UTF-8 names under a marked, lossy name
                 // that can't be matched back to a directory entry, so such an
@@ -3325,6 +3396,7 @@ impl<'a> Transitioner<'a> {
                 unexpected = true;
                 continue;
             };
+            let on_disk = name;
             // On a decomposing volume the on-disk name is NFD while the
             // expectation (like every hierarchy name) is NFC; recompose
             // before matching, or every non-ASCII name would read as
@@ -3338,7 +3410,9 @@ impl<'a> Transitioner<'a> {
             let child_path = path_join(path, name);
             match expectation.child(name) {
                 Some(child) => {
-                    if let Some(survivor) = self.remove_entry(&child_path, &entry.path(), child) {
+                    if let Some(survivor) =
+                        self.remove_entry(&child_path, &directory, on_disk, child)
+                    {
                         survivors.push(survivor);
                     }
                 }
@@ -3350,9 +3424,9 @@ impl<'a> Transitioner<'a> {
                     // which forced a full walk every cycle, forever. No
                     // peer can create such a name (see `validate_name`),
                     // so it goes with the directory.
-                    let removed = match entry.file_type() {
-                        Ok(kind) if kind.is_dir() => fs::remove_dir_all(entry.path()),
-                        _ => fs::remove_file(entry.path()),
+                    let removed = match entry.kind {
+                        Ok(kind) if kind.is_dir() => directory.remove_tree(on_disk),
+                        _ => directory.remove_file(on_disk),
                     };
                     if let Err(error) = removed {
                         self.problem(
@@ -3409,7 +3483,7 @@ impl<'a> Transitioner<'a> {
                     // never seen them, so a deletion there would be the
                     // only copy lost. They stay, and so does the directory
                     // holding them.
-                    let kind = entry.file_type().ok();
+                    let kind = entry.kind.as_ref().ok().copied();
                     let is_directory = kind.is_some_and(|kind| kind.is_dir());
                     if !self.pattern_ignored(&child_path, is_directory) {
                         let reason = match kind {
@@ -3426,8 +3500,8 @@ impl<'a> Transitioner<'a> {
                         continue;
                     }
                     let removed = match is_directory {
-                        true => fs::remove_dir_all(entry.path()),
-                        false => fs::remove_file(entry.path()),
+                        true => directory.remove_tree(on_disk),
+                        false => directory.remove_file(on_disk),
                     };
                     if let Err(error) = removed {
                         self.problem(
@@ -3444,7 +3518,8 @@ impl<'a> Transitioner<'a> {
         if !survivors.is_empty() || unexpected {
             return Some(Node::directory(expectation.name.clone(), survivors));
         }
-        match fs::remove_dir(target) {
+        drop(directory);
+        match parent.remove_dir(name) {
             Ok(()) => None,
             Err(error) => {
                 // The directory acquired content between the listing and the
@@ -3480,27 +3555,24 @@ impl<'a> Transitioner<'a> {
     fn change_mode(
         &mut self,
         path: &str,
-        parent: &Path,
-        target: &Path,
-        seen: &Metadata,
+        parent: &Dir,
+        name: &str,
+        seen: &Stat,
         digest: &Digest,
         mode: u32,
     ) -> Option<FileMetadata> {
-        let opened = fs::OpenOptions::new()
-            .read(true)
-            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
-            .open(target);
+        let opened = parent.open_file(name, OFlags::RDONLY | OFlags::NONBLOCK, 0);
         let mut file = match opened {
             Ok(file) => file,
             // A file this user may not read can still be theirs to chmod,
             // as it always could; with a single link, nothing else shares
             // the inode.
             Err(error) if error.kind() == ErrorKind::PermissionDenied && seen.nlink() == 1 => {
-                if let Err(error) = fs::set_permissions(target, Permissions::from_mode(mode)) {
+                if let Err(error) = parent.set_mode(name, mode) {
                     self.problem(path, format!("unable to set file permissions: {error}"));
                     return None;
                 }
-                return Some(match fs::symlink_metadata(target) {
+                return Some(match parent.stat(name) {
                     Ok(metadata) => file_metadata(&metadata),
                     Err(error) => {
                         self.problem(path, format!("unable to probe the modified file: {error}"));
@@ -3516,7 +3588,7 @@ impl<'a> Transitioner<'a> {
                 return None;
             }
         };
-        let opened = match file.metadata() {
+        let opened = match Stat::of(&file) {
             Ok(opened) => opened,
             Err(error) => {
                 self.problem(path, format!("unable to probe content: {error}"));
@@ -3536,7 +3608,7 @@ impl<'a> Transitioner<'a> {
                 self.problem(path, format!("unable to set file permissions: {error}"));
                 return None;
             }
-            return Some(match file.metadata() {
+            return Some(match Stat::of(&file) {
                 Ok(metadata) => file_metadata(&metadata),
                 Err(error) => {
                     self.problem(path, format!("unable to probe the modified file: {error}"));
@@ -3545,11 +3617,19 @@ impl<'a> Transitioner<'a> {
             });
         }
 
-        let temporary = parent.join(temporary_name("apply"));
-        match copy_into_private(&mut file, target, &temporary, digest, self.progress) {
+        let temporary = temporary_name("apply");
+        let target = parent.join(name);
+        match copy_into_private(
+            &mut file,
+            &target,
+            parent,
+            &temporary,
+            digest,
+            self.progress,
+        ) {
             Ok(true) => {}
             Ok(false) => {
-                let _ = fs::remove_file(&temporary);
+                let _ = parent.remove_file(&temporary);
                 self.disagreement(
                     path,
                     "refusing to set this file's permissions: the file has been modified since \
@@ -3558,7 +3638,7 @@ impl<'a> Transitioner<'a> {
                 return None;
             }
             Err(error) => {
-                let _ = fs::remove_file(&temporary);
+                let _ = parent.remove_file(&temporary);
                 self.problem(
                     path,
                     format!("unable to copy a linked file to set its permissions: {error:#}"),
@@ -3566,18 +3646,20 @@ impl<'a> Transitioner<'a> {
                 return None;
             }
         }
-        let published = fs::set_permissions(&temporary, Permissions::from_mode(mode))
-            .and_then(|()| fs::symlink_metadata(&temporary))
+        let published = parent
+            .set_mode(&temporary, mode)
+            .and_then(|()| parent.stat(&temporary))
             .and_then(|metadata| {
-                publish_rename(&temporary, target, true).map(|()| file_metadata(&metadata))
+                dir::rename(parent, Path::new(&temporary), parent, name, true)
+                    .map(|()| file_metadata(&metadata))
             });
         match published {
             Ok(metadata) => {
-                self.apply_ownership(path, target);
+                self.apply_ownership(path, parent, name);
                 Some(metadata)
             }
             Err(error) => {
-                let _ = fs::remove_file(&temporary);
+                let _ = parent.remove_file(&temporary);
                 self.problem(path, format!("unable to set file permissions: {error}"));
                 None
             }
@@ -3603,7 +3685,6 @@ impl<'a> Transitioner<'a> {
         if matches!(new.content, Content::File { .. }) {
             self.sweep_leftovers(&parent);
         }
-        let target = parent.join(name);
 
         // File-to-file replacements are performed in place, which is both
         // faster and safer than a removal followed by a creation: the path
@@ -3619,7 +3700,7 @@ impl<'a> Transitioner<'a> {
             },
         ) = (&old.content, &new.content)
         {
-            let metadata = match fs::symlink_metadata(&target) {
+            let metadata = match parent.stat(name) {
                 Ok(metadata) => metadata,
                 Err(error) => {
                     self.problem(path, format!("unable to probe content: {error}"));
@@ -3636,7 +3717,7 @@ impl<'a> Transitioner<'a> {
                 // alone: this is a permission change, not a rewrite.
                 let mode = creation_mode(self.file_mode, *executable);
                 let Some(metadata) =
-                    self.change_mode(path, &parent, &target, &metadata, new_digest, mode)
+                    self.change_mode(path, &parent, name, &metadata, new_digest, mode)
                 else {
                     return Some(old.clone());
                 };
@@ -3651,7 +3732,7 @@ impl<'a> Transitioner<'a> {
             }
 
             let Some(metadata) =
-                self.publish_file(path, &parent, &target, new_digest, *executable, true)
+                self.publish_file(path, &parent, name, new_digest, *executable, true)
             else {
                 return Some(old.clone());
             };
@@ -3669,7 +3750,7 @@ impl<'a> Transitioner<'a> {
         // is a validated removal followed by a creation. If the removal
         // refuses, the creation must not proceed — the old content is still
         // there.
-        if let Some(survivor) = self.remove_entry(path, &target, old) {
+        if let Some(survivor) = self.remove_entry(path, &parent, name, old) {
             self.problem(
                 path,
                 "refusing to create replacement content: the existing content could not be removed",
@@ -3946,34 +4027,36 @@ fn warn_if_network_filesystem(root: &Path) {
     let _ = root;
 }
 
-/// Resolves a root-relative path to its on-disk location, refusing any
-/// path that is not one scanning could have produced, or whose root or
-/// parent components are not real directories: a symbolic link along the
-/// way is a refusal, never a redirection out of the root. The final
-/// component is returned unresolved; callers decide whether to follow it.
-fn resolve_confined(root: &Path, path: &str) -> Result<PathBuf> {
+/// Resolves a root-relative path to the directory holding it, held open,
+/// and its final component, refusing any path that is not one scanning
+/// could have produced, or whose root or parent components are not real
+/// directories: a symbolic link along the way is a refusal, never a
+/// redirection out of the root. The final component is returned
+/// unresolved; callers decide whether to follow it.
+fn resolve_confined<'p>(root: &Path, path: &'p str) -> Result<(Dir, &'p str)> {
     validate_path(path)
         .map_err(|error| anyhow!("{path:?} is not a plain root-relative path: {error}"))?;
     if path.is_empty() {
         bail!("the synchronization root itself cannot be named here");
     }
-    let (parent, name) = walk_to_parent(root, path, None).map_err(|error| error.at(path))?;
-    Ok(parent.join(name))
+    walk_to_parent(root, path, None).map_err(|error| error.at(path))
 }
 
 /// Like [`resolve_confined`], but creates missing parent directories, one
 /// component at a time with the endpoint's directory mode, verifying each
 /// as it goes: `create_dir_all` would follow a symbolic link anywhere
 /// along the way.
-fn create_confined_parents(root: &Path, path: &str, directory_mode: u32) -> Result<PathBuf> {
+fn create_confined_parents<'p>(
+    root: &Path,
+    path: &'p str,
+    directory_mode: u32,
+) -> Result<(Dir, &'p str)> {
     validate_path(path)
         .map_err(|error| anyhow!("{path:?} is not a plain root-relative path: {error}"))?;
     if path.is_empty() {
         bail!("the synchronization root itself cannot be named here");
     }
-    let (parent, name) =
-        walk_to_parent(root, path, Some(directory_mode)).map_err(|error| error.at(path))?;
-    Ok(parent.join(name))
+    walk_to_parent(root, path, Some(directory_mode)).map_err(|error| error.at(path))
 }
 
 /// Why [`walk_to_parent`] stopped.
@@ -4000,37 +4083,36 @@ impl WalkError {
 /// symbolic link is a refusal, never a redirection out of the root. With
 /// `create`, a missing directory is made first, with that mode, rather
 /// than refused — `create_dir_all` would follow a symbolic link anywhere
-/// along the way. Returns that directory and the final component of
-/// `path`, unresolved; callers decide whether to follow it.
+/// along the way.
+///
+/// Returns that directory held open, and the final component of `path`,
+/// unresolved: whatever is done to it next is done relative to the
+/// descriptor, so no later lookup passes through a name above it again
+/// (see [`dir`]). Callers decide whether to follow the final component.
 fn walk_to_parent<'p>(
     root: &Path,
     path: &'p str,
     create: Option<u32>,
-) -> Result<(PathBuf, &'p str), WalkError> {
+) -> Result<(Dir, &'p str), WalkError> {
     let (parent, name) = path.rsplit_once('/').unwrap_or(("", path));
-    let mut current = root.to_path_buf();
-    verify_directory(&current).map_err(WalkError::Refused)?;
-    for component in parent.split('/').filter(|component| !component.is_empty()) {
-        current.push(component);
-        if let Some(mode) = create {
-            make_directory(&current, mode).map_err(WalkError::Create)?;
-        }
-        verify_directory(&current).map_err(WalkError::Refused)?;
+    let components: Vec<&str> = parent
+        .split('/')
+        .filter(|component| !component.is_empty())
+        .collect();
+    match dir::walk(root, &components, create) {
+        Ok(found) => Ok((found, name)),
+        Err(dir::Stop::Refused(at, error)) => Err(WalkError::Refused(refusal(&at, &error))),
+        Err(dir::Stop::Create(error)) => Err(WalkError::Create(error)),
     }
-    Ok((current, name))
 }
 
-/// Makes a directory with `mode`, unless one is already there.
-fn make_directory(path: &Path, mode: u32) -> Result<()> {
-    match fs::DirBuilder::new().mode(mode).create(path) {
-        Ok(()) => {
-            // The mode given at creation is narrowed by the umask; the
-            // configured mode is what every created directory gets.
-            fs::set_permissions(path, Permissions::from_mode(mode))
-                .with_context(|| format!("unable to set permissions on {}", path.display()))
-        }
-        Err(error) if error.kind() == ErrorKind::AlreadyExists => Ok(()),
-        Err(error) => Err(error).with_context(|| format!("unable to create {}", path.display())),
+/// Why a walk refused a component, in the words a check of it by name
+/// used: a symbolic link or a file is "not a directory", and anything else
+/// is the error itself.
+fn refusal(path: &Path, error: &io::Error) -> String {
+    match error.raw_os_error() {
+        Some(libc::ENOTDIR) | Some(libc::ELOOP) => format!("{} is not a directory", path.display()),
+        _ => format!("{}: {error}", path.display()),
     }
 }
 
@@ -4069,8 +4151,9 @@ fn staged_content_matches(
 const LEFTOVER_MINIMUM_AGE: std::time::Duration = std::time::Duration::from_secs(15 * 60);
 
 /// Whether a directory entry is a copy-publish temporary that nothing will
-/// finish: see [`Transitioner::sweep_leftovers`].
-fn stale_publish_leftover(name: &str, entry: &fs::DirEntry) -> bool {
+/// finish: see [`Transitioner::sweep_leftovers`]. `metadata` describes the
+/// entry, and is consulted only for a name that could be one.
+fn stale_publish_leftover(name: &str, metadata: impl FnOnce() -> Option<Stat>) -> bool {
     if !scan::autobahn_temporary(name) {
         return false;
     }
@@ -4082,14 +4165,10 @@ fn stale_publish_leftover(name: &str, entry: &fs::DirEntry) -> bool {
     else {
         return false;
     };
-    let Ok(metadata) = entry.metadata() else {
+    let Some(metadata) = metadata() else {
         return false;
     };
-    let age = metadata
-        .modified()
-        .ok()
-        .and_then(|modified| modified.elapsed().ok())
-        .unwrap_or_default();
+    let age = metadata.age();
     metadata.file_type().is_file()
         && age >= LEFTOVER_MINIMUM_AGE
         && (!process_running(pid) || age >= crate::fsutil::TMP_MAX_AGE)
@@ -4100,28 +4179,52 @@ fn stale_publish_leftover(name: &str, entry: &fs::DirEntry) -> bool {
 /// records. Iterative, so a deep tree needs no deep stack. A directory
 /// that is gone, or is no longer a real directory, is not listed.
 fn sweep_recorded_directories(root: PathBuf, tree: Node) {
-    let mut pending = vec![(root, tree)];
-    while let Some((directory, node)) = pending.pop() {
-        let Content::Directory(children) = &node.content else {
-            continue;
-        };
-        if !fs::symlink_metadata(&directory).is_ok_and(|metadata| metadata.is_dir()) {
-            continue;
-        }
-        if let Ok(entries) = fs::read_dir(&directory) {
-            for entry in entries.flatten() {
-                let name = entry.file_name();
-                let Some(name) = name.to_str() else { continue };
-                if stale_publish_leftover(name, &entry) {
-                    let _ = fs::remove_file(entry.path());
+    // Each directory is reached through its parent held open and opened
+    // only when its turn comes, so the descriptors open at once follow the
+    // depth of the walk, not the breadth of the tree. One that is no longer
+    // a real directory does not open, and is not listed.
+    let Ok(root) = Dir::open(&root) else {
+        return;
+    };
+    let sweep = |directory: &Dir| {
+        if let Ok(entries) = directory.entries() {
+            for entry in entries.into_iter().flatten() {
+                let Some(name) = entry.name_str() else {
+                    continue;
+                };
+                if stale_publish_leftover(name, || directory.stat(name).ok()) {
+                    let _ = directory.remove_file(name);
                 }
             }
         }
-        for child in children.iter() {
-            if matches!(child.content, Content::Directory(_)) {
-                pending.push((directory.join(&child.name), child.clone()));
-            }
-        }
+    };
+    let subdirectories = |node: &Node| match &node.content {
+        Content::Directory(children) => children
+            .iter()
+            .filter(|child| matches!(child.content, Content::Directory(_)))
+            .cloned()
+            .collect(),
+        _ => Vec::new(),
+    };
+    sweep(&root);
+    let root = std::rc::Rc::new(root);
+    let mut pending: Vec<(std::rc::Rc<Dir>, Node)> = subdirectories(&tree)
+        .into_iter()
+        .map(|child| (std::rc::Rc::clone(&root), child))
+        .collect();
+    drop(root);
+    while let Some((parent, node)) = pending.pop() {
+        let Ok(directory) = parent.open_dir(&node.name) else {
+            continue;
+        };
+        drop(parent);
+        sweep(&directory);
+        let directory = std::rc::Rc::new(directory);
+        pending.extend(
+            subdirectories(&node)
+                .into_iter()
+                .map(|child| (std::rc::Rc::clone(&directory), child)),
+        );
     }
 }
 
@@ -4165,100 +4268,34 @@ fn content_matches(
     hasher.finalize().as_bytes() == digest
 }
 
-/// Renames staged content onto its target. A replacement uses the ordinary
-/// overwrite-capable rename; a *creation* refuses to replace anything: it
-/// carries no expectation about existing content, so a file that appeared
-/// between the absence check and this rename — an editor's save, most
-/// plainly — belongs to someone else. Linux enforces that atomically with
-/// `RENAME_NOREPLACE` and macOS with `renamex_np(RENAME_EXCL)`; elsewhere
-/// the check-then-rename window remains and is documented as residual.
-fn publish_rename(source: &Path, target: &Path, replace: bool) -> io::Result<()> {
-    #[cfg(target_os = "macos")]
-    if !replace {
-        use std::os::unix::ffi::OsStrExt;
-        let source_c = std::ffi::CString::new(source.as_os_str().as_bytes())
-            .map_err(|_| io::Error::from(ErrorKind::InvalidInput))?;
-        let target_c = std::ffi::CString::new(target.as_os_str().as_bytes())
-            .map_err(|_| io::Error::from(ErrorKind::InvalidInput))?;
-        let result =
-            unsafe { libc::renamex_np(source_c.as_ptr(), target_c.as_ptr(), libc::RENAME_EXCL) };
-        if result == 0 {
-            return Ok(());
-        }
-        let error = io::Error::last_os_error();
-        // Filesystems without RENAME_EXCL support (some network and FUSE
-        // volumes) report ENOTSUP or EINVAL; falling back to the plain
-        // rename there keeps the old (windowed) behavior rather than
-        // failing every creation.
-        if error.raw_os_error() != Some(libc::ENOTSUP) && error.raw_os_error() != Some(libc::EINVAL)
-        {
-            return Err(error);
-        }
-    }
-    #[cfg(target_os = "linux")]
-    if !replace {
-        use std::os::unix::ffi::OsStrExt;
-        let source_c = std::ffi::CString::new(source.as_os_str().as_bytes())
-            .map_err(|_| io::Error::from(ErrorKind::InvalidInput))?;
-        let target_c = std::ffi::CString::new(target.as_os_str().as_bytes())
-            .map_err(|_| io::Error::from(ErrorKind::InvalidInput))?;
-        // Invoked as a raw syscall rather than through libc's wrapper:
-        // musl did not export `renameat2` until 1.2.5, so linking the
-        // wrapper fails outright on the static musl targets the Linux
-        // agents are built for. The syscall number is stable.
-        let result = unsafe {
-            libc::syscall(
-                libc::SYS_renameat2,
-                libc::AT_FDCWD,
-                source_c.as_ptr(),
-                libc::AT_FDCWD,
-                target_c.as_ptr(),
-                libc::RENAME_NOREPLACE,
-            )
-        };
-        if result == 0 {
-            return Ok(());
-        }
-        let error = io::Error::last_os_error();
-        // A filesystem without RENAME_NOREPLACE support reports EINVAL, and
-        // a kernel older than 3.15 has no such call at all (ENOSYS); some
-        // stacks answer EOPNOTSUPP. Falling back to the plain rename in
-        // those cases keeps the documented check-then-rename window rather
-        // than failing every creation — the residual accepted-risks.md section 2
-        // describes.
-        if !matches!(
-            error.raw_os_error(),
-            Some(libc::EINVAL) | Some(libc::ENOSYS) | Some(libc::EOPNOTSUPP)
-        ) {
-            return Err(error);
-        }
-    }
-    let _ = replace;
-    fs::rename(source, target)
-}
-
 /// Streams already-open content into a new private temporary while
 /// digesting it, returning whether the content matched the expected
-/// digest. The temporary is created with [`private_file`]: `0600` until
-/// publication gives it its configured mode, and never through anything
-/// already at that name, a planted symbolic link included.
-///
-/// [`private_file`]: crate::fsutil::private_file
+/// digest. The temporary is created in `directory` with
+/// [`Dir::create_private_file`]: `0600` until publication gives it its
+/// configured mode, and never through anything already at that name, a
+/// planted symbolic link included.
 fn copy_into_private(
     input: &mut File,
     source: &Path,
-    temporary: &Path,
+    directory: &Dir,
+    temporary: &str,
     digest: &Digest,
     progress: Option<&crate::progress::SideProgress>,
 ) -> Result<bool> {
-    let output = crate::fsutil::private_file(temporary)?;
+    let output = directory.create_private_file(temporary).with_context(|| {
+        format!(
+            "unable to create the private file {}",
+            directory.join(temporary).display()
+        )
+    })?;
     copy_verifying(input, output, digest, progress).map_err(|failure| match failure {
         CopyFailure::Read(error) => {
             anyhow::Error::new(error).context(format!("unable to read {}", source.display()))
         }
-        CopyFailure::Write(error) => {
-            anyhow::Error::new(error).context(format!("unable to write {}", temporary.display()))
-        }
+        CopyFailure::Write(error) => anyhow::Error::new(error).context(format!(
+            "unable to write {}",
+            directory.join(temporary).display()
+        )),
     })
 }
 
@@ -4304,26 +4341,15 @@ fn copy_verifying(
 /// The base's signature goes back to the supplier, so whatever this opens
 /// is readable, block by block, by the peer that named the path: it must be
 /// inside the root. Every parent must be a real directory, not a symbolic
-/// link to one, and the file opens with `O_NOFOLLOW | O_NONBLOCK` and is
-/// checked through its own descriptor, so a final symbolic link is refused
-/// and a FIFO neither blocks the open nor serves as a base. The path must
-/// already be validated: no `..`, not absolute.
+/// link to one, reached by [`walk_to_parent`], and the file opens relative
+/// to the last with `O_NOFOLLOW | O_NONBLOCK` and is checked through its own
+/// descriptor, so a final symbolic link is refused and a FIFO neither
+/// blocks the open nor serves as a base. The path must already be
+/// validated: no `..`, not absolute.
 fn open_base(root: &Path, path: &str) -> Option<File> {
-    let mut parent = root.to_path_buf();
-    let mut components = path.split('/').peekable();
-    while let Some(component) = components.next() {
-        if components.peek().is_none() {
-            break;
-        }
-        parent.push(component);
-        if !fs::symlink_metadata(&parent).ok()?.file_type().is_dir() {
-            return None;
-        }
-    }
-    let file = OpenOptions::new()
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
-        .open(root.join(path))
+    let (parent, name) = walk_to_parent(root, path, None).ok()?;
+    let file = parent
+        .open_file(name, OFlags::RDONLY | OFlags::NONBLOCK, 0)
         .ok()?;
     file.metadata().ok()?.file_type().is_file().then_some(file)
 }
@@ -4362,7 +4388,7 @@ fn verify_directory(path: &Path) -> Result<(), String> {
 
 /// Extracts the metadata recorded on file nodes, matching what the scanner
 /// records so that the two can be compared directly.
-fn file_metadata(metadata: &Metadata) -> FileMetadata {
+fn file_metadata(metadata: &Stat) -> FileMetadata {
     FileMetadata {
         mtime_seconds: metadata.mtime(),
         mtime_nanos: metadata.mtime_nsec() as u32,
@@ -4767,7 +4793,8 @@ mod tests {
         fs::write(&target, b"an editor's save").expect("writes");
 
         let atomic_no_replace = cfg!(any(target_os = "linux", target_os = "macos"));
-        let refused = publish_rename(&source, &target, false);
+        let directory = Dir::open(keep.path()).expect("directory");
+        let refused = dir::rename(&directory, Path::new("source"), &directory, "target", false);
         if !atomic_no_replace {
             // The residual, pinned as a residual: the rename lands, and
             // the platform is one this project documents as windowed.
@@ -4782,7 +4809,7 @@ mod tests {
             "the concurrent content must survive"
         );
 
-        let replaced = publish_rename(&source, &target, true);
+        let replaced = dir::rename(&directory, Path::new("source"), &directory, "target", true);
         assert!(replaced.is_ok(), "a replacement must still replace");
         assert_eq!(fs::read(&target).expect("reads"), b"staged");
     }
@@ -6612,22 +6639,37 @@ mod tests {
         fs::write(directory.path().join(decomposed), b"same").expect("writes");
 
         assert_eq!(
-            folded_twin(directory.path(), precomposed),
+            folded_twin(
+                &Dir::open(directory.path()).expect("directory"),
+                precomposed
+            ),
             Some((decomposed.to_owned(), "unicode collision")),
             "the entry already there is named, and so is the rule that folded them"
         );
 
         // Nothing to report for a name that is genuinely absent, or for
         // one spelled exactly as it is stored.
-        assert_eq!(folded_twin(directory.path(), "unrelated.txt"), None);
-        assert_eq!(folded_twin(directory.path(), decomposed), None);
+        assert_eq!(
+            folded_twin(
+                &Dir::open(directory.path()).expect("directory"),
+                "unrelated.txt"
+            ),
+            None
+        );
+        assert_eq!(
+            folded_twin(&Dir::open(directory.path()).expect("directory"), decomposed),
+            None
+        );
 
         // Case folds the same way. The probed flags are not consulted at
         // all: the observer can be holding a default that claims names
         // never fold, and this decision rests on what the directory holds.
         fs::write(directory.path().join("Report.md"), b"x").expect("writes");
         assert_eq!(
-            folded_twin(directory.path(), "REPORT.MD"),
+            folded_twin(
+                &Dir::open(directory.path()).expect("directory"),
+                "REPORT.MD"
+            ),
             Some(("Report.md".to_owned(), "casing collision"))
         );
     }
@@ -6935,6 +6977,7 @@ mod watch_tests {
 #[cfg(test)]
 mod apply_path_tests {
     use super::*;
+    use std::os::unix::fs::symlink;
 
     use std::sync::atomic::AtomicBool;
     use tempfile::{tempdir, TempDir};
@@ -7098,6 +7141,40 @@ mod apply_path_tests {
         assert!(format!("{error:#}").contains("already exists"), "{error:#}");
         assert_eq!(fs::read(fixture.root.join("b.txt")).unwrap(), b"occupant");
         assert_eq!(fs::read(fixture.root.join("a.txt")).unwrap(), b"moved");
+    }
+
+    /// The path race itself, held still: the destination's parent is
+    /// replaced by a symbolic link out of the root after the move has
+    /// resolved it and before the move acts. The move lands in the
+    /// directory it resolved — held open, never looked up again — and
+    /// nothing reaches the link's target. Looked up by name, as before the
+    /// walk held descriptors, the file went out through the link.
+    #[test]
+    fn a_parent_replaced_by_a_link_after_resolution_does_not_redirect_a_move() {
+        let mut fixture = escape();
+        fs::write(fixture.root.join("a.txt"), b"moved").expect("a");
+        fs::create_dir(fixture.root.join("dest")).expect("dest");
+        let (root, outside) = (fixture.root.clone(), fixture.outside.clone());
+        let fired = Arc::new(AtomicBool::new(false));
+        let hook_fired = Arc::clone(&fired);
+        fixture.endpoint.between_announce_and_writes = Some(Box::new(move || {
+            fs::rename(root.join("dest"), root.join("dest.moved")).expect("moved aside");
+            symlink(&outside, root.join("dest")).expect("a link swapped in");
+            hook_fired.store(true, Ordering::SeqCst);
+        }));
+        fixture
+            .endpoint
+            .rename("a.txt", "dest/a.txt")
+            .expect("the move lands");
+        assert!(fired.load(Ordering::SeqCst));
+        assert!(
+            !fixture.outside.join("a.txt").exists(),
+            "the move followed the link out of the root"
+        );
+        assert_eq!(
+            fs::read(fixture.root.join("dest.moved/a.txt")).unwrap(),
+            b"moved"
+        );
     }
 
     fn file_node(name: &str) -> Node {
@@ -7290,14 +7367,18 @@ mod apply_path_tests {
         fs::write(&victim, b"untouched").expect("victim");
         let planted = keep.path().join("planted");
         symlink(&victim, &planted).expect("planted");
+        let directory = Dir::open(keep.path()).expect("directory");
         let mut input = File::open(&source).expect("open");
-        copy_into_private(&mut input, &source, &planted, &digest, None)
+        copy_into_private(&mut input, &source, &directory, "planted", &digest, None)
             .expect_err("a planted link must be refused");
         assert_eq!(fs::read(&victim).unwrap(), b"untouched");
 
         let temporary = keep.path().join("temporary");
         let mut input = File::open(&source).expect("open");
-        assert!(copy_into_private(&mut input, &source, &temporary, &digest, None).expect("copy"));
+        assert!(
+            copy_into_private(&mut input, &source, &directory, "temporary", &digest, None)
+                .expect("copy")
+        );
         assert_eq!(
             fs::metadata(&temporary).expect("temporary").mode() & 0o777,
             0o600
@@ -7443,8 +7524,14 @@ mod apply_path_tests {
             missing_staged: Vec::new(),
             progress: None,
         };
-        let published =
-            transitioner.publish_file("a", &root, &root.join("a"), &digest, false, false);
+        let published = transitioner.publish_file(
+            "a",
+            &Dir::open(&root).expect("root"),
+            "a",
+            &digest,
+            false,
+            false,
+        );
         assert!(
             transitioner.problems.is_empty(),
             "{:?}",
@@ -7572,7 +7659,11 @@ mod apply_path_tests {
         let stale: Vec<String> = fs::read_dir(keep.path())
             .expect("list")
             .flatten()
-            .filter(|entry| stale_publish_leftover(entry.file_name().to_str().unwrap(), entry))
+            .filter(|entry| {
+                stale_publish_leftover(entry.file_name().to_str().unwrap(), || {
+                    entry.metadata().ok().map(|metadata| Stat::from(&metadata))
+                })
+            })
             .map(|entry| entry.file_name().into_string().unwrap())
             .collect();
         assert_eq!(stale.len(), 1, "{stale:?}");
@@ -7907,9 +7998,9 @@ mod supply_receive_tests {
         fs::write(outside.join("big.bin"), vec![7u8; 64 * 1024]).expect("file should be writable");
         symlink(&outside, root.join("link")).expect("symlink should be creatable");
         let mut snapshot = endpoint.scan().expect("scan should succeed");
-        let metadata = file_metadata(
+        let metadata = file_metadata(&Stat::from(
             &fs::metadata(outside.join("big.bin")).expect("file should be inspectable"),
-        );
+        ));
         snapshot.root = Some(Node {
             name: String::new(),
             content: Content::Directory(Arc::new(vec![Node {

@@ -9,6 +9,7 @@
 //! side of an SSH connection ([`remote::RemoteEndpoint`], speaking to an
 //! agent running the same binary).
 
+pub(crate) mod dir;
 pub mod local;
 pub mod observer;
 pub mod remote;
