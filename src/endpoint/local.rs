@@ -31,6 +31,7 @@ use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsE
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
+use std::time::Instant;
 
 use anyhow::{anyhow, bail, Context, Result};
 
@@ -135,6 +136,10 @@ pub struct LocalEndpoint {
     /// relative to it, so a link swapped in at its name cannot redirect
     /// them. Shared with the files a receive has in flight.
     staging: Option<Arc<Dir>>,
+    /// When each path a replacement or removal is waiting on, because
+    /// another program has the file open, was first left: see
+    /// [`Transitioner::left_open`].
+    held_open: Mutex<HashMap<String, Instant>>,
     /// The treatment of symbolic links, applied when creating them.
     symlink_mode: SymlinkMode,
     /// The ignore set scans apply, kept so a directory's removal can tell
@@ -164,6 +169,14 @@ pub struct LocalEndpoint {
     /// announced dirty marks and still read the old bytes.
     #[cfg(test)]
     pub(crate) between_announce_and_writes: Option<Box<dyn Fn() + Send>>,
+    /// A test seam in a replacement or removal, after its last check and
+    /// before it acts: the window a save landing in must not be lost to.
+    #[cfg(test)]
+    pub(crate) before_swap: Option<Box<dyn Fn() + Send + Sync>>,
+    /// A test seam in a replacement, after its validation and before its
+    /// last check: the window the new content is prepared in.
+    #[cfg(test)]
+    pub(crate) before_last_check: Option<Box<dyn Fn() + Send + Sync>>,
     /// The generation this endpoint's last scan reflects, so it waits only
     /// for changes it has not already seen.
     seen_generation: u64,
@@ -924,6 +937,7 @@ impl LocalEndpoint {
             root,
             staging_root,
             staging: None,
+            held_open: Mutex::new(HashMap::new()),
             symlink_mode: options.symlink_mode,
             ignores: options.ignores.clone(),
             file_mode: options.file_mode.unwrap_or(DEFAULT_FILE_MODE) & 0o777,
@@ -951,6 +965,10 @@ impl LocalEndpoint {
             progress: None,
             #[cfg(test)]
             between_announce_and_writes: None,
+            #[cfg(test)]
+            before_swap: None,
+            #[cfg(test)]
+            before_last_check: None,
             seen_generation: 0,
             requested: HashSet::new(),
             last_snapshot: None,
@@ -2046,6 +2064,11 @@ impl Endpoint for LocalEndpoint {
             helpers: &helpers,
             #[cfg(test)]
             after_use_counted: None,
+            #[cfg(test)]
+            before_swap: self.before_swap.as_deref(),
+            #[cfg(test)]
+            before_last_check: self.before_last_check.as_deref(),
+            held_open: &self.held_open,
             swept: &swept,
             problems: Vec::new(),
             missing_staged_files: false,
@@ -2541,6 +2564,14 @@ struct Transitioner<'a> {
     /// digest can take the last use and move the staged file away.
     #[cfg(test)]
     after_use_counted: Option<&'a (dyn Fn() + Sync)>,
+    /// See [`LocalEndpoint::before_swap`].
+    #[cfg(test)]
+    before_swap: Option<&'a (dyn Fn() + Send + Sync)>,
+    /// See [`LocalEndpoint::before_last_check`].
+    #[cfg(test)]
+    before_last_check: Option<&'a (dyn Fn() + Send + Sync)>,
+    /// See [`LocalEndpoint::held_open`].
+    held_open: &'a Mutex<HashMap<String, Instant>>,
     /// The directories already swept of leftover publish temporaries in
     /// this transition, shared by every transitioner of it, so each is
     /// listed once. See [`Transitioner::sweep_leftovers`].
@@ -2576,6 +2607,11 @@ impl<'a> Transitioner<'a> {
             helpers: self.helpers,
             #[cfg(test)]
             after_use_counted: self.after_use_counted,
+            #[cfg(test)]
+            before_swap: self.before_swap,
+            #[cfg(test)]
+            before_last_check: self.before_last_check,
+            held_open: self.held_open,
             swept: self.swept,
             problems: Vec::new(),
             missing_staged_files: false,
@@ -2888,7 +2924,7 @@ impl<'a> Transitioner<'a> {
             Content::File {
                 digest, executable, ..
             } => {
-                let metadata = self.publish_file(path, parent, name, digest, *executable, false)?;
+                let metadata = self.publish_file(path, parent, name, digest, *executable, None)?;
                 Some(Node {
                     name: name.to_owned(),
                     content: Content::File {
@@ -3016,7 +3052,7 @@ impl<'a> Transitioner<'a> {
         name: &str,
         digest: &Digest,
         executable: bool,
-        replace: bool,
+        seen: Option<&Stat>,
     ) -> Option<FileMetadata> {
         let Some(staging) = self.staging else {
             self.retransfer(
@@ -3131,7 +3167,17 @@ impl<'a> Transitioner<'a> {
                 }
                 _ => false,
             }
-            && dir::rename(staging, Path::new(&staged_name), parent, name, replace).is_ok();
+            && match seen {
+                None => dir::rename(staging, Path::new(&staged_name), parent, name, false).is_ok(),
+                Some(seen) => {
+                    match self.put_in_place(path, staging, &staged_name, parent, name, seen) {
+                        Placed::Done => true,
+                        Placed::Refused => return None,
+                        // Across devices, most plausibly: the copy below.
+                        Placed::Failed(_) => false,
+                    }
+                }
+            };
         if !moved {
             let temporary = temporary_name("apply");
             // The copy digests what it moves: staged content is normally
@@ -3213,9 +3259,18 @@ impl<'a> Transitioner<'a> {
                     return None;
                 }
             }
-            if let Err(error) = dir::rename(parent, Path::new(&temporary), parent, name, replace) {
+            let placed = match seen {
+                None => dir::rename(parent, Path::new(&temporary), parent, name, false)
+                    .map_or_else(Placed::Failed, |()| Placed::Done),
+                Some(seen) => self.put_in_place(path, parent, &temporary, parent, name, seen),
+            };
+            if let Placed::Refused = placed {
                 let _ = parent.remove_file(&temporary);
-                if !replace && error.kind() == ErrorKind::AlreadyExists {
+                return None;
+            }
+            if let Placed::Failed(error) = placed {
+                let _ = parent.remove_file(&temporary);
+                if seen.is_none() && error.kind() == ErrorKind::AlreadyExists {
                     // A creation carries no expectation about existing
                     // content, so anything that appeared since the absence
                     // check is someone else's work and must not be
@@ -3342,13 +3397,7 @@ impl<'a> Transitioner<'a> {
                     self.disagreement(path, format!("refusing to remove this file: {message}"));
                     return Some(expectation.clone());
                 }
-                match directory.remove_file(name) {
-                    Ok(()) => None,
-                    Err(error) => {
-                        self.problem(path, format!("unable to remove file: {error}"));
-                        Some(expectation.clone())
-                    }
-                }
+                self.remove_checked_file(path, directory, name, &metadata, expectation)
             }
             Content::Symlink { target: expected } => {
                 if !metadata.file_type().is_symlink() {
@@ -3388,6 +3437,214 @@ impl<'a> Transitioner<'a> {
                 Some(expectation.clone())
             }
         }
+    }
+
+    /// Removes the file validated as `seen`, unless a save lands on it in
+    /// the meantime. It is moved aside first, atomically, and what was
+    /// moved is checked before it is deleted: the version the validation
+    /// saw, or a save that landed after it, which goes back where it was
+    /// saved. Deleting by name could not tell the two apart.
+    fn remove_checked_file(
+        &mut self,
+        path: &str,
+        directory: &Dir,
+        name: &str,
+        seen: &Stat,
+        expectation: &Node,
+    ) -> Option<Node> {
+        if self.left_open(path, directory, name) {
+            return Some(expectation.clone());
+        }
+        #[cfg(test)]
+        if let Some(hook) = self.before_swap {
+            hook();
+        }
+        // Named as a publish temporary is: invisible to scans, and swept
+        // as a crash's leftover if a crash leaves it.
+        let aside = temporary_name("apply");
+        if let Err(error) = dir::rename(directory, Path::new(name), directory, &aside, false) {
+            // Already absent: the intended state, reached by other means.
+            if error.kind() == ErrorKind::NotFound {
+                return None;
+            }
+            self.problem(path, format!("unable to remove file: {error}"));
+            return Some(expectation.clone());
+        }
+        if directory
+            .stat(&aside)
+            .is_ok_and(|moved| same_version(&moved, seen))
+        {
+            return match directory.remove_file(&aside) {
+                Ok(()) => None,
+                Err(error) => {
+                    self.put_back(path, directory, &aside, directory, name);
+                    self.problem(path, format!("unable to remove file: {error}"));
+                    Some(expectation.clone())
+                }
+            };
+        }
+        self.put_back(path, directory, &aside, directory, name);
+        self.disagreement(
+            path,
+            "refusing to remove this file: it was saved while it was being removed",
+        );
+        Some(expectation.clone())
+    }
+
+    /// Moves `from` back to `name`, never over anything that has arrived
+    /// at `name` since; failing that, keeps it beside `name` under the
+    /// first free `<name>.kept`, `<name>.kept.2`, …, visible and said
+    /// where, rather than under a temporary name a sweep would take.
+    fn put_back(&mut self, path: &str, from_dir: &Dir, from: &str, to: &Dir, name: &str) {
+        if dir::rename(from_dir, Path::new(from), to, name, false).is_ok() {
+            return;
+        }
+        for attempt in 1..=100 {
+            let kept = match attempt {
+                1 => format!("{name}.kept"),
+                _ => format!("{name}.kept.{attempt}"),
+            };
+            match dir::rename(from_dir, Path::new(from), to, &kept, false) {
+                Ok(()) => {
+                    self.problem(
+                        path,
+                        format!(
+                            "a save made while this file was changed was kept beside it as {kept}"
+                        ),
+                    );
+                    return;
+                }
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
+                Err(error) => {
+                    self.problem(
+                        path,
+                        format!("a save made while this file was changed could not be kept beside it: {error}"),
+                    );
+                    return;
+                }
+            }
+        }
+        self.problem(
+            path,
+            "a save made while this file was changed could not be kept beside it: no free name",
+        );
+    }
+
+    /// Replaces `name` in `parent` with `from` in `from_dir`, but only while
+    /// `name` still holds the version validated as `seen`.
+    ///
+    /// Three steps close what they can of the window between that
+    /// validation and the replacement (accepted-risks §2):
+    /// - On Linux, a file another program holds open is left for now (see
+    ///   [`Transitioner::left_open`]): one writing into it would go on
+    ///   writing to the version replaced.
+    /// - The target is checked again just before the replacement. Preparing
+    ///   the new content — copying or verifying a large file — can take
+    ///   seconds, all of them after the validation.
+    /// - The new file is exchanged into place where the platform can do it
+    ///   atomically, Linux and macOS, and what came out is checked: a save
+    ///   that landed after the check came out instead of the version
+    ///   validated, and is exchanged back. Elsewhere, the plain rename the
+    ///   replacement always made.
+    ///
+    /// Refused, a replacement is reported here; its caller removes `from`.
+    fn put_in_place(
+        &mut self,
+        path: &str,
+        from_dir: &Dir,
+        from: &str,
+        parent: &Dir,
+        name: &str,
+        seen: &Stat,
+    ) -> Placed {
+        if self.left_open(path, parent, name) {
+            return Placed::Refused;
+        }
+        #[cfg(test)]
+        if let Some(hook) = self.before_last_check {
+            hook();
+        }
+        if !parent.stat(name).is_ok_and(|now| same_version(&now, seen)) {
+            self.disagreement(
+                path,
+                "refusing to replace this file: it changed while its replacement was prepared",
+            );
+            return Placed::Refused;
+        }
+        #[cfg(test)]
+        if let Some(hook) = self.before_swap {
+            hook();
+        }
+        let ours = from_dir.stat(from).ok();
+        match dir::exchange(from_dir, from, parent, name) {
+            Ok(true) => {}
+            Ok(false) => {
+                return match dir::rename(from_dir, Path::new(from), parent, name, true) {
+                    Ok(()) => Placed::Done,
+                    Err(error) => Placed::Failed(error),
+                }
+            }
+            Err(error) => return Placed::Failed(error),
+        }
+        // `from` now holds what `name` held at the instant of the exchange.
+        if from_dir
+            .stat(from)
+            .is_ok_and(|out| same_version(&out, seen))
+        {
+            let _ = from_dir.remove_file(from);
+            return Placed::Done;
+        }
+        // A save landed between the check and the exchange. It goes back
+        // where it was saved, and the next cycle, scanning both changes,
+        // reconciles them — a conflict, where both sides changed.
+        let back = matches!(dir::exchange(from_dir, from, parent, name), Ok(true));
+        let still_ours = back
+            && match (&ours, from_dir.stat(from)) {
+                (Some(ours), Ok(now)) => (now.dev(), now.ino()) == (ours.dev(), ours.ino()),
+                _ => false,
+            };
+        if !still_ours {
+            // The exchange back failed, or yet another save replaced the
+            // new content in between: what `from` holds is someone's save.
+            self.put_back(path, from_dir, from, parent, name);
+        }
+        self.disagreement(
+            path,
+            "refusing to replace this file: it was saved while it was being replaced",
+        );
+        Placed::Refused
+    }
+
+    /// Whether to leave `path` for now because another program has the
+    /// file open, where that can be asked (Linux, see
+    /// [`dir::opened_elsewhere`]). A program writing into a file it holds
+    /// open writes to whatever the name held when it opened it, so
+    /// replacing or removing the file under it loses what it writes next.
+    /// The wait is bounded: a file something keeps open for good — a
+    /// viewer, an index, another session reading it — goes ahead after
+    /// [`HELD_OPEN_GRACE`].
+    fn left_open(&mut self, path: &str, parent: &Dir, name: &str) -> bool {
+        let opened = parent
+            .open_file(name, OFlags::RDONLY | OFlags::NONBLOCK, 0)
+            .ok();
+        let elsewhere = opened.as_ref().and_then(dir::opened_elsewhere);
+        drop(opened);
+        let mut waiting = self.held_open.lock().unwrap_or_else(|e| e.into_inner());
+        if elsewhere != Some(true) {
+            waiting.remove(path);
+            return false;
+        }
+        let since = *waiting.entry(path.to_owned()).or_insert_with(Instant::now);
+        if since.elapsed() >= HELD_OPEN_GRACE {
+            waiting.remove(path);
+            return false;
+        }
+        drop(waiting);
+        self.problem(
+            path,
+            "left for now: another program has this file open; it will be retried",
+        );
+        true
     }
 
     /// Removes a directory bottom-up. Every entry present on disk must be
@@ -3700,19 +3957,30 @@ impl<'a> Transitioner<'a> {
                 return None;
             }
         }
-        let published = parent
+        // The target's own handle is let go first: held open, it would
+        // read to the probe in `put_in_place` as another program's.
+        drop(file);
+        let prepared = parent
             .set_mode(&temporary, mode)
-            .and_then(|()| parent.stat(&temporary))
-            .and_then(|metadata| {
-                dir::rename(parent, Path::new(&temporary), parent, name, true)
-                    .map(|()| file_metadata(&metadata))
-            });
-        match published {
-            Ok(metadata) => {
-                self.apply_ownership(path, parent, name);
-                Some(metadata)
-            }
+            .and_then(|()| parent.stat(&temporary));
+        let metadata = match prepared {
+            Ok(metadata) => metadata,
             Err(error) => {
+                let _ = parent.remove_file(&temporary);
+                self.problem(path, format!("unable to set file permissions: {error}"));
+                return None;
+            }
+        };
+        match self.put_in_place(path, parent, &temporary, parent, name, seen) {
+            Placed::Done => {
+                self.apply_ownership(path, parent, name);
+                Some(file_metadata(&metadata))
+            }
+            Placed::Refused => {
+                let _ = parent.remove_file(&temporary);
+                None
+            }
+            Placed::Failed(error) => {
                 let _ = parent.remove_file(&temporary);
                 self.problem(path, format!("unable to set file permissions: {error}"));
                 None
@@ -3785,9 +4053,14 @@ impl<'a> Transitioner<'a> {
                 });
             }
 
-            let Some(metadata) =
-                self.publish_file(path, &parent, name, new_digest, *executable, true)
-            else {
+            let Some(metadata) = self.publish_file(
+                path,
+                &parent,
+                name,
+                new_digest,
+                *executable,
+                Some(&metadata),
+            ) else {
                 return Some(old.clone());
             };
             return Some(Node {
@@ -3823,6 +4096,28 @@ impl<'a> Transitioner<'a> {
 /// content into a transition's expectation, so this is a guard rather than a
 /// transformation; it exists so that a defect anywhere upstream degrades to a
 /// path the ancestor simply doesn't describe, rather than to a failed cycle.
+/// How a replacement went: see [`Transitioner::put_in_place`].
+enum Placed {
+    /// The new content is in place.
+    Done,
+    /// Refused and reported: the target changed, or is held open.
+    Refused,
+    /// The rename itself failed, unreported.
+    Failed(io::Error),
+}
+
+/// Whether two descriptions are of one version of one file: the same
+/// inode, unchanged in size and modification time.
+fn same_version(a: &Stat, b: &Stat) -> bool {
+    (a.dev(), a.ino(), a.size(), a.mtime(), a.mtime_nsec())
+        == (b.dev(), b.ino(), b.size(), b.mtime(), b.mtime_nsec())
+}
+
+/// How long a replacement or removal waits on a file another program has
+/// open before going ahead anyway: long enough for one writing it to
+/// finish, short enough that a file a viewer keeps open still syncs.
+const HELD_OPEN_GRACE: std::time::Duration = std::time::Duration::from_secs(30);
+
 fn sanitize(result: Option<Node>) -> Option<Node> {
     result.as_ref().and_then(Node::synchronizable_subtree)
 }
@@ -4566,6 +4861,216 @@ mod tests {
             }
             needs
         }
+    }
+
+    /// Brings both sides to `v1` of `file.txt`, then changes the primary's
+    /// and stages that replacement into the replica, returning it.
+    fn staged_replacement(fixture: &mut Fixture) -> Vec<Change> {
+        // Each write is announced to the primary's observer, as writers in
+        // the tool announce theirs: otherwise its scan can serve a snapshot
+        // from before the write while the kernel's event is in flight.
+        write(&fixture.primary_root, "file.txt", "v1");
+        fixture.primary.observer.invalidate(["file.txt"]);
+        let transitions = fixture.replica_transitions();
+        fixture.stage(&transitions);
+        fixture
+            .replica
+            .transition(transitions)
+            .expect("the first sync applies");
+        write(&fixture.primary_root, "file.txt", "v2 from the primary");
+        fixture.primary.observer.invalidate(["file.txt"]);
+        let transitions = fixture.replica_transitions();
+        assert_eq!(
+            transitions.len(),
+            1,
+            "a replacement to apply: {transitions:?}"
+        );
+        fixture.stage(&transitions);
+        transitions
+    }
+
+    /// A save as editors make one: new content renamed over the name.
+    fn save_by_rename(root: &Path, path: &str, contents: &str) {
+        let saving = root.join(format!("{path}.saving"));
+        fs::write(&saving, contents).expect("the save writes");
+        fs::rename(&saving, root.join(path)).expect("the save renames over");
+    }
+
+    fn disagreed(outcome: &TransitionOutcome, words: &str) -> bool {
+        outcome
+            .problems
+            .iter()
+            .any(|problem| problem.disagreement && problem.message.contains(words))
+    }
+
+    /// A save landing after a replacement's last check, renamed over the
+    /// name as editors save, is exchanged back out of the way rather than
+    /// replaced, where an exchange exists (Linux, macOS), and the
+    /// replacement is refused for the next cycle to reconcile. Where there
+    /// is none, the plain rename replaces it: the residual accepted-risks
+    /// §2 records, pinned here as one.
+    #[test]
+    fn a_save_landing_after_the_last_check_is_swapped_back_not_replaced() {
+        for withheld in [false, true] {
+            let mut fixture = Fixture::new();
+            let transitions = staged_replacement(&mut fixture);
+            let root = fixture.replica_root.clone();
+            fixture.replica.before_swap = Some(Box::new(move || {
+                save_by_rename(&root, "file.txt", "the replica's save")
+            }));
+            dir::EXCHANGE_WITHHELD.set(withheld);
+            let outcome = fixture.replica.transition(transitions).expect("runs");
+            dir::EXCHANGE_WITHHELD.set(false);
+            if cfg!(any(target_os = "linux", target_os = "macos")) && !withheld {
+                assert_eq!(
+                    read(&fixture.replica_root, "file.txt"),
+                    "the replica's save"
+                );
+                assert!(
+                    disagreed(&outcome, "saved while it was being replaced"),
+                    "{:?}",
+                    outcome.problems
+                );
+            } else {
+                assert_eq!(
+                    read(&fixture.replica_root, "file.txt"),
+                    "v2 from the primary",
+                    "without an exchange, the replacement is a plain rename"
+                );
+            }
+        }
+    }
+
+    /// A save landing while the replacement is prepared — after its
+    /// validation, which for a large file comes seconds before the new
+    /// content is ready — is caught by the last check, exchange or none.
+    #[test]
+    fn a_save_landing_while_the_replacement_is_prepared_is_never_replaced() {
+        let mut fixture = Fixture::new();
+        let transitions = staged_replacement(&mut fixture);
+        let root = fixture.replica_root.clone();
+        fixture.replica.before_last_check = Some(Box::new(move || {
+            save_by_rename(&root, "file.txt", "the replica's save")
+        }));
+        dir::EXCHANGE_WITHHELD.set(true);
+        let outcome = fixture.replica.transition(transitions).expect("runs");
+        dir::EXCHANGE_WITHHELD.set(false);
+        assert_eq!(
+            read(&fixture.replica_root, "file.txt"),
+            "the replica's save"
+        );
+        assert!(
+            disagreed(&outcome, "changed while its replacement was prepared"),
+            "{:?}",
+            outcome.problems
+        );
+    }
+
+    /// A save landing on a file being removed, after its validation, is put
+    /// back where it was saved, and the removal refused.
+    #[test]
+    fn a_save_landing_while_a_file_is_removed_is_put_back() {
+        let mut fixture = Fixture::new();
+        write(&fixture.primary_root, "file.txt", "v1");
+        fixture.primary.observer.invalidate(["file.txt"]);
+        let transitions = fixture.replica_transitions();
+        fixture.stage(&transitions);
+        fixture
+            .replica
+            .transition(transitions)
+            .expect("the first sync applies");
+        fs::remove_file(fixture.primary_root.join("file.txt")).expect("removed");
+        fixture.primary.observer.invalidate(["file.txt"]);
+        let transitions = fixture.replica_transitions();
+        assert_eq!(transitions.len(), 1, "a removal to apply: {transitions:?}");
+        let root = fixture.replica_root.clone();
+        fixture.replica.before_swap = Some(Box::new(move || {
+            save_by_rename(&root, "file.txt", "the replica's save")
+        }));
+        let outcome = fixture.replica.transition(transitions).expect("runs");
+        assert_eq!(
+            read(&fixture.replica_root, "file.txt"),
+            "the replica's save"
+        );
+        assert!(
+            disagreed(&outcome, "saved while it was being removed"),
+            "{:?}",
+            outcome.problems
+        );
+        let leftovers: Vec<_> = fs::read_dir(&fixture.replica_root)
+            .expect("lists")
+            .flatten()
+            .filter(|entry| scan::autobahn_temporary(&entry.file_name().to_string_lossy()))
+            .collect();
+        assert!(leftovers.is_empty(), "{leftovers:?}");
+    }
+
+    /// A file another program has open is left for now, on Linux, where a
+    /// lease probe can tell: something writing into it would go on writing
+    /// to the version replaced. Released, it is replaced.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_file_another_program_has_open_is_left_for_now_then_replaced() {
+        let mut fixture = Fixture::new();
+        let transitions = staged_replacement(&mut fixture);
+        let target = fixture.replica_root.join("file.txt");
+        let writer = OpenOptions::new()
+            .append(true)
+            .open(&target)
+            .expect("opens");
+        let probe = File::open(&target).expect("opens");
+        if dir::opened_elsewhere(&probe) != Some(true) {
+            eprintln!("this filesystem grants no leases; nothing to check");
+            return;
+        }
+        drop(probe);
+
+        let outcome = fixture
+            .replica
+            .transition(transitions.clone())
+            .expect("runs");
+        assert!(
+            outcome.problems.iter().any(|problem| problem
+                .message
+                .contains("another program has this file open")),
+            "{:?}",
+            outcome.problems
+        );
+        assert_eq!(read(&fixture.replica_root, "file.txt"), "v1");
+
+        drop(writer);
+        let outcome = fixture.replica.transition(transitions).expect("runs");
+        assert!(outcome.problems.is_empty(), "{:?}", outcome.problems);
+        assert_eq!(
+            read(&fixture.replica_root, "file.txt"),
+            "v2 from the primary"
+        );
+    }
+
+    /// A file something keeps open for good — a viewer, an index — is not
+    /// held back for good: past the grace, the replacement goes ahead.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_file_held_open_past_the_grace_is_replaced_anyway() {
+        let mut fixture = Fixture::new();
+        let transitions = staged_replacement(&mut fixture);
+        let target = fixture.replica_root.join("file.txt");
+        let _viewer = File::open(&target).expect("opens");
+        let since = std::time::Instant::now()
+            .checked_sub(HELD_OPEN_GRACE + std::time::Duration::from_secs(1))
+            .expect("the clock has run past the grace");
+        fixture
+            .replica
+            .held_open
+            .lock()
+            .unwrap()
+            .insert("file.txt".to_owned(), since);
+        let outcome = fixture.replica.transition(transitions).expect("runs");
+        assert!(outcome.problems.is_empty(), "{:?}", outcome.problems);
+        assert_eq!(
+            read(&fixture.replica_root, "file.txt"),
+            "v2 from the primary"
+        );
     }
 
     #[test]
@@ -7635,6 +8140,7 @@ mod apply_path_tests {
             fs::rename(&staged, &moved_to).expect("the last use moves the file");
         };
         let staging_directory = Dir::open(&staging).expect("the staging directory");
+        let held_open = Mutex::new(HashMap::new());
         let mut transitioner = Transitioner {
             root: &root,
             staging: Some(&staging_directory),
@@ -7650,6 +8156,9 @@ mod apply_path_tests {
             staged_uses: &uses,
             helpers: &helpers,
             after_use_counted: Some(&hook),
+            before_swap: None,
+            before_last_check: None,
+            held_open: &held_open,
             swept: &Mutex::new(HashSet::new()),
             problems: Vec::new(),
             missing_staged_files: false,
@@ -7662,7 +8171,7 @@ mod apply_path_tests {
             "a",
             &digest,
             false,
-            false,
+            None,
         );
         assert!(
             transitioner.problems.is_empty(),

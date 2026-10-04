@@ -338,6 +338,94 @@ pub(crate) fn rename(
     Ok(())
 }
 
+/// Exchanges `from` in `from_dir` with `name` in `to`, atomically: each
+/// name ends up holding the other's file, and neither is ever missing.
+///
+/// `Ok(false)` where there is no exchange to make — a kernel before 3.15,
+/// a filesystem that refuses the flag, a platform other than Linux and
+/// macOS — so that the caller can fall back to a plain rename.
+pub(crate) fn exchange(from_dir: &Dir, from: &str, to: &Dir, name: &str) -> io::Result<bool> {
+    #[cfg(test)]
+    if EXCHANGE_WITHHELD.get() {
+        return Ok(false);
+    }
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        use rustix::io::Errno;
+        match rustix::fs::renameat_with(from_dir, from, to, name, rustix::fs::RenameFlags::EXCHANGE)
+        {
+            Ok(()) => Ok(true),
+            Err(error)
+                if error == Errno::INVAL
+                    || error == Errno::NOSYS
+                    || error == Errno::OPNOTSUPP
+                    || error == Errno::NOTSUP =>
+            {
+                Ok(false)
+            }
+            Err(error) => Err(error.into()),
+        }
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    {
+        let _ = (from_dir, from, to, name);
+        Ok(false)
+    }
+}
+
+#[cfg(test)]
+thread_local! {
+    /// A test seam withholding [`exchange`], as a filesystem without it
+    /// does. Per thread, so parallel tests cannot see each other's.
+    pub(crate) static EXCHANGE_WITHHELD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Whether some other open file has `file` open too, where Linux can say:
+/// a write lease is granted only on a file nobody else has open, so taking
+/// one and handing it straight back answers without waiting on anyone.
+/// Every open counts, this process's other ones included. `None` where the
+/// question cannot be asked: not Linux, a filesystem without leases, or a
+/// file this process neither owns nor may lease.
+pub(crate) fn opened_elsewhere(file: &File) -> Option<bool> {
+    /// `F_SETSIG`, which the libc crate does not export: 10 in Linux's
+    /// generic `fcntl.h`, which x86-64 and AArch64 use.
+    #[cfg(target_os = "linux")]
+    const F_SETSIG: libc::c_int = 10;
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::fd::AsRawFd;
+        let fd = file.as_raw_fd();
+        // rustix has no lease calls, so these go through libc.
+        //
+        // An open by anyone while the lease is held breaks it, and the
+        // kernel tells the holder with a signal: SIGIO unless told
+        // otherwise, whose default is to terminate the process. It is
+        // pointed at SIGURG instead, whose default is to be ignored, so a
+        // break in the instant the lease is held costs nothing.
+        //
+        // SAFETY: each call is fcntl on a descriptor `file` keeps open for
+        // the duration, with integer arguments.
+        unsafe {
+            if libc::fcntl(fd, F_SETSIG, libc::SIGURG) != 0 {
+                return None;
+            }
+            if libc::fcntl(fd, libc::F_SETLEASE, libc::F_WRLCK) == 0 {
+                libc::fcntl(fd, libc::F_SETLEASE, libc::F_UNLCK);
+                return Some(false);
+            }
+        }
+        match io::Error::last_os_error().raw_os_error() {
+            Some(libc::EAGAIN) => Some(true),
+            _ => None,
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = file;
+        None
+    }
+}
+
 /// What a directory entry is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct Kind(FileType);

@@ -120,17 +120,21 @@ Refusals that establish stale observation invalidate the baseline. Predictable r
 
 **Enforcement.** `Transitioner` in `src/endpoint/local.rs` uses `last_snapshot`. `Problem.disagreement` selects when `distrust_baseline` requires a new scan.
 
-`dir::rename` (`src/endpoint/dir.rs`) uses Linux `RENAME_NOREPLACE` or macOS `RENAME_EXCL` to protect creations from concurrent arrivals.
+`dir::rename` (`src/endpoint/dir.rs`) uses Linux `RENAME_NOREPLACE` or macOS `RENAME_EXCL` to protect creations from concurrent arrivals. `Transitioner::put_in_place` checks a replacement's target again just before acting, exchanges the new file in where Linux or macOS can, and swaps back a save that landed in between. `Transitioner::remove_checked_file` moves a file aside and checks it before deleting it.
 
 **Tests and source references:**
 
 - `a_creation_rename_refuses_to_replace`
+- `a_save_landing_after_the_last_check_is_swapped_back_not_replaced`
+- `a_save_landing_while_the_replacement_is_prepared_is_never_replaced`
+- `a_save_landing_while_a_file_is_removed_is_put_back`
+- `a_file_another_program_has_open_is_left_for_now_then_replaced`
 - `a_retargeted_symbolic_link_is_not_removed`
 - `transition_folds_achieved_results_into_the_snapshot`
 
 I5’s lifecycle harness also exercises transitions.
 
-**Boundary.** Replacements and removals check an entry and then act on it in a separate operation, on every platform. A save landing between the two is lost. Creation has the same gap outside atomic no-replace platforms and in unsupported fallbacks. The directory the entry lives in is held open throughout, so the gap cannot redirect the operation elsewhere.
+**Boundary.** Replacements and removals check an entry and then act on it in a separate operation. A save landing in between is put back on Linux and macOS, which can exchange, and by every removal, which moves the file aside first. Elsewhere, a replacement's last check, made just before acting, leaves a window of microseconds. A program writing into a file it holds open is left alone for up to 30 seconds on Linux, and goes undetected on macOS. Creation keeps its gap outside atomic no-replace platforms and in unsupported fallbacks. The directory the entry lives in is held open throughout, so the gap cannot redirect the operation elsewhere.
 
 Linux and macOS provide atomic no-replace rename. FreeBSD and other BSDs do not. Findings I4-A and I4-C clarify this scope. See [accepted-risks §2](./accepted-risks.md#2-a-save-landing-between-a-check-and-a-replacement).
 

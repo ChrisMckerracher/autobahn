@@ -18,9 +18,20 @@ The whole-root emptying guard requires two ancestor entries. A missing primary h
 
 ## 2. A save landing between a check and a replacement
 
-**Risk.** A transition checks an entry against the last scan, then acts on it: replaces it, removes it, or changes its mode. A save landing on that entry between the check and the act is overwritten or removed. The window is microseconds wide, and far more likely to be hit by a program writing than by a person: a build writing output while a cycle replaces it.
+**Risk.** A transition checks an entry against the last scan, then replaces or removes it. Most saves landing in between are now caught and put back (below). These can still be lost:
 
-Creations are not exposed on Linux and macOS, where `RENAME_NOREPLACE` and `RENAME_EXCL` refuse to replace anything that appeared since the check. Other platforms, and filesystems without those flags, keep the window for creations too.
+- **Without an atomic exchange.** On FreeBSD and the other BSDs, and on filesystems that refuse an exchange (some network and FUSE volumes), a save landing after a replacement's last check is overwritten. The last check, made just before acting, keeps that window to microseconds.
+- **A program writing into a file it holds open.** It goes on writing to whatever version it opened, so writes after a replacement or removal land in a version being deleted. Linux probes for such a program and leaves the file alone while it holds it open, for up to 30 seconds. Writes made past that, or by a program that opens the file in the microseconds between the probe and the act, are lost. macOS has no such probe, and network filesystems grant no leases, so there it goes undetected.
+- **Creations off Linux and macOS.** `RENAME_NOREPLACE` and `RENAME_EXCL` refuse to create over anything that appeared since the check. Other platforms, and filesystems without those flags, keep the window for creations.
+
+**What closes the rest.** Each replacement or removal (`Transitioner::put_in_place` and `Transitioner::remove_checked_file` in `src/endpoint/local.rs`):
+
+- **Checks the target again just before acting**, on every platform. Preparing new content (copying or verifying a large file) takes seconds, all of it after the first validation. *`a_save_landing_while_the_replacement_is_prepared_is_never_replaced`*
+- **Replaces by exchange**, on Linux (`RENAME_EXCHANGE`) and macOS (`RENAME_SWAP`): the new file is swapped in, and what came out is checked against the version validated. A save that landed after the last check came out instead, and is swapped back, with the replacement refused as a disagreement for the next cycle to reconcile. *`a_save_landing_after_the_last_check_is_swapped_back_not_replaced`*
+- **Removes by moving aside first**, on every platform: the file is renamed out of the way, checked, and only then deleted, or put back. *`a_save_landing_while_a_file_is_removed_is_put_back`*
+- **Leaves a file another program holds open**, on Linux. A write lease is granted only on a file nobody else has open, so one is taken and handed straight back as a probe. *`a_file_another_program_has_open_is_left_for_now_then_replaced`* and *`a_file_held_open_past_the_grace_is_replaced_anyway`*
+
+When putting a save back fails, it is kept visibly beside its name, as `<name>.kept`, and reported.
 
 **No longer at risk: redirection out of the root.** The same window once let a local process replace a checked directory with a symbolic link and redirect the operation outside the root. Under `--allow-root`, that reached anything the daemon can. A transition now walks to an entry's directory once and holds each directory open by descriptor: `openat2` with `RESOLVE_BENEATH` on Linux, `openat` with `O_NOFOLLOW` elsewhere. It then acts relative to that descriptor, and nothing it does follows a symbolic link (`src/endpoint/dir.rs`). Reading a file, moving one, and opening a delta base go through the same walk. Staging works through the staging directory it checked, held open from the check onward, so one replaced by a link afterwards, as `staging = "inside-root"` allows a local writer to do, redirects nothing.
 
@@ -28,11 +39,11 @@ That rests on the mechanism, not on a test winning the race. `a_held_directory_i
 
 One path is outside it. Supplying content (`open_scanned`) opens a file by name, then compares the opened file's inode and size with the scan, so a redirected open is refused rather than served. On a filesystem that reports no inode numbers only the size is compared.
 
-**Reason retained.** Closing the save window needs a replacement that acts only if the entry is still the one checked, and no platform offers a compare-and-replace. The window is brief and needs a write landing inside it.
+**Reason retained.** What remains needs an atomic compare-and-replace, which no platform offers, or the writing program's cooperation. Each case needs a write landing in a window of microseconds, or a program writing into a file for longer than the grace while it is replaced.
 
-**Reason to revisit.** Saves lost in practice, most plausibly build output synchronized while it is written.
+**Reason to revisit.** Saves lost to in-place writers on macOS, or a need for these guarantees on the BSDs.
 
-**Possible fix.** For the save window on Linux: `renameat2` with `RENAME_EXCHANGE`, then compare what was swapped out against the scan and swap it back on a mismatch. For supplying content: open it through the walk, as reads and moves are.
+**Possible fix.** For in-place writers: hold the replaced version for a few seconds, and check it again before deleting it. For supplying content: open it through the walk, as reads and moves are.
 
 ## 3. Network filesystems beyond warn-and-document
 
