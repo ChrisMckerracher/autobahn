@@ -4,7 +4,7 @@
 autobahn mi
 ```
 
-A useful easter egg. The Autobahn Mi shop preseents you your sessions as orders managed by the supervisor.
+A useful easter egg. The Autobahn Mi shop presents your sessions as orders managed by the supervisor.
 
 ```
   ◉ OPEN   🥖 AUTOBÁNH MÌ   15 customers · 12,480 files · 3.4 GB · 1 filling · 2.1 MB/s

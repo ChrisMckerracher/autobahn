@@ -6,17 +6,17 @@ Your goal is to set up Autobahn and have one sync group working.
 
 For details see [the repository](https://github.com/fny/autobahn).
 
-## 1. Install Autobahhn
+## 1. Install Autobahn
 
-Check if `autobahn` is already in the path if not run the install script. Release binaries support Linux x86-64/arm64 and macOS Intel/Apple Silicon. Run as the ordinary user, without `sudo`. Install script:
+Check whether `autobahn` is already on the PATH. If not, run the install script. Release binaries support Linux x86-64/arm64 and macOS Intel/Apple Silicon. Run as the ordinary user, without `sudo`. Install script:
 
 ```sh
 curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh | sh
 ```
 
-If `autobahn` does exist check to see if there's an update and ask the user if they want to install it.
+If `autobahn` does exist, check whether there's an update and ask the user if they want to install it.
 
-When Autobahn installs, it creates a config file in `~/.autobahn/config.toml`. Brieflt familiarize yourself with it. Respect an existing `AUTOBAHN_HOME`.
+When Autobahn installs, it creates a config file in `~/.autobahn/config.toml`. Briefly familiarize yourself with it. Respect an existing `AUTOBAHN_HOME`.
 
 ## 2. Managing Syncing
 
@@ -24,7 +24,7 @@ First ask the user which folder they want to sync. Once you have that, move on t
 
 Syncing leverages hosts in `~/.ssh/config`. Make sure there's something that can be a sync target there. If not guide the user to add a host.
 
-If hosts already exist, present them to the user and ask which hosts to sync the folder two and what the target directories are.
+If hosts already exist, present them to the user and ask which hosts to sync the folder to and what the target directories are.
 
 For sync mode, recommend `two-way-conflict` for editing on both sides. Explain that changes, including deletions, travel both ways, while conflicting edits require a choice. If the user wants a one-way copy, consult [Modes](docs/modes.md) before choosing: a strict mirror can delete destination-only files.
 

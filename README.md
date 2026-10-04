@@ -13,7 +13,7 @@ curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh |
 ```
 
 ```
-For AI: Follow the instructions here http://github.com/fny/autobahn/blob/main/INSTALL.md to drive an interactive setup of Autobahn.
+For AI: Follow the instructions here https://github.com/fny/autobahn/blob/main/INSTALL.md to drive an interactive setup of Autobahn.
 ```
 
 > ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3?
@@ -32,14 +32,14 @@ Solution: keep everything in sync so editing local files is the same as editing 
 - **Fast as hell.** Delivers sub-30ms propagation times for small-file updates across trees containing hundreds of thousands of files.
 - **Lightweight.** Employs immutable shared-tree structures in memory, requiring significantly less RAM and idle CPU than conventional sync daemons.
 - **Safe.** Choose a sync policy per group that matches your risk profile backed by tests and bounded formal models. See [Safety](docs/safety.md) for the guarantees and their limits.
-- **Reviewed to death.** GLM 5.3, KIMI 3, Astra, and Fable were used to perform correctness and secuirty reviews.
+- **Reviewed to death.** GLM 5.3, KIMI 3, Astra, and Fable were used to perform correctness and security reviews.
 - **Privacy first.** No cloud service, no account, no third party.
 
 ## Quick Start
 
 After you [install Autobahn](INSTALL.md) you need to set up your configuration. By default, the configuration is written to `~/.autobahn/config.toml`. You can edit it by hand or use [Dash](docs/app.md).
 
-Each group connects one root, the primary, to one or more destinations, the replicas. Sync can be one-way, bidirectional, or P2P (experimental.)
+Each group connects one root, the primary, to one or more destinations, the replicas. Sync can be one-way, bidirectional, or P2P (experimental).
 
 ```toml
 # ~/.autobahn/config.toml
@@ -63,13 +63,13 @@ replicas = ["/Volumes/Backup/Workspace"]    #  - local paths work too
 ```
 
 ```sh
-autobahn watch              # monitor every session as a one off
+autobahn watch              # keep syncing in this terminal until Ctrl-C
 autobahn install            # or install as a login service
 ```
 
 ## Sync Modes
 
-Autobahn has several sync modes with different resolution strsategies.
+Autobahn has several sync modes with different resolution strategies.
 
 Start with `two-way-conflict` for editing on both sides. It propagates changes in either direction and reports competing edits for you to resolve.
 
@@ -122,7 +122,7 @@ In addition to the standard CLI, several user interfaces are available:
 
 - **[Dash](docs/app.md):** Experimental desktop window.
 - **[Menu bar item](docs/tray.md):** Status light and a menu without need for the full app.
-- **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn shop`).
+- **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn mi`).
 - **[Alert Hooks](docs/alerts.md):** Event notification script support (`on_alert`).
 
 ```toml
@@ -175,7 +175,7 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 
 ## System Requirements & Limitations
 
-- **Supported Platforms:** Linux (`x86_64`, `aarch64`) and macOS (`Apple Silicon`).
+- **Supported Platforms:** Linux (`x86_64`, `aarch64`) and macOS (Intel and Apple Silicon). The desktop apps are Apple Silicon only.
 - **Filesystems:** Requires local POSIX filesystems. Network filesystems (NFS, SMB, CIFS) receive best-effort support only.
 - **Editor Saves on macOS:** On macOS, atomic save operations (write-temporary and rename) lack immediate completion events from the kernel, occasionally requiring an extra polling cycle compared to Linux. Details are available in [Architecture](docs/architecture.md).
 
@@ -183,5 +183,5 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 
 Autobahn is dual licensed: `AGPL-3.0-or-later OR LicenseRef-Commercial`.
 
-- **[AGPL-3.0-or-later](LICENSE)**: free for any use with copy left caveats
-- **[Donor's](DONOR-LICENSE.md)** [donate to Justice-In-Education](docs/donations.md) to use Autobahn free of GPL
+- **[AGPL-3.0-or-later](LICENSE)**: free for any use with copyleft caveats
+- **[Donor's](DONOR-LICENSE.md)** [donate to Justice-in-Education](docs/donations.md) to use Autobahn free of the AGPL
