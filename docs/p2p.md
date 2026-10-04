@@ -2,7 +2,6 @@
 
 Autobahn supports automatic failover in star topologies. The primary coordinates synchronization during normal operation. If the primary becomes unreachable for an extended period, an eligible replica assumes temporary leadership, coordinating synchronization across remaining peers. When the primary reconnects, leadership goes back to it automatically.
 
-<!-- prettier-ignore -->
 > [!WARNING]
 > P2P is classified as **dangerously experimental**. Because leadership transition requires peer-to-peer communication across the replica hosts, enabling it requires explicit trust across all member machines unless you use SSH in restricted mode. Review [Security Boundaries & Access Control](#security-boundaries--access-control) prior to deployment.
 

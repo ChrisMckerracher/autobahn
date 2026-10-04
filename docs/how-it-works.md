@@ -13,7 +13,6 @@ Autobahn eliminates this overhead by enforcing an **immutable, shared in-memory 
 - **Wire Optimizations:** If a remote endpoint determines that its tree is unchanged, it replies to the controller with a single-byte enum tag, eliminating serialization, network transfer, and deserialization overhead.
 - **Incremental Merkle Digests:** Subtrees compute hierarchical Merkle digests. When a file is modified, only directory digests on the path from the modified file to the root are recomputed; unmodified sibling trees reuse cached digests.
 
-<!-- prettier-ignore -->
 > [!IMPORTANT]
 > Pointer identity proves subtree equality, but the inverse does not hold: two independently scanned trees containing identical file contents do not share storage pointers. The system uses pointer identity strictly to prove equivalence, never to prove divergence.
 

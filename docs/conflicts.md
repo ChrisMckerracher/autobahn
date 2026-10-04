@@ -26,7 +26,6 @@ autobahn diff ./src/main.rs
 autobahn diff mygroup src/main.rs
 ```
 
-<!-- prettier-ignore -->
 > [!NOTE]
 > `autobahn conflicts` is an alias of `autobahn issues`. In addition to content discrepancies, the command reports mode/permission conflicts, symbolic link targets, and filesystem type mismatches (e.g., file vs. directory).
 
