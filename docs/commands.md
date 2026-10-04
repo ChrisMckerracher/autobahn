@@ -88,7 +88,7 @@ After a session works for five seconds, `status` shows its phase, elapsed time, 
 
 ```
 ~/Workspace werk
-  ubuntu@halle.steinbach.de:~/Workspace
+  dev@halle.steinbach.de:~/Workspace
     status: scanning, 6m20s elapsed
       primary: 412,331 of ~1,470,000 entries (28%), about 14m left
       replica: scanning for 6m20s

@@ -6,7 +6,7 @@
 //! fixed shape, so the runs can be read off it without a grammar.
 //!
 //!     2026-09-24 09:55:57 debug: [dev@halle.steinbach.de] blocked: …
-//!     └── when ──────────┘ └ kind ┘ └── who ──────────┘ └ what ┘
+//!     └── when ──────────┘ └ kind ┘ └── who ────────────┘ └ what ┘
 //!
 //! Colouring here rather than drawing our own rows keeps everything the
 //! editor already gives the log: selection, ⌃F search, line numbers.

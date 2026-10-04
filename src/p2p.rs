@@ -1339,12 +1339,8 @@ mod star_tests {
     #[test]
     fn a_follower_turns_the_star_around() {
         let keep = tempfile::tempdir().expect("tempdir");
-        let star = derive_star(
-            PUSHED,
-            "ubuntu@vm:/home/dev/workspace",
-            keep.path(),
-        )
-        .expect("a star");
+        let star =
+            derive_star(PUSHED, "ubuntu@vm:/home/dev/workspace", keep.path()).expect("a star");
         assert_eq!(star.position, 1);
         assert_eq!(
             star.plans.len(),

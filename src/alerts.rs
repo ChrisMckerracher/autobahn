@@ -430,8 +430,8 @@ pub fn plural(count: usize, word: &str) -> String {
 /// another host shares.
 pub fn short_host(host: &str, all: &[&str]) -> String {
     // Only a name with a domain behind its first label has anything to
-    // cut: `halle.steinbach.de` is `halle`, but `reinhardt.de` is already the
-    // name, and cut to `faraz` it would read as a person.
+    // cut: `halle.steinbach.de` is `halle`, but `reinhardt.de` is already
+    // the name, and cut to `reinhardt` it would read as a person.
     if host.contains('/') || host.matches('.').count() < 2 {
         return host.to_owned();
     }
@@ -1173,14 +1173,20 @@ mod tests {
         assert_eq!(plural(0, "group"), "0 groups");
         assert_eq!(
             short_host("halle.steinbach.de", &["halle.steinbach.de", "lager"]),
-            "fny"
+            "halle"
         );
         assert_eq!(short_host("lager", &["lager"]), "lager");
-        assert_eq!(short_host("reinhardt.de", &["reinhardt.de"]), "reinhardt.de");
+        assert_eq!(
+            short_host("reinhardt.de", &["reinhardt.de"]),
+            "reinhardt.de"
+        );
         assert_eq!(short_host("/Users/x/replica.d", &[]), "/Users/x/replica.d");
         // Two hosts sharing a first label keep their full names.
         assert_eq!(
-            short_host("halle.steinbach.de", &["halle.steinbach.de", "fny.example.org"]),
+            short_host(
+                "halle.steinbach.de",
+                &["halle.steinbach.de", "halle.example.org"]
+            ),
             "halle.steinbach.de"
         );
     }

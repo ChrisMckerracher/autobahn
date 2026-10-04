@@ -9,9 +9,9 @@ A useful easter egg. The Autobahn Mi shop preseents you your sessions as orders 
 ```
   ◉ OPEN   🥖 AUTOBÁNH MÌ   15 customers · 12,480 files · 3.4 GB · 1 filling · 2.1 MB/s
 
-  ▸ werk   → halle     🥖[▓▓▓▓▓░░░░░░░]  served    filling · 1,204 of 8,530
+  ▸ werk     → halle   🥖[▓▓▓▓▓░░░░░░░]  served    filling · 1,204 of 8,530
     lack     → lager   🥖[▓▓▓▓▓▓▓▓▓▓▓▓]  disputed  2 waiting
-    werk   → lager   🥖[▓░░░░░░░░░░░]  disputed  checking the pantry · 14s · 1 waiting
+    werk     → lager   🥖[▓░░░░░░░░░░░]  disputed  checking the pantry · 14s · 1 waiting
 ```
 
 Each row shows the last cycle’s outcome separately from current work. The phase column appears only after the work passes the same duration threshold as `status`.
