@@ -1,16 +1,16 @@
-# Autobahn Dash
+# Dash
 
-Autobahn Dash is an easy-to-use app for managing your sync sessions. If you don't already have the supervisor installed, the app will offer to install it for you.
+Dash is Autobahn's desktop app, and it ships as `Autobahn.app`. It is an easy-to-use way to manage your sync sessions. If you don't already have the supervisor installed, the app will offer to install it for you.
 
 ## Download
 
 Two channels.
 
-**Tagged releases** carry `Autobahn-Dash-macos-aarch64.zip`, signed with a Developer ID and notarised, so it opens without a quarantine step.
+**Tagged releases** carry `Autobahn-macos-aarch64.zip`, signed with a Developer ID and notarised, so it opens without a quarantine step.
 
 **`app-latest`** is the moving prerelease the `app.yml` workflow publishes from every push to main that touches the app: macOS Apple Silicon and Linux x86-64/arm64, **unsigned**. A platform whose build failed is simply absent, so check the release notes for the build commit and what it contains.
 
-- **macOS** — open `Autobahn Dash.app`. From a tagged release it is signed and just opens; from `app-latest` it is not, so a downloaded copy is quarantined and the release notes explain the step to clear it.
+- **macOS** — open `Autobahn.app`. From a tagged release it is signed and just opens; from `app-latest` it is not, so a downloaded copy is quarantined and the release notes explain the step to clear it.
 - **Linux** — extract the archive and run `./autobahn-app`. You need a graphical session (Wayland or X11), a Vulkan driver, and the desktop libraries the workflow lists.
 
 ## First Run

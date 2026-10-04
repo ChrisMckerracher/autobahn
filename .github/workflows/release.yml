@@ -4,8 +4,8 @@
 # controllers. Linux binaries are static musl (no libc version constraints);
 # macOS binaries link only the always-present libSystem.
 #
-# The macOS side — both command-line binaries, and the menu bar app as
-# Autobahn-macos-aarch64.zip and Autobahn-Dash-macos-aarch64.zip — are
+# The macOS side — both command-line binaries, and both apps as
+# Autobahn-macos-aarch64.zip and Autobahn-Tray-macos-aarch64.zip — are
 # signed with the Developer ID certificate
 # and notarised by Apple, so a copy downloaded in a browser is not refused
 # by Gatekeeper. It is built in one job, the only one holding the
@@ -199,8 +199,8 @@ jobs:
         # Each build.sh writes both keys from Cargo.toml, which the version
         # job has already matched to the tag; this checks what ships.
         run: |
-          for plist in "apps/tray/Autobahn.app/Contents/Info.plist" \
-                       "apps/app/Autobahn Dash.app/Contents/Info.plist"; do
+          for plist in "apps/tray/Autobahn Tray.app/Contents/Info.plist" \
+                       "apps/app/Autobahn.app/Contents/Info.plist"; do
             for key in CFBundleShortVersionString CFBundleVersion; do
               value=$(/usr/libexec/PlistBuddy -c "Print :$key" "$plist")
               if [ "$value" != "${GITHUB_REF_NAME#v}" ]; then
@@ -242,23 +242,23 @@ jobs:
           AUTOBAHN_NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
           AUTOBAHN_NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
         run: apps/tray/notarize-cli.sh autobahn-darwin-aarch64 autobahn-darwin-x86_64
-      - name: Sign, notarise and staple the app
+      - name: Sign, notarise and staple the tray
         # --sign-only compiles nothing: it signs the bundle built above.
         env:
           AUTOBAHN_NOTARY_KEY: ${{ runner.temp }}/notary.p8
           AUTOBAHN_NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
           AUTOBAHN_NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
-          AUTOBAHN_RELEASE_ZIP: Autobahn-macos-aarch64.zip
-        run: apps/tray/release.sh --sign-only apps/tray/Autobahn.app
-      - name: Sign, notarise and staple the window
+          AUTOBAHN_RELEASE_ZIP: Autobahn-Tray-macos-aarch64.zip
+        run: apps/tray/release.sh --sign-only "apps/tray/Autobahn Tray.app"
+      - name: Sign, notarise and staple the app
         # The same script against the other bundle. Separate notarisation
         # submissions, because Apple staples a ticket to one bundle.
         env:
           AUTOBAHN_NOTARY_KEY: ${{ runner.temp }}/notary.p8
           AUTOBAHN_NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
           AUTOBAHN_NOTARY_ISSUER: ${{ secrets.NOTARY_ISSUER_ID }}
-          AUTOBAHN_RELEASE_ZIP: Autobahn-Dash-macos-aarch64.zip
-        run: apps/tray/release.sh --sign-only "apps/app/Autobahn Dash.app"
+          AUTOBAHN_RELEASE_ZIP: Autobahn-macos-aarch64.zip
+        run: apps/tray/release.sh --sign-only "apps/app/Autobahn.app"
       - name: Remove the credentials
         # Whether the build passed or failed. The runner is discarded after
         # the job anyway; this is so nothing outlives the step that needed it.
@@ -272,8 +272,8 @@ jobs:
           path: |
             autobahn-darwin-aarch64
             autobahn-darwin-x86_64
+            Autobahn-Tray-macos-aarch64.zip
             Autobahn-macos-aarch64.zip
-            Autobahn-Dash-macos-aarch64.zip
           if-no-files-found: error
 
   release:
@@ -377,8 +377,8 @@ jobs:
             autobahn-darwin-aarch64 \
             autobahn-darwin-x86_64 \
             autobahn-agents.tar.gz \
+            Autobahn-Tray-macos-aarch64.zip \
             Autobahn-macos-aarch64.zip \
-            Autobahn-Dash-macos-aarch64.zip \
             install.sh \
             SHA256SUMS \
             SHA256SUMS.minisig

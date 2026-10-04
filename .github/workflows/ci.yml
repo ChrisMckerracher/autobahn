@@ -158,7 +158,7 @@ jobs:
         run: apps/tray/build.sh
       - name: Check the bundle
         run: |
-          APP=apps/tray/Autobahn.app
+          APP="apps/tray/Autobahn Tray.app"
           codesign --verify --strict "$APP"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIconName' "$APP/Contents/Info.plist"
           ls "$APP/Contents/Resources"

@@ -110,7 +110,7 @@ done
 # build.sh with Cargo.toml at a test version: the bundle reports it.
 tree "$WORK/signed" 9.8.7
 if run "$WORK/signed/apps/tray/build.sh"; then
-    plist="$WORK/signed/apps/tray/Autobahn.app/Contents/Info.plist"
+    plist="$WORK/signed/apps/tray/Autobahn Tray.app/Contents/Info.plist"
     for key in CFBundleShortVersionString CFBundleVersion; do
         value=$(plist_value "$plist" "$key")
         if [ "$value" = 9.8.7 ]; then pass "build.sh writes $key from Cargo.toml"
@@ -128,7 +128,7 @@ if run "$WORK/signed/apps/tray/build.sh"; then
     if grep -qE '^cargo build( .*)? --locked( |$)' "$WORK/calls"; then
         pass "build.sh builds with --locked"
     else fail "build.sh builds without --locked:"; grep '^cargo ' "$WORK/calls" >&2; fi
-    if [ -x "$WORK/signed/apps/tray/Autobahn.app/Contents/MacOS/autobahn" ]; then
+    if [ -x "$WORK/signed/apps/tray/Autobahn Tray.app/Contents/MacOS/autobahn" ]; then
         pass "build.sh puts the executable in the bundle"
     else fail "build.sh left no executable in the bundle"; fi
 else
@@ -155,7 +155,7 @@ fi
 # build.sh --unsigned: the whole bundle, and nothing that touches a
 # signing identity. This is what CI builds before any certificate exists.
 tree "$WORK/unsigned" 2.0.0
-UNSIGNED="$WORK/unsigned/out/Autobahn.app"
+UNSIGNED="$WORK/unsigned/out/Autobahn Tray.app"
 if run "$WORK/unsigned/apps/tray/build.sh" --unsigned "$UNSIGNED"; then
     if [ "$(plist_value "$UNSIGNED/Contents/Info.plist" CFBundleVersion)" = 2.0.0 ] &&
        [ -x "$UNSIGNED/Contents/MacOS/autobahn" ]; then

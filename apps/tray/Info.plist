@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>Autobahn</string>
+	<string>Autobahn Tray</string>
 	<key>CFBundleDisplayName</key>
-	<string>Autobahn</string>
+	<string>Autobahn Tray</string>
 	<key>CFBundleIdentifier</key>
 	<string>vip.faraz.autobahn</string>
 	<key>CFBundleExecutable</key>

@@ -1,4 +1,4 @@
-# The menu bar item
+# Autobahn Tray
 
 **Experimental.** The item works, and it is what the release ships, but its menu and what it does on a click are still moving. What it reads — `status --json` and `resolve` — is not, so nothing it shows can go stale behind Autobahn's back.
 
@@ -27,13 +27,13 @@ Choices are queued rather than run where you click. They go to a worker thread i
 
 ## Two ways to have one
 
-**Inside [Autobahn Dash](./app.md).** Dash includes the item and runs it in the same process. Choose _Menu Bar_ in its Service pane for the item alone, or _Both_ for the item and the window. This is the easier route if you already want Dash.
+**Inside [Dash](./app.md).** Dash includes the item and runs it in the same process. Choose _Menu Bar_ in its Service pane for the item alone, or _Both_ for the item and the window. This is the easier route if you already want Dash.
 
 **The standalone app.** The `autobahn` binary with `--features tray` and nothing else — no window, no GPUI, no graphics stack. Worth it on a machine where you want a status light and not an application. On macOS, build it from the repository:
 
 ```sh
-apps/tray/build.sh          # builds Autobahn.app
-open apps/tray/Autobahn.app # or drag it to /Applications
+apps/tray/build.sh            # builds "Autobahn Tray.app"
+open "apps/tray/Autobahn Tray.app"  # or drag it to /Applications
 ```
 
 It is a way to launch `autobahn tray`, not a second implementation — the same binary, running the same `resolve` a terminal would. What the bundle adds is an identity: macOS takes a notification's icon from the bundle that sent it, and a bare executable has none, so without one every alert wears the icon of whatever ran it.
@@ -97,7 +97,7 @@ If you get it working, the exact packages, desktop, and steps are worth reportin
 
 ## See Also
 
-- [Autobahn Dash](./app.md): The desktop app and its built-in menu bar item
+- [Dash](./app.md): The desktop app and its built-in menu bar item
 - [Alerts](./alerts.md): Notification rules and custom hooks
 - [Conflicts](./conflicts.md): Conflict resolution actions available from the menu
 - [Terminal interface](./shop.md): Session monitoring and control in a terminal

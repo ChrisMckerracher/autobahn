@@ -68,7 +68,7 @@ A **blocked path** occurs when an endpoint cannot read or write an entry due to 
 
 - [Modes](./modes.md): Which changes become conflicts and which propagate automatically
 - [Commands](./commands.md): Session status and conflict commands
-- [Autobahn Dash](./app.md): The Conflicts pane and resolution controls
+- [Dash](./app.md): The Conflicts pane and resolution controls
 - [Terminal interface](./shop.md): Conflict inspection and resolution in a terminal
 - [Alerts](./alerts.md): Notifications for conflicts and blocked paths
 - [Safety](./safety.md): Safeguards against silent overwrites and deletions.

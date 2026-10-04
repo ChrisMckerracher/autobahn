@@ -1,5 +1,5 @@
 #!/bin/bash
-# Assembles Autobahn.app around the tray build.
+# Assembles Autobahn Tray.app around the tray build.
 #
 # The app exists for one thing the command line cannot have: an identity.
 # macOS attaches a notification's icon to the bundle that sent it, and a
@@ -10,14 +10,14 @@
 # It wraps the same binary the terminal runs: the app is a way to launch
 # `autobahn tray`, not a second implementation of it.
 #
-#   apps/tray/build.sh [--unsigned] [path/to/Autobahn.app]
+#   apps/tray/build.sh [--unsigned] [path/to/"Autobahn Tray.app"]
 #
 # --unsigned stops at the assembled bundle, touching no keychain: the
 # release builds that way before its certificate exists, so no build
 # script or proc macro ever runs while the identity is usable, and
 # `release.sh --sign-only` signs the result.
 set -euo pipefail
-usage() { echo "usage: $0 [--unsigned] [path/to/Autobahn.app]" >&2; exit 2; }
+usage() { echo "usage: $0 [--unsigned] [path/to/Autobahn Tray.app]" >&2; exit 2; }
 SIGN=yes
 if [ "${1:-}" = --unsigned ]; then SIGN=no; shift; fi
 [ $# -le 1 ] || usage
@@ -28,7 +28,7 @@ APP="${1:-}"
 if [ -n "$APP" ] && [[ "$APP" != /* ]]; then APP="$PWD/$APP"; fi
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 source apps/tray/plist.sh
-APP="${APP:-apps/tray/Autobahn.app}"
+APP="${APP:-apps/tray/Autobahn Tray.app}"
 # The version the app reports is Cargo.toml's, read before the build so a
 # manifest without one costs a second rather than a compile.
 VERSION=$(crate_version Cargo.toml)
@@ -75,7 +75,7 @@ render_info_plist apps/tray/Info.plist "$APP/Contents/Info.plist" "$VERSION" "$I
 xattr -cr "$APP"
 if [ "$SIGN" = no ]; then
     echo "built $APP, unsigned"
-    echo "  apps/tray/release.sh --sign-only $APP    # sign, notarise and staple it"
+    echo "  apps/tray/release.sh --sign-only \"$APP\"    # sign, notarise and staple it"
     exit 0
 fi
 # Signed with the best identity in the keychain. An unsigned bundle is
@@ -110,4 +110,4 @@ fi
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
   -f "$APP" 2>/dev/null || true
 echo "built $APP"
-echo "  open $APP        # or drag it to /Applications"
+echo "  open \"$APP\"        # or drag it to /Applications"

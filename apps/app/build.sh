@@ -1,8 +1,8 @@
 #!/bin/sh
-# Autobahn Dash — a window over the fleet.
+# Autobahn — a window over the fleet.
 #
-#   apps/app/build.sh            # builds "Autobahn Dash.app"
-#   open "apps/app/Autobahn Dash.app"
+#   apps/app/build.sh            # builds "Autobahn.app"
+#   open "apps/app/Autobahn.app"
 #
 # The signature here is ad-hoc, which is enough for a bundle that
 # arrives by scp or by autobahn itself, neither of which quarantines
@@ -17,7 +17,7 @@ set -eu
 cd "$(dirname "$0")/../.."
 
 TARGET="${AUTOBAHN_APP_TARGET:-target/app}"
-APP="apps/app/Autobahn Dash.app"
+APP="apps/app/Autobahn.app"
 
 # GPUI Kit wants a newer compiler than the repository's default.
 cargo +1.98.0 build --release --features app --target-dir "$TARGET" --bin autobahn-app
@@ -63,8 +63,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>Autobahn Dash</string>
-  <key>CFBundleDisplayName</key><string>Autobahn Dash</string>
+  <key>CFBundleName</key><string>Autobahn</string>
+  <key>CFBundleDisplayName</key><string>Autobahn</string>
   <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.app</string>
   <key>CFBundleExecutable</key><string>autobahn-app</string>
   <key>CFBundlePackageType</key><string>APPL</string>

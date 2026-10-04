@@ -127,7 +127,7 @@ jobs:
       - name: Bundle the app
         if: runner.os == 'macOS'
         run: |
-          APP="Autobahn Dash.app"
+          APP="Autobahn.app"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
           cp target/release/autobahn-app "$APP/Contents/MacOS/autobahn-app"
           if xcrun actool assets/Autobahn.icon --compile "$APP/Contents/Resources" \
@@ -144,8 +144,8 @@ jobs:
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
-            <key>CFBundleName</key><string>Autobahn Dash</string>
-            <key>CFBundleDisplayName</key><string>Autobahn Dash</string>
+            <key>CFBundleName</key><string>Autobahn</string>
+            <key>CFBundleDisplayName</key><string>Autobahn</string>
             <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.app</string>
             <key>CFBundleExecutable</key><string>autobahn-app</string>
             <key>CFBundlePackageType</key><string>APPL</string>
@@ -205,7 +205,7 @@ jobs:
             echo
             echo "**macOS** — unzip, then clear the quarantine bit before it will open:"
             echo
-            echo '    xattr -dr com.apple.quarantine "Autobahn Dash.app"'
+            echo '    xattr -dr com.apple.quarantine "Autobahn.app"'
             echo
             echo "**Linux** — untar and run \`./autobahn-app\`. Needs a Vulkan driver,"
             echo "either Wayland or X11, and the shared libraries the build links against:"

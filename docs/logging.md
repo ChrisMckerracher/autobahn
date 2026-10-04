@@ -42,5 +42,5 @@ Autobahn automatically manages log rotation:
 - [Commands](./commands.md): Status inspection and session diagnostics
 - [Configuration](./configuration.md#top-level-settings): The `log_level` setting
 - [State](./state.md): Log locations and cleanup behavior
-- [Autobahn Dash](./app.md): The Log pane
+- [Dash](./app.md): The Log pane
 - [Alerts](./alerts.md): Notifications for errors, conflicts, and recovery.

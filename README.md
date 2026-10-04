@@ -8,9 +8,9 @@ Keep your files in sync as fast as you (or an agent) edit them across a fleet.
 curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh | sh
 ```
 
-You can also point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup or install [Autobahn Dash](docs/app.md) from its [releases page](https://github.com/fny/autobahn/releases).
+You can also point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup or install [Dash](docs/app.md) from its [releases page](https://github.com/fny/autobahn/releases).
 
-<img src="assets/screenshots/groups.png" alt="Autobahn Dash showing three sync groups across four sessions, all synchronized" width="900">
+<img src="assets/screenshots/groups.png" alt="Dash showing three sync groups across four sessions, all synchronized" width="900">
 
 > ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3?
 >
@@ -34,7 +34,7 @@ Solution: keep everything in sync so editing local files is the same as editing 
 
 ## Quick Start
 
-After you [install Autobahn](INSTALL.md) you need to set up your configuration. By default, the configuration is written to `~/.autobahn/config.toml`. You can edit it by hand or use [Autobahn Dash](docs/app.md).
+After you [install Autobahn](INSTALL.md) you need to set up your configuration. By default, the configuration is written to `~/.autobahn/config.toml`. You can edit it by hand or use [Dash](docs/app.md).
 
 Each group connects one root, the primary, to one or more destinations, the replicas. Sync can be one-way, bidirectional, or P2P (experimental.)
 
@@ -117,7 +117,7 @@ See [Safety](docs/safety.md) for guarantees and the related invariants in [Corre
 
 In addition to the standard CLI, several user interfaces are available:
 
-- **[Autobahn Dash](docs/app.md):** Experimental desktop window.
+- **[Dash](docs/app.md):** Experimental desktop window.
 - **[Menu bar item](docs/tray.md):** Status light and a menu without need for the full app.
 - **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn shop`).
 - **[Alert Hooks](docs/alerts.md):** Event notification script support (`on_alert`).

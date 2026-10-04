@@ -10,7 +10,7 @@ A standard release publishes three independent artifacts:
 | :-- | :-- | :-- |
 | **Controller Executable** | `cargo build --profile dist` | `~/.local/bin/autobahn` |
 | **Remote Agents Bundle** | `scripts/build-agents.sh` | `~/.autobahn/agents/` |
-| **macOS Menu Bar App** | `apps/tray/build.sh` | `/Applications/Autobahn.app` |
+| **macOS Menu Bar App** | `apps/tray/build.sh` | `/Applications/Autobahn Tray.app` |
 
 ## Release Pipeline Architecture
 
@@ -82,8 +82,8 @@ A downloaded app must be signed with a Developer ID certificate and notarised �
 
 ```sh
 apps/tray/release.sh                                     # build, sign, notarise, staple
-apps/tray/release.sh --sign-only apps/tray/Autobahn.app  # sign a bundle already built
-apps/tray/release.sh --sign-only "apps/app/Autobahn Dash.app"
+apps/tray/release.sh --sign-only "apps/tray/Autobahn Tray.app"  # sign a bundle already built
+apps/tray/release.sh --sign-only "apps/app/Autobahn.app"
 ```
 
 It signs whatever bundle it is given: the executable to check and to sign is the one `CFBundleExecutable` names, not a fixed `autobahn`. Any other Mach-O in `Contents/MacOS` is signed first, inner out — signing a bundle reaches its main executable and its resources and nothing else, and notarisation refuses the bundle for an unsigned neighbour.
@@ -99,7 +99,7 @@ xcrun notarytool store-credentials autobahn \
 
 ### In CI
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`, whose `mac` job builds and signs everything macOS on one runner: the two command-line binaries, signed and notarised by `apps/tray/notarize-cli.sh`, and both apps — the menu bar one as `Autobahn-macos-aarch64.zip` and the window as `Autobahn-Dash-macos-aarch64.zip`. Each is notarised on its own submission, because a ticket is stapled to one bundle.
+Pushing a `v*` tag runs `.github/workflows/release.yml`, whose `mac` job builds and signs everything macOS on one runner: the two command-line binaries, signed and notarised by `apps/tray/notarize-cli.sh`, and both apps — the window as `Autobahn-macos-aarch64.zip` and the menu bar one as `Autobahn-Tray-macos-aarch64.zip`. Each is notarised on its own submission, because a ticket is stapled to one bundle.
 
 The job builds everything first — the binaries and both bundles — and checks that each `Info.plist` reports the tag's version. Only then does it import the certificate and sign with `release.sh --sign-only`, so no dependency's build script or proc macro ever runs while the identity is usable.
 
@@ -130,4 +130,4 @@ Both apps are Apple Silicon only; the command-line binaries cover Intel as well.
 - [Development](./development.md): Local builds and required checks
 - [State](./state.md): Agent bundles, deployment, and compatibility epochs
 - [Menu bar item](./tray.md): The standalone tray app
-- [Autobahn Dash](./app.md#download): Desktop app downloads and release channels.
+- [Dash](./app.md#download): Desktop app downloads and release channels.

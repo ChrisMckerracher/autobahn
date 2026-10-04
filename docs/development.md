@@ -69,7 +69,7 @@ Build the CLI separately and place it beside Dash or in a supported installation
 
 On macOS, `apps/app/build.sh` creates an ad-hoc-signed bundle. No copy of `autobahn` goes inside it: the window finds the command beside itself first, so a bundled one would override the installed copy the supervisor is actually running. A release replaces the ad-hoc signature with a Developer ID one — see [Releases](./releases.md#signing-and-notarising-macos).
 
-Linux build packages appear in `.github/workflows/app.yml`. Runtime also requires a display server and Vulkan driver. See [Autobahn Dash](./app.md).
+Linux build packages appear in `.github/workflows/app.yml`. Runtime also requires a display server and Vulkan driver. See [Dash](./app.md).
 
 Ordinary CI covers the CLI, library, and macOS tray. Dash has a separate workflow, so ordinary CI success does not establish that Dash builds.
 
@@ -77,7 +77,7 @@ Shared strings live in `assets/words/en.toml` and load through `src/words.rs`. C
 
 ### The menu bar app bundle
 
-`apps/tray/build.sh` builds `Autobahn.app`. It signs with the best identity in your keychain; `--unsigned` stops at the assembled bundle and touches no keychain, and a path argument builds somewhere else, resolved from where you run it. The version the app reports comes from `Cargo.toml`, written into `Info.plist` at build time — so build with `build.sh`, never by copying the template.
+`apps/tray/build.sh` builds `Autobahn Tray.app`. It signs with the best identity in your keychain; `--unsigned` stops at the assembled bundle and touches no keychain, and a path argument builds somewhere else, resolved from where you run it. The version the app reports comes from `Cargo.toml`, written into `Info.plist` at build time — so build with `build.sh`, never by copying the template.
 
 `build.sh` puts the binary in `target/tray` (`AUTOBAHN_TRAY_TARGET` moves it), never `target/release`: the login service runs `target/release/autobahn` through a symlink, and an app build must not replace it.
 
@@ -148,5 +148,5 @@ It uses enum-based trees, sorted copy-on-write children, metadata on nodes, line
 - [Specification](../spec/README.md): Formal models and implementation replay
 - [Benchmarks](./benchmarks.md): Recorded performance comparisons
 - [Releases](./releases.md): Release builds, signing, and distribution
-- [Autobahn Dash](./app.md): Desktop app behavior
+- [Dash](./app.md): Desktop app behavior
 - [Menu bar item](./tray.md): Tray app behavior and platform limitations.

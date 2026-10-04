@@ -1,5 +1,5 @@
 #!/bin/bash
-# Signs, notarises and staples Autobahn.app for another machine.
+# Signs, notarises and staples Autobahn Tray.app for another machine.
 #
 # Gatekeeper refuses an app it cannot attribute, and it will not attribute
 # one signed ad-hoc or with an Apple Development certificate — those are
@@ -28,7 +28,7 @@
 set -euo pipefail
 usage() { echo "usage: $0 [--sign-only path/to/Some.app]" >&2; exit 2; }
 BUILD=yes
-APP="apps/tray/Autobahn.app"
+APP="apps/tray/Autobahn Tray.app"
 case $# in
     0) ;;
     2) [ "$1" = --sign-only ] || usage
@@ -106,5 +106,5 @@ if [ -n "$ZIP_OUT" ]; then
     echo "notarised and archived: $ZIP_OUT"
 else
     echo "notarised. Ship an archive made *after* stapling:"
-    echo "  ditto -c -k --keepParent $APP Autobahn.zip"
+    echo "  ditto -c -k --keepParent \"$APP\" Autobahn-Tray.zip"
 fi

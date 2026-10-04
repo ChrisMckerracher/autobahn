@@ -155,7 +155,7 @@ Version 3 added `config_notice`, present while the supervisor rejects a configur
 
 `--filter` applies to JSON. `--depth` affects the list display only.
 
-Session alerts receive this same document. Configuration-refusal alerts receive the notice object described in [Alerts](./alerts.md). The [terminal interface](./shop.md), [Autobahn Dash](./app.md) and [the menu bar item](./tray.md) use status data.
+Session alerts receive this same document. Configuration-refusal alerts receive the notice object described in [Alerts](./alerts.md). The [terminal interface](./shop.md), [Dash](./app.md) and [the menu bar item](./tray.md) use status data.
 
 ## One-off Syncs and Scripting
 
@@ -198,6 +198,6 @@ One-off runs share session state with the supervisor for the same roots. Deletio
 - [State](./state.md): Session baselines, cleanup, and stored files
 - [Logging and diagnostics](./logging.md): Log locations and verbosity controls
 - [Terminal interface](./shop.md): Interactive session control with `autobahn mi`
-- [Autobahn Dash](./app.md): Session control through the desktop app
+- [Dash](./app.md): Session control through the desktop app
 - [Alerts](./alerts.md): Notifications and custom hooks
 - [Releases](./releases.md): Updates, release contents, and signature verification.

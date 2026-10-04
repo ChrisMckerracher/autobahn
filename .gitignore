@@ -1,6 +1,9 @@
 /target
 # Local agent builds; releases build and publish their own
 /dist/
+apps/tray/Autobahn Tray.app/
+# The pre-rename name, so a checkout from before it does not show the
+# stale bundle as untracked.
 apps/tray/Autobahn.app/
 
 # TLC scratch (spec/check.sh)
@@ -11,6 +14,6 @@ spec/states/
 # produces are committed, under benchmarks/.
 /bench/
 
-# The dash window's bundle and its build directory: the script makes
-# both, and neither belongs in the repository.
-apps/dash/Autobahn Dash.app/
+# The window app's bundle: build.sh makes it, and it does not belong in
+# the repository.
+apps/app/Autobahn.app/
