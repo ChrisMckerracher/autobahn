@@ -51,3 +51,66 @@ def on_page_markdown(markdown, page, config, files):
         return f"{opening}{url}{closing}"
 
     return LINK.sub(rewrite, markdown)
+
+
+def on_post_page(output, page, config, **kwargs):
+    """Put the site's name in the title, and give a shared link a description.
+
+    The theme titles a page with its own heading and nothing else, so every
+    tab reads `Configuration` or `Accepted risks` with no sign of what project
+    it belongs to, and a link posted anywhere previews as a bare word with no
+    description. It also writes `og:site_name` behind `{% if site_name %}`,
+    which is not a variable MkDocs defines, so that tag never appears.
+
+    Fixed here rather than by overriding the template, because the block is
+    inside an `{% include %}` and Jinja inheritance cannot reach it, and rather
+    than by `title:` frontmatter on all 25 pages, which is the cost this setup
+    exists to avoid.
+    """
+    import html as html_mod
+
+    name = config["site_name"]
+    description = config.get("site_description") or ""
+
+    if page.is_homepage:
+        # The tagline is a sentence and ends in a full stop; a title is not.
+        tagline = description.rstrip(".")
+        title = f"{name} — {tagline}" if tagline else name
+    else:
+        title = f"{page.title} · {name}"
+    title = html_mod.escape(title, quote=True)
+    described = html_mod.escape(description, quote=True)
+
+    # Only rewrite what is actually there. If the theme stops emitting one of
+    # these, the tag is left alone rather than replaced with a guess.
+    substitutions = [
+        (re.compile(r"<title>.*?</title>", re.S), f"<title>{title}</title>"),
+        (
+            re.compile(r'<meta property="og:title" content="[^"]*">'),
+            f'<meta property="og:title" content="{title}">',
+        ),
+        (
+            re.compile(r'<meta name="twitter:title" content="[^"]*">'),
+            f'<meta name="twitter:title" content="{title}">',
+        ),
+    ]
+    for pattern, replacement in substitutions:
+        output = pattern.sub(lambda _m, r=replacement: r, output, count=1)
+
+    # The tags the theme omits entirely. Added after og:title so they sit with
+    # the rest, and only when the page does not already carry them.
+    anchor = f'<meta property="og:title" content="{title}">'
+    if anchor in output and 'property="og:site_name"' not in output:
+        additions = [
+            f'<meta property="og:site_name" content="{html_mod.escape(name, quote=True)}">',
+            '<meta property="og:type" content="article">',
+        ]
+        if described and 'name="description"' not in output:
+            additions += [
+                f'<meta name="description" content="{described}">',
+                f'<meta property="og:description" content="{described}">',
+                f'<meta name="twitter:description" content="{described}">',
+            ]
+        output = output.replace(anchor, anchor + "\n" + "\n".join(additions), 1)
+
+    return output
