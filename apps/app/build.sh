@@ -65,7 +65,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <dict>
   <key>CFBundleName</key><string>Autobahn</string>
   <key>CFBundleDisplayName</key><string>Autobahn</string>
-  <key>CFBundleIdentifier</key><string>vip.faraz.autobahn.app</string>
+  <key>CFBundleIdentifier</key><string>vip.faraz.autobahn</string>
   <key>CFBundleExecutable</key><string>autobahn-app</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
