@@ -339,6 +339,7 @@ Observer caches and status files have no content checksum against torn-sector co
 - `a_mode_change_never_reaches_a_hardlink_outside_the_root`
 - `a_held_directory_is_not_redirected_by_a_link_swapped_in_for_it`
 - `a_parent_replaced_by_a_link_after_resolution_does_not_redirect_a_move`
+- `a_staging_directory_replaced_by_a_link_after_its_check_does_not_redirect_staging`
 - `a_walk_refuses_a_symbolic_link_anywhere_along_the_way`
 - `src/endpoint/dir.rs`
 - `path_validation_rejects_escapes`
@@ -352,7 +353,7 @@ Observer caches and status files have no content checksum against torn-sector co
 - `a_traversal_session_fails_its_open_and_touches_nothing`
 - `src/transport/mux.rs`
 
-**Boundary.** Transitions, file reads and moves hold each directory open from the walk to the act, so a parent swapped for a symlink in between cannot redirect them. Writes into an inside-root staging directory still go by name. See [accepted-risks §2](./accepted-risks.md#2-a-save-landing-between-a-check-and-a-replacement).
+**Boundary.** Transitions, file reads, moves and staging hold each directory open from the check to the act, so a directory swapped for a symlink in between cannot redirect them. Supplying content still opens by name, guarded by an inode and size comparison with the scan. See [accepted-risks §2](./accepted-risks.md#2-a-save-landing-between-a-check-and-a-replacement).
 
 Raw symbolic links synchronize as data, including targets outside the root. Autobahn does not follow them during these operations, but other tools can.
 

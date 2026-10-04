@@ -130,6 +130,11 @@ pub struct LocalEndpoint {
     root: PathBuf,
     /// The directory holding staged content and staging temporaries.
     staging_root: PathBuf,
+    /// The staging directory, held open once [`prepare_staging_root`] has
+    /// checked it: every staging read, write, rename and removal is made
+    /// relative to it, so a link swapped in at its name cannot redirect
+    /// them. Shared with the files a receive has in flight.
+    staging: Option<Arc<Dir>>,
     /// The treatment of symbolic links, applied when creating them.
     symlink_mode: SymlinkMode,
     /// The ignore set scans apply, kept so a directory's removal can tell
@@ -918,6 +923,7 @@ impl LocalEndpoint {
         Ok(LocalEndpoint {
             root,
             staging_root,
+            staging: None,
             symlink_mode: options.symlink_mode,
             ignores: options.ignores.clone(),
             file_mode: options.file_mode.unwrap_or(DEFAULT_FILE_MODE) & 0o777,
@@ -1018,8 +1024,17 @@ impl LocalEndpoint {
 
     /// Returns the path at which content with the specified digest lives once
     /// it has been fully received and verified.
+    #[cfg(test)]
     fn staged_path(&self, digest: &Digest) -> PathBuf {
         staged_path(&self.staging_root, digest)
+    }
+
+    /// The staging directory [`LocalEndpoint::stage_begin`] prepared and
+    /// holds. The error names no path: it can reach the peer.
+    fn staging(&self) -> Result<&Arc<Dir>> {
+        self.staging
+            .as_ref()
+            .context("unable to stage: the staging directory is not prepared")
     }
 
     /// Removes staged blobs that no request since the last sweep referenced,
@@ -1036,18 +1051,22 @@ impl LocalEndpoint {
     /// because a crash means no transition ran to sweep it.
     fn sweep_staging(&mut self) {
         let requested = std::mem::take(&mut self.requested);
-        let Ok(entries) = fs::read_dir(&self.staging_root) else {
+        let Some(staging) = self.staging.as_ref() else {
             return;
         };
-        for entry in entries.flatten() {
-            let name = entry.file_name();
-            let Some(name) = name.to_str() else { continue };
+        let Ok(entries) = staging.entries() else {
+            return;
+        };
+        for entry in entries.into_iter().flatten() {
+            let Some(name) = entry.name_str() else {
+                continue;
+            };
             let is_digest = name.len() == 64 && name.bytes().all(|b| b.is_ascii_hexdigit());
             if !is_digest || requested.contains(name) {
                 continue;
             }
-            if entry.file_type().is_ok_and(|kind| kind.is_file()) {
-                let _ = fs::remove_file(entry.path());
+            if entry.kind.as_ref().is_ok_and(|kind| kind.is_file()) {
+                let _ = staging.remove_file(name);
             }
         }
     }
@@ -1157,11 +1176,12 @@ impl LocalEndpoint {
         let mut input = self
             .open_scanned(source, digest)
             .map_err(|error| anyhow::anyhow!(error))?;
+        let staging = self.staging()?;
         let (temporary, output) = self.staging_temporary("copy")?;
         let copied = match copy_verifying(&mut input, output, digest, self.progress.as_deref()) {
             Ok(copied) => copied,
             Err(failure) => {
-                let _ = fs::remove_file(&temporary);
+                let _ = staging.remove_file(&temporary);
                 return Err(match failure {
                     CopyFailure::Read(error) => anyhow::Error::new(error)
                         .context(format!("unable to read {source} into staging")),
@@ -1172,12 +1192,17 @@ impl LocalEndpoint {
             }
         };
         if !copied {
-            let _ = fs::remove_file(&temporary);
+            let _ = staging.remove_file(&temporary);
             return Ok(false);
         }
-        let staged = self.staged_path(digest);
-        if let Err(error) = fs::rename(&temporary, &staged) {
-            let _ = fs::remove_file(&temporary);
+        if let Err(error) = dir::rename(
+            staging.as_ref(),
+            Path::new(&temporary),
+            staging,
+            digest_hex(digest),
+            true,
+        ) {
+            let _ = staging.remove_file(&temporary);
             return Err(error).context("unable to publish staged content");
         }
         Ok(true)
@@ -1440,29 +1465,27 @@ impl LocalEndpoint {
     }
 
     /// Creates a new staging temporary for `purpose`, readable only by
-    /// this user, returning its path and the file open for writing.
+    /// this user, in the staging directory held open, returning its name and
+    /// the file open for writing.
     ///
-    /// It opens through [`private_file`](crate::fsutil::private_file), so
-    /// an existing name — a symbolic link planted at a predicted one
-    /// included — is refused rather than followed or reused, and the next
-    /// name is tried. The error names no path: it can cross the wire to
+    /// It opens through [`Dir::create_private_file`], so an existing name —
+    /// a symbolic link planted at a predicted one included — is refused
+    /// rather than followed or reused, and the next name is tried. The error names no path: it can cross the wire to
     /// the peer, which has no business learning where staging lives.
-    fn staging_temporary(&self, purpose: &str) -> Result<(PathBuf, File)> {
+    fn staging_temporary(&self, purpose: &str) -> Result<(String, File)> {
         /// How many taken names are passed over before giving up.
         const ATTEMPTS: usize = 8;
+        let staging = self.staging()?;
         let mut attempts = 0;
         loop {
-            let temporary = self.staging_root.join(temporary_name(purpose));
-            match crate::fsutil::private_file(&temporary) {
+            let temporary = temporary_name(purpose);
+            match staging.create_private_file(&temporary) {
                 Ok(file) => return Ok((temporary, file)),
                 Err(error) => {
-                    let cause = error.root_cause();
-                    let taken = cause
-                        .downcast_ref::<io::Error>()
-                        .is_some_and(|cause| cause.kind() == ErrorKind::AlreadyExists);
+                    let taken = error.kind() == ErrorKind::AlreadyExists;
                     attempts += 1;
                     if !taken || attempts == ATTEMPTS {
-                        bail!("unable to create a staging file: {cause}");
+                        bail!("unable to create a staging file: {error}");
                     }
                 }
             }
@@ -1484,6 +1507,7 @@ impl LocalEndpoint {
             }
         };
         Ok(ReceiveFile {
+            staging: Arc::clone(self.staging()?),
             temporary,
             writer: DigestingWriter::new(output),
             base,
@@ -1497,23 +1521,29 @@ impl LocalEndpoint {
     /// content is discarded and the next cycle transfers the new content.
     fn finish_receive(&self, file: ReceiveFile, need: &StagingNeed) -> Result<()> {
         let ReceiveFile {
+            staging,
             temporary,
             mut writer,
             ..
         } = file;
         if let Err(error) = writer.flush() {
-            let _ = fs::remove_file(&temporary);
+            let _ = staging.remove_file(&temporary);
             return Err(error).context("unable to flush a staging file");
         }
         let digest = writer.digest();
         drop(writer);
         if digest != need.request.digest {
-            let _ = fs::remove_file(&temporary);
+            let _ = staging.remove_file(&temporary);
             return Ok(());
         }
-        let staged = self.staged_path(&digest);
-        if let Err(error) = fs::rename(&temporary, &staged) {
-            let _ = fs::remove_file(&temporary);
+        if let Err(error) = dir::rename(
+            staging.as_ref(),
+            Path::new(&temporary),
+            &staging,
+            digest_hex(&digest),
+            true,
+        ) {
+            let _ = staging.remove_file(&temporary);
             return Err(error).context("unable to publish staged content");
         }
         Ok(())
@@ -1651,16 +1681,19 @@ impl Endpoint for LocalEndpoint {
             }
         }
 
-        prepare_staging_root(&self.staging_root, &self.root)?;
+        let staging = Arc::new(prepare_staging_root(&self.staging_root, &self.root)?);
+        self.staging = Some(Arc::clone(&staging));
 
         // One directory read inventories what previous cycles left staged,
         // replacing a per-request stat (on a cold destination, 40k stats
         // against an empty directory).
-        let inventory: std::collections::HashSet<String> = fs::read_dir(&self.staging_root)
+        let inventory: std::collections::HashSet<String> = staging
+            .entries()
             .map(|entries| {
                 entries
+                    .into_iter()
                     .filter_map(|entry| entry.ok())
-                    .filter_map(|entry| entry.file_name().into_string().ok())
+                    .filter_map(|entry| entry.name.into_string().ok())
                     .collect()
             })
             .unwrap_or_default();
@@ -1697,11 +1730,11 @@ impl Endpoint for LocalEndpoint {
                 // this very content was mid-write when the run died.
                 // Rehash before trusting it; the read is paid only on
                 // reuse hits. A mismatch discards the file and transfers.
-                let survivor = staged_path(&self.staging_root, &request.digest);
-                if staged_content_matches(&survivor, &request.digest, self.progress.as_deref()) {
+                if staged_content_matches(&staging, &hex, &request.digest, self.progress.as_deref())
+                {
                     continue;
                 }
-                let _ = fs::remove_file(&survivor);
+                let _ = staging.remove_file(&hex);
             }
 
             // Identical content elsewhere in the root is faster to copy (and
@@ -1979,11 +2012,22 @@ impl Endpoint for LocalEndpoint {
             hook();
         }
 
+        // Content to publish is read out of the staging directory held open.
+        // A process that has staged nothing this run opens it now, and only
+        // if anything is to be published; one that cannot is told the
+        // content is unavailable, file by file, and transfers it again.
+        if self.staging.is_none() && !staged_uses.is_empty() {
+            self.staging = prepare_staging_root(&self.staging_root, &self.root)
+                .ok()
+                .map(Arc::new);
+        }
+        let staging = self.staging.clone();
         let mut transitioner = Transitioner {
             root: &self.root,
-            staging_root: &self.staging_root,
-            staging_device: fs::metadata(&self.staging_root)
-                .ok()
+            staging: staging.as_deref(),
+            staging_device: staging
+                .as_deref()
+                .and_then(|staging| staging.stat_self().ok())
                 .map(|metadata| metadata.dev()),
             // Validation runs against this endpoint's own lease: the exact
             // scan these transitions were reconciled from, not whatever the
@@ -2361,8 +2405,10 @@ impl ReceiveState {
 /// digesting writer, so that verification costs nothing beyond the write it
 /// already performs) and the base its delta applies against.
 struct ReceiveFile {
-    /// The temporary being written.
-    temporary: PathBuf,
+    /// The staging directory the temporary is in, held open.
+    staging: Arc<Dir>,
+    /// The temporary being written, by its name in `staging`.
+    temporary: String,
     /// The digesting writer over the temporary.
     writer: DigestingWriter<File>,
     /// The base content for block operations.
@@ -2372,9 +2418,8 @@ struct ReceiveFile {
 impl ReceiveFile {
     /// Discards the partially received content, best-effort.
     fn discard(self) {
-        let temporary = self.temporary;
         drop(self.writer);
-        let _ = fs::remove_file(temporary);
+        let _ = self.staging.remove_file(&self.temporary);
     }
 }
 
@@ -2456,8 +2501,10 @@ impl<W: Write> Write for DigestingWriter<W> {
 struct Transitioner<'a> {
     /// The synchronization root.
     root: &'a Path,
-    /// The staging directory holding content to be applied.
-    staging_root: &'a Path,
+    /// The staging directory holding content to be applied, held open;
+    /// `None` when it could not be prepared, which makes every publish a
+    /// retransfer.
+    staging: Option<&'a Dir>,
     /// The device the staging directory is on, when it could be read: a
     /// staged file on another device than its target cannot be renamed
     /// into place, and trying costs a read and a hash of it first.
@@ -2515,7 +2562,7 @@ impl<'a> Transitioner<'a> {
     fn fork(&self) -> Transitioner<'a> {
         Transitioner {
             root: self.root,
-            staging_root: self.staging_root,
+            staging: self.staging,
             staging_device: self.staging_device,
             scanned: self.scanned,
             behavior: self.behavior,
@@ -2971,7 +3018,17 @@ impl<'a> Transitioner<'a> {
         executable: bool,
         replace: bool,
     ) -> Option<FileMetadata> {
-        let staged = staged_path(self.staging_root, digest);
+        let Some(staging) = self.staging else {
+            self.retransfer(
+                path,
+                digest,
+                "staged content is unavailable; it will be retransferred on the next cycle",
+            );
+            return None;
+        };
+        let staged_name = digest_hex(digest);
+        // For messages; the staged file is reached only through `staging`.
+        let staged = staging.join(&staged_name);
         let mode = creation_mode(self.file_mode, executable);
         // The staged file is opened *before* this publish counts its use.
         // Once counted, the publish that takes the count to zero may move
@@ -2979,10 +3036,7 @@ impl<'a> Transitioner<'a> {
         // afterwards found nothing and scheduled a needless retransfer.
         // Holding the handle, an earlier use copies the content it opened,
         // wherever the name has gone since.
-        let opened = fs::OpenOptions::new()
-            .read(true)
-            .custom_flags(libc::O_NOFOLLOW)
-            .open(&staged);
+        let opened = staging.open_file(&staged_name, OFlags::RDONLY, 0);
         let last_use = match self.staged_uses.get(digest) {
             Some(count) => {
                 // Counted down atomically: the publish that takes the
@@ -3019,7 +3073,7 @@ impl<'a> Transitioner<'a> {
             Err(error) if error.raw_os_error() == Some(libc::ELOOP) => {
                 // Staging only ever writes regular files there, so a link
                 // is not content; it goes, and the content comes again.
-                let _ = fs::remove_file(&staged);
+                let _ = staging.remove_file(&staged_name);
                 self.retransfer(
                     path,
                     digest,
@@ -3071,13 +3125,13 @@ impl<'a> Transitioner<'a> {
                 Ok(opened) if opened.file_type().is_file() => {
                     published = Some(file_metadata(&Stat::from(&opened)));
                     content_matches(&mut input, digest, self.progress)
-                        && fs::symlink_metadata(&staged).is_ok_and(|named| {
+                        && staging.stat(&staged_name).is_ok_and(|named| {
                             (named.dev(), named.ino()) == (opened.dev(), opened.ino())
                         })
                 }
                 _ => false,
             }
-            && dir::rename(rustix::fs::CWD, &staged, parent, name, replace).is_ok();
+            && dir::rename(staging, Path::new(&staged_name), parent, name, replace).is_ok();
         if !moved {
             let temporary = temporary_name("apply");
             // The copy digests what it moves: staged content is normally
@@ -3102,7 +3156,7 @@ impl<'a> Transitioner<'a> {
                 Ok(true) => Ok(()),
                 Ok(false) => {
                     let _ = parent.remove_file(&temporary);
-                    let _ = fs::remove_file(&staged);
+                    let _ = staging.remove_file(&staged_name);
                     self.retransfer(
                         path,
                         digest,
@@ -3131,7 +3185,7 @@ impl<'a> Transitioner<'a> {
                 // (specifically absent, not merely unprobeable) before
                 // scheduling a retransfer.
                 let staged_absent = matches!(
-                    fs::symlink_metadata(&staged),
+                    staging.stat(&staged_name),
                     Err(ref probe) if probe.kind() == ErrorKind::NotFound
                 );
                 if missing(&error) && staged_absent {
@@ -3854,7 +3908,9 @@ pub fn staging_root_for(
 }
 
 /// Makes the staging directory ready to receive into: a real directory,
-/// owned by this user, that only this user can use.
+/// owned by this user, that only this user can use. Returns it held open
+/// — the very directory checked — which is what staging then works
+/// through, never the name.
 ///
 /// Inside the root, the staging directory's name is one a peer could once
 /// create — as a symbolic link to anywhere, which a plain `create_dir_all`
@@ -3872,7 +3928,7 @@ pub fn staging_root_for(
 /// may legitimately be reached through one.
 ///
 /// [`private_dir`]: crate::fsutil::private_dir
-fn prepare_staging_root(staging_root: &Path, root: &Path) -> Result<()> {
+fn prepare_staging_root(staging_root: &Path, root: &Path) -> Result<Dir> {
     let parent = staging_root
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
@@ -3895,7 +3951,9 @@ fn prepare_staging_root(staging_root: &Path, root: &Path) -> Result<()> {
     {
         bail!("unable to stage: {} is not a directory", parent.display());
     }
-    crate::fsutil::private_dir(staging_root).context("unable to prepare the staging directory")
+    let directory = crate::fsutil::open_private_dir(staging_root)
+        .context("unable to prepare the staging directory")?;
+    Ok(Dir::from_handle(directory, staging_root.to_path_buf()))
 }
 
 /// Renders a digest as the lowercase hex name its staged content lives under.
@@ -3909,6 +3967,7 @@ fn digest_hex(digest: &Digest) -> String {
 }
 
 /// Returns the staging path for content with the specified digest.
+#[cfg(test)]
 fn staged_path(staging_root: &Path, digest: &Digest) -> PathBuf {
     staging_root.join(digest_hex(digest))
 }
@@ -4120,11 +4179,12 @@ fn refusal(path: &Path, error: &io::Error) -> String {
 /// before trusting content that survived from an earlier run; a fresh
 /// transfer is verified as it is received and never needs this.
 fn staged_content_matches(
-    path: &Path,
+    staging: &Dir,
+    name: &str,
     digest: &Digest,
     progress: Option<&crate::progress::SideProgress>,
 ) -> bool {
-    let Ok(mut file) = fs::File::open(path) else {
+    let Ok(mut file) = staging.open_file(name, OFlags::RDONLY | OFlags::NONBLOCK, 0) else {
         return false;
     };
     let mut hasher = blake3::Hasher::new();
@@ -7279,6 +7339,77 @@ mod apply_path_tests {
         assert_eq!(fs::read_dir(&target).expect("target").count(), 0);
     }
 
+    /// The staging half of the path race, held still: an inside-root
+    /// staging directory is checked and held when staging begins, then
+    /// moved aside and replaced by a symbolic link out of the root, to a
+    /// directory holding a decoy under the staged digest's name. Staging
+    /// keeps working in the directory it checked: a new temporary lands
+    /// there, and the publish installs the genuine content from there. The
+    /// decoy is neither published nor touched. Reached by name, staging
+    /// read the decoy, refused it on its digest, and deleted it.
+    #[test]
+    fn a_staging_directory_replaced_by_a_link_after_its_check_does_not_redirect_staging() {
+        use crate::endpoint::StagingMode;
+        let fixture = escape();
+        let staging = staging_root_for(
+            StagingMode::InsideRoot,
+            &fixture.root,
+            PathBuf::new(),
+            "s1",
+            "replica",
+        )
+        .expect("staging root");
+        let mut endpoint = endpoint_staging_in(&fixture.root, staging.clone());
+        let digest = *blake3::hash(b"genuine").as_bytes();
+        endpoint
+            .stage_begin(vec![FileRequest {
+                path: "new.txt".into(),
+                digest,
+            }])
+            .expect("staging begins");
+        fs::write(staging.join(digest_hex(&digest)), b"genuine").expect("staged");
+
+        let moved = fixture.root.join("staging.moved");
+        fs::rename(&staging, &moved).expect("moved aside");
+        let planted = fixture.outside.join("planted");
+        fs::create_dir(&planted).expect("planted");
+        fs::write(planted.join(digest_hex(&digest)), b"decoy").expect("decoy");
+        symlink(&planted, &staging).expect("a link swapped in");
+
+        let (temporary, _file) = endpoint.staging_temporary("recv").expect("a temporary");
+        let temporary = Path::new(&temporary)
+            .file_name()
+            .expect("a name")
+            .to_owned();
+        assert!(
+            moved.join(&temporary).is_file(),
+            "the temporary left the checked directory"
+        );
+        assert!(!planted.join(&temporary).exists());
+
+        let outcome = endpoint
+            .transition(vec![Change {
+                path: "new.txt".into(),
+                old: None,
+                new: Some(Node {
+                    name: "new.txt".into(),
+                    content: Content::File {
+                        digest,
+                        executable: false,
+                        metadata: FileMetadata::default(),
+                    },
+                }),
+            }])
+            .expect("the transition runs");
+        assert!(outcome.problems.is_empty(), "{:?}", outcome.problems);
+        assert_eq!(fs::read(fixture.root.join("new.txt")).unwrap(), b"genuine");
+        assert_eq!(
+            fs::read(planted.join(digest_hex(&digest))).unwrap(),
+            b"decoy",
+            "the decoy outside the root was touched"
+        );
+    }
+
     /// Every placement's staging directory is created owner-only.
     #[test]
     fn new_staging_directories_are_private_in_every_placement() {
@@ -7503,9 +7634,10 @@ mod apply_path_tests {
             // The other publish, taking the last use: a move into place.
             fs::rename(&staged, &moved_to).expect("the last use moves the file");
         };
+        let staging_directory = Dir::open(&staging).expect("the staging directory");
         let mut transitioner = Transitioner {
             root: &root,
-            staging_root: &staging,
+            staging: Some(&staging_directory),
             staging_device: None,
             scanned: None,
             behavior: FilesystemBehavior::default(),

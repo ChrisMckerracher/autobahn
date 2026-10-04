@@ -36,6 +36,14 @@ pub const TMP_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 /// a descriptor opened with `O_NOFOLLOW`, so a swap between the check and
 /// the change is refused rather than followed.
 pub fn private_dir(path: &Path) -> Result<()> {
+    open_private_dir(path).map(drop)
+}
+
+/// [`private_dir`], returning the directory it checked, held open: the
+/// handle names the very directory that passed, whatever has happened to
+/// the path since, so work done relative to it cannot be redirected by a
+/// directory or link swapped in at that name afterwards.
+pub fn open_private_dir(path: &Path) -> Result<File> {
     let created = match DirBuilder::new().mode(0o700).create(path) {
         Ok(()) => true,
         Err(error) if error.kind() == ErrorKind::AlreadyExists => false,
@@ -71,7 +79,7 @@ pub fn private_dir(path: &Path) -> Result<()> {
             .set_permissions(Permissions::from_mode(wanted))
             .with_context(|| format!("unable to tighten the permissions of {}", path.display()))?;
     }
-    Ok(())
+    Ok(directory)
 }
 
 /// Refuses anything at `path`, described by its unfollowed `metadata`,

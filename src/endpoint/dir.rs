@@ -75,6 +75,15 @@ impl Dir {
         })
     }
 
+    /// Holds an already-open directory, reached by `path`. The caller has
+    /// checked that the handle is the directory it means.
+    pub(crate) fn from_handle(handle: impl Into<OwnedFd>, path: PathBuf) -> Dir {
+        Dir {
+            fd: handle.into(),
+            path,
+        }
+    }
+
     /// The path this directory was reached by, for messages.
     pub(crate) fn path(&self) -> &Path {
         &self.path

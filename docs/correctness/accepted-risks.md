@@ -22,20 +22,17 @@ The whole-root emptying guard requires two ancestor entries. A missing primary h
 
 Creations are not exposed on Linux and macOS, where `RENAME_NOREPLACE` and `RENAME_EXCL` refuse to replace anything that appeared since the check. Other platforms, and filesystems without those flags, keep the window for creations too.
 
-**No longer at risk: redirection out of the root.** The same window once let a local process replace a checked directory with a symbolic link and redirect the operation outside the root. Under `--allow-root`, that reached anything the daemon can. A transition now walks to an entry's directory once and holds each directory open by descriptor: `openat2` with `RESOLVE_BENEATH` on Linux, `openat` with `O_NOFOLLOW` elsewhere. It then acts relative to that descriptor, and nothing it does follows a symbolic link (`src/endpoint/dir.rs`). Reading a file, moving one, and opening a delta base go through the same walk.
+**No longer at risk: redirection out of the root.** The same window once let a local process replace a checked directory with a symbolic link and redirect the operation outside the root. Under `--allow-root`, that reached anything the daemon can. A transition now walks to an entry's directory once and holds each directory open by descriptor: `openat2` with `RESOLVE_BENEATH` on Linux, `openat` with `O_NOFOLLOW` elsewhere. It then acts relative to that descriptor, and nothing it does follows a symbolic link (`src/endpoint/dir.rs`). Reading a file, moving one, and opening a delta base go through the same walk. Staging works through the staging directory it checked, held open from the check onward, so one replaced by a link afterwards, as `staging = "inside-root"` allows a local writer to do, redirects nothing.
 
-That rests on the mechanism, not on a test winning the race. `a_held_directory_is_not_redirected_by_a_link_swapped_in_for_it` and `a_parent_replaced_by_a_link_after_resolution_does_not_redirect_a_move` swap a directory for a link inside the window, and show the operation stays where it was resolved.
+That rests on the mechanism, not on a test winning the race. `a_held_directory_is_not_redirected_by_a_link_swapped_in_for_it`, `a_parent_replaced_by_a_link_after_resolution_does_not_redirect_a_move` and `a_staging_directory_replaced_by_a_link_after_its_check_does_not_redirect_staging` swap a directory for a link inside the window, and show the operation stays where it was resolved.
 
-Two paths are outside it:
-
-- **Staging writes.** Received content is written into the staging directory by name. In the default `state` placement that directory lies in the user's own state area. With `staging = "inside-root"` it sits in the synchronized root, where a local writer could replace it with a link between its check and a write.
-- **Supplying content.** `open_scanned` opens a file by name, then compares the opened file's inode and size with the scan, so a redirected open is refused rather than served.
+One path is outside it. Supplying content (`open_scanned`) opens a file by name, then compares the opened file's inode and size with the scan, so a redirected open is refused rather than served. On a filesystem that reports no inode numbers only the size is compared.
 
 **Reason retained.** Closing the save window needs a replacement that acts only if the entry is still the one checked, and no platform offers a compare-and-replace. The window is brief and needs a write landing inside it.
 
-**Reason to revisit.** Saves lost in practice, most plausibly build output synchronized while it is written. For staging, inside-root staging under `--allow-root`.
+**Reason to revisit.** Saves lost in practice, most plausibly build output synchronized while it is written.
 
-**Possible fix.** For the save window on Linux: `renameat2` with `RENAME_EXCHANGE`, then compare what was swapped out against the scan and swap it back on a mismatch. For staging: hold the staging directory open and write relative to it, as transitions do.
+**Possible fix.** For the save window on Linux: `renameat2` with `RENAME_EXCHANGE`, then compare what was swapped out against the scan and swap it back on a mismatch. For supplying content: open it through the walk, as reads and moves are.
 
 ## 3. Network filesystems beyond warn-and-document
 
