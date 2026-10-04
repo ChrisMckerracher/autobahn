@@ -15,7 +15,7 @@ Two channels.
 
 ## First Run
 
-![The welcome screen, offering to install the autobahn command](assets/screenshots/welcome.png)
+![The welcome screen, offering to install the autobahn command](../assets/screenshots/welcome.png)
 
 Dash needs the `autobahn` command, which is a separate download — no copy travels inside the app. It looks beside itself first, then in `~/.local/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, and your PATH.
 
@@ -27,7 +27,7 @@ Keep the command matched to the running supervisor. A version mismatch is report
 
 ## Panes
 
-![The Groups pane: three groups across four sessions, all synchronized](assets/screenshots/groups.png)
+![The Groups pane: three groups across four sessions, all synchronized](../assets/screenshots/groups.png)
 
 | Pane | What it does |
 | --- | --- |
@@ -42,11 +42,11 @@ Conflict actions run the same operations as the command line — see [Conflicts]
 
 **Diff** puts the two sides underneath, labelled by side rather than by the files actually compared:
 
-![The Conflicts pane with a unified diff open between the primary and a replica](assets/screenshots/conflicts.png)
+![The Conflicts pane with a unified diff open between the primary and a replica](../assets/screenshots/conflicts.png)
 
 ## Editing configuration
 
-![The Configuration pane, editing the top-level settings](assets/screenshots/configuration.png)
+![The Configuration pane, editing the top-level settings](../assets/screenshots/configuration.png)
 
 Edits stay in the form until you press **Save**. The editor checks them through Autobahn's own configuration loader and marks errors on the fields they belong to; an invalid configuration is never written. **Reload** reads the file again and throws away pending changes. Optional switches keep the difference between inheriting a value and setting it deliberately.
 
@@ -56,7 +56,7 @@ A running supervisor picks up a saved file through [live reload](./configuration
 
 ## Choosing what shows
 
-![The Service pane: the supervisor, login service, notifications, and what the app shows](assets/screenshots/service.png)
+![The Service pane: the supervisor, login service, notifications, and what the app shows](../assets/screenshots/service.png)
 
 In the Service pane, pick a window, [a menu bar item](./tray.md), or both. The default is both.
 

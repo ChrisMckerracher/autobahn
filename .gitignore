@@ -14,10 +14,3 @@ spec/states/
 # The dash window's bundle and its build directory: the script makes
 # both, and neither belongs in the repository.
 apps/dash/Autobahn Dash.app/
-
-# The documentation site, built by `mkdocs build` and published by Pages.
-# Generated from docs/ on every deploy; nothing reads it from here.
-/site/
-
-# Python bytecode from the MkDocs build hook (scripts/mkdocs_hooks.py).
-__pycache__/
