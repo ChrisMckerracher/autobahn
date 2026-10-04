@@ -1,4 +1,4 @@
-# Dash
+# App
 
 Dash is Autobahn's desktop app, and it ships as `Autobahn.app`. It is an easy-to-use way to manage your sync sessions. If you don't already have the supervisor installed, the app will offer to install it for you.
 
@@ -79,9 +79,9 @@ Turn them off with the switch in the Service pane.
 
 ## Starting at login
 
-**Dash does not start itself.** Add it under System Settings → General → Login Items on macOS, or your desktop's autostart settings on Linux.
+**The app does not start itself.** Add it under System Settings → General → Login Items on macOS, or your desktop's autostart settings on Linux.
 
-**The supervisor is separate.** `autobahn install`, or the service controls in the Service pane, registers it to start at login. That is what keeps your files in sync; Dash only watches it.
+**The supervisor is separate.** `autobahn install`, or the service controls in the Service pane, registers it to start at login. That is what keeps your files in sync; the app only watches it.
 
 ## Options
 
