@@ -191,17 +191,13 @@ A completed command returns one of these exit codes. Across multiple sessions, `
 
 One-off runs share session state with the supervisor for the same roots. Deletions and conflicts propagate across runs, and interrupted transfers resume. An exclusive session-state lock prevents a one-off command and supervisor from operating on the same pair concurrently.
 
-## Related Documentation
+## See Also
 
-- [Conflicts](./conflicts.md): `issues`, `conflicts`, `diff`, and `resolve`
-- [Terminal interface](./shop.md): `autobahn mi`
-- [State](./state.md): `clean` and the contents of `~/.autobahn`
-- [Alerts](./alerts.md): notifications
-- [Releases](./releases.md): updates and release contents.
-
-## See also
-
-- [Configuration](./configuration.md) — the file every command reads
-- [Conflicts](./conflicts.md) — what `resolve` and `diff` are for
-- [The state root](./state.md) — what `clean` and `reset` touch, and what they leave
-- [Autobahn Dash](./app.md) — the same operations with a window around them
+- [Configuration](./configuration.md): Configuration files, groups, and session settings
+- [Conflicts](./conflicts.md): The `issues`, `conflicts`, `diff`, and `resolve` commands
+- [State](./state.md): Session baselines, cleanup, and stored files
+- [Logging and diagnostics](./logging.md): Log locations and verbosity controls
+- [Terminal interface](./shop.md): Interactive session control with `autobahn mi`
+- [Autobahn Dash](./app.md): Session control through the desktop app
+- [Alerts](./alerts.md): Notifications and custom hooks
+- [Releases](./releases.md): Updates, release contents, and signature verification.

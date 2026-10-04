@@ -64,8 +64,8 @@ Dedicated first-sync medians were:
 
 Cells used different machine groups. The fan-out result does not show that adding destinations accelerates the same machine.
 
-## See also
+## See Also
 
-- [Benchmark matrix](./benchmark-matrix.md) — every cell, and which builds were measured
-- [Architecture](./architecture.md) — the design these numbers come out of
-- [Development](./development.md) — the A/B gate, and how a run is reproduced
+- [Benchmark matrix](./benchmark-matrix.md): Complete measurements and build details
+- [Architecture](./architecture.md): Scanning, change detection, and transfer design
+- [Development](./development.md#the-ab-gate): The benchmark harness and A/B comparisons.

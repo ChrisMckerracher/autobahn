@@ -87,9 +87,11 @@ Guarantees operate within explicit physical and software constraints:
 
 - **Host Trust Model:** Protocols assume both endpoints execute genuine, authenticated Autobahn binaries. While a compromised agent cannot access paths outside its root (I11), it could emit falsified scan data within its designated root.
 
-## See also
+## See Also
 
-- [Invariants](./correctness/invariants.md) — each guarantee, its enforcement point, and its tests
-- [Accepted risks](./correctness/accepted-risks.md) — where a guarantee stops, and why
-- [Modes](./modes.md) — the directory guard, and what each mode does with a deletion
-- [The state root](./state.md) — the ancestor, which is what most of this protects
+- [Invariants](./correctness/invariants.md): Guarantees, implementation references, and tests
+- [Accepted risks](./correctness/accepted-risks.md): Unresolved risks and possible fixes
+- [Limitations](./limitations.md): Supported environments and operational restrictions
+- [Modes](./modes.md): Conflict policies and deletion guards
+- [Conflicts](./conflicts.md): How to inspect and resolve preserved changes
+- [State](./state.md): Ancestor baselines and stored session data.

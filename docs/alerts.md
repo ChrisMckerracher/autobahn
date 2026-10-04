@@ -63,10 +63,11 @@ settle_after   = "15m"   # Incident closure threshold
 timeout        = "30s"   # Script execution timeout
 ```
 
-## See also
+## See Also
 
-- [Configuration](./configuration.md) — where `on_alert` is set, and the timing around it
-- [Autobahn Dash](./app.md) — raises these itself when no hook is configured
-- [The menu bar item](./tray.md) — the same, from the menu bar
-- [Conflicts](./conflicts.md) — what an alert about a conflict is asking you to do
-- [Commands](./commands.md) — `status --json`, the document a hook is handed
+- [Configuration](./configuration.md): The `on_alert` hook and alert timing settings
+- [Commands](./commands.md#--json): The JSON status format supplied to hooks
+- [Conflicts](./conflicts.md): How to inspect and resolve reported conflicts
+- [Autobahn Dash](./app.md#notifications): Desktop notifications
+- [Menu bar item](./tray.md#notifications): Notifications from the standalone tray app
+- [Logging and diagnostics](./logging.md): Logs for investigating reported errors.

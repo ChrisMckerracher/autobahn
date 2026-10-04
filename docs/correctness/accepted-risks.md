@@ -140,10 +140,11 @@ The access restrictions exist and are documented. They remain off by default bec
 
 **Possible fixes.** `manage_keys` can default to true so that the gate restricts peer commands by default. If a host lacks `host.toml`, autobahn can refuse the P2P group, as it already refuses a missing ignore file. See [P2P security boundaries and access control](../p2p.md#security-boundaries--access-control).
 
-## See also
+## See Also
 
-Related documents cover the guarantees, safeguards, and support limits:
-
-- [Invariants](./invariants.md): The guarantees that these risks limit
+- [Invariants](./invariants.md): Guarantees, implementation references, and tests
 - [Safety](../safety.md): An overview of the safeguards
-- [Limitations](../limitations.md): Behavior outside the supported scope.
+- [Limitations](../limitations.md): Supported environments and operational restrictions
+- [Configuration](../configuration.md): Deletion guards, mount handling, and host access policy
+- [Commands](../commands.md): The `verify` command for forced content reads
+- [P2P security](../p2p.md#security-boundaries--access-control): Restricted SSH keys and directory access controls.

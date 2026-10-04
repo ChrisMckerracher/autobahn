@@ -37,9 +37,10 @@ Autobahn automatically manages log rotation:
 - When `service.log` reaches its size threshold, it is rotated to `service.log.1`.
 - Running `autobahn clean` purges archived log files while preserving the active log.
 
-## See also
+## See Also
 
-- [The state root](./state.md) — where `service.log` and `watch.log` live
-- [Commands](./commands.md) — `status`, which answers most questions a log would
-- [Autobahn Dash](./app.md) — the Log pane, which tails the same file
-- [Alerts](./alerts.md) — being told without going to look
+- [Commands](./commands.md): Status inspection and session diagnostics
+- [Configuration](./configuration.md#top-level-settings): The `log_level` setting
+- [State](./state.md): Log locations and cleanup behavior
+- [Autobahn Dash](./app.md): The Log pane
+- [Alerts](./alerts.md): Notifications for errors, conflicts, and recovery.

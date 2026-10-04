@@ -95,10 +95,11 @@ Never build into the directory a login service runs from. If the service runs `t
 
 If you get it working, the exact packages, desktop, and steps are worth reporting, so this section can drop its warning.
 
-## See also
+## See Also
 
-- [The app](./app.md) — the window, which includes one of these
-- [Alerts](./alerts.md) — the rules behind every notification
-- [Conflicts](./conflicts.md) — what the menu's resolve items do
-- [The shop](./shop.md) — the terminal counterpart
-- [Development](./development.md#the-menu-bar-app-bundle) — building the bundle, and the icon
+- [Autobahn Dash](./app.md): The desktop app and its built-in menu bar item
+- [Alerts](./alerts.md): Notification rules and custom hooks
+- [Conflicts](./conflicts.md): Conflict resolution actions available from the menu
+- [Terminal interface](./shop.md): Session monitoring and control in a terminal
+- [Development](./development.md#the-menu-bar-app-bundle): How to build the tray bundle
+- [Releases](./releases.md#signing-and-notarising-macos): macOS signing and notarization.

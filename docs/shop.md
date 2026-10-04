@@ -56,10 +56,10 @@ Each action runs the normal `resolve` command for the selected paths or all mark
 
 Overlapping selections are deduplicated. Marks clear after resolution and after leaving the counter. Blocked-path repairs can require interactive `sudo` over SSH. The interface copies these commands instead of running them.
 
-## See also
+## See Also
 
-- [Commands](./commands.md) — everything this shows, as commands
-- [Autobahn Dash](./app.md) — the same fleet in a window
-- [The menu bar item](./tray.md) — the same fleet in a menu
-- [Conflicts](./conflicts.md) — what the resolve keys do
-- [Logging](./logging.md) — the log, when the summary is not enough
+- [Commands](./commands.md): Session inspection and control from the command line
+- [Conflicts](./conflicts.md): Conflict resolution and blocked-path repair
+- [Autobahn Dash](./app.md): Session monitoring and control in a desktop window
+- [Menu bar item](./tray.md): Session status and controls from the menu bar
+- [Logging and diagnostics](./logging.md): Detailed logs for investigating problems.

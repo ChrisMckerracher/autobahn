@@ -73,9 +73,9 @@ Resolution rules:
 - **Parent Directory Deletion:** Deleting an entire directory tree locally propagates the directory deletion to remote destinations, removing ignored children within that directory tree.
 - **No Overwrite Guarantee:** Ignored files are never overwritten or replaced by synchronization passes.
 
-## See also
+## See Also
 
-- [Configuration](./configuration.md) — where `ignores` is set, and what inherits it
-- [Git checkouts](./git.md) — carrying a repository's history, which is mostly an ignores problem
-- [Modes](./modes.md) — the directory guard, which an ignored entry can trip
-- [The state root](./state.md) — the `ignores/` directory a `file:` entry reads from
+- [Configuration](./configuration.md): Default and group-specific ignore settings
+- [Git checkouts](./git.md): Which Git files to synchronize or exclude
+- [Modes](./modes.md): Deletion policies and directory protection
+- [State](./state.md): The `ignores/` directory and state root locations.

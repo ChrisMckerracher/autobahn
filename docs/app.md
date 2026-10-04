@@ -91,11 +91,12 @@ Turn them off with the switch in the Service pane.
 
 Dash runs from the `app-latest` archives, including its menu bar item — though the item is the half most likely not to appear. The tray libraries need GTK started on the thread running the event loop, and neither GPUI nor winit provides one, so expect the window and treat the item as a bonus. A failure there leaves the window up with a one-line complaint rather than taking the app down.
 
-## See also
+## See Also
 
-- [The menu bar item](./tray.md) — what Dash puts in the menu bar, and the standalone app
-- [Alerts](./alerts.md) — the rules behind every notification
-- [Conflicts](./conflicts.md) — what the resolve actions do
-- [The shop](./shop.md) — the terminal counterpart
-- [Development](./development.md#desktop-app-and-shared-text) — building it
-- [Releases](./releases.md#signing-and-notarising-macos) — signing and notarising
+- [Configuration](./configuration.md): Settings available in the configuration editor
+- [Conflicts](./conflicts.md): Conflict inspection and resolution actions
+- [Alerts](./alerts.md): Notification rules and custom hooks
+- [Menu bar item](./tray.md): The Dash menu bar item and standalone tray app
+- [Terminal interface](./shop.md): Session monitoring and control in a terminal
+- [Development](./development.md#desktop-app-and-shared-text): How to build Dash
+- [Releases](./releases.md#signing-and-notarising-macos): macOS signing and notarization.

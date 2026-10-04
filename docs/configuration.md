@@ -119,10 +119,11 @@ To restrict which local directories remote controllers are allowed to access via
 roots = ["~/Workspace", "/srv/repositories"]
 ```
 
-## See also
+## See Also
 
-- [Modes](./modes.md) — what each `mode` does, and which to pick
-- [Ignores](./ignores.md) — the patterns `ignores` takes, and `file:` entries
-- [Alerts](./alerts.md) — the `on_alert` hook and when it fires
-- [The state root](./state.md) — where this file lives, and what sits beside it
-- [Autobahn Dash](./app.md) — editing all of it in a form that validates as you type
+- [Modes](./modes.md): Synchronization direction and conflict policies
+- [Ignores](./ignores.md): Pattern syntax, precedence, and `file:` entries
+- [Alerts](./alerts.md): The `on_alert` hook and notification timing
+- [Commands](./commands.md): Configuration creation and session control
+- [State](./state.md): Configuration locations and stored session data
+- [Autobahn Dash](./app.md#editing-configuration): The configuration editor.

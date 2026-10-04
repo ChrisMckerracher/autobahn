@@ -63,9 +63,11 @@ The agent's version must match the controller's exactly. A change that breaks th
 
 A _stale bundle_ — an `agents/` binary left over from an older build — is refused before upload when the bundle has a `MANIFEST`, which every released bundle does: the message names the bundle, the build it is for, and `autobahn update` as the fix. A bundle built by hand has no manifest; its stale binary is uploaded, the handshake refuses it, and the message names the bundle and its age.
 
-## See also
+## See Also
 
-- [Commands](./commands.md) — `clean`, `reset`, `verify`
-- [Ignores](./ignores.md) — the `ignores/` directory
-- [The log](./logging.md) — `service.log`
-- [Safety](./safety.md) — why an unreadable ancestor is rebuilt only when both sides match, and never reset
+- [Commands](./commands.md): The `clean`, `reset`, and `verify` commands
+- [Configuration](./configuration.md): Configuration files and session settings
+- [Ignores](./ignores.md): Reusable patterns in the `ignores/` directory
+- [Logging and diagnostics](./logging.md): Log files, rotation, and retention
+- [Safety](./safety.md): Ancestor recovery and safeguards against data loss
+- [Releases](./releases.md): Agent distribution and upgrade behavior.

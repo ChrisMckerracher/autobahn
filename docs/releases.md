@@ -123,10 +123,11 @@ If the certificate ever leaks, revoke it in your Apple Developer account.
 
 Both apps are Apple Silicon only; the command-line binaries cover Intel as well. A command-line binary cannot be stapled, so Gatekeeper checks its notarisation online the first time it runs. The runner's default Xcode may be older than 26, whose `actool` is the only one that compiles the Icon Composer bundle; the job picks Xcode 26 when the runner has it, and otherwise `build.sh` uses the committed `assets/autobahn.icns`, the same icon without the macOS 26 variants.
 
-## See also
+## See Also
 
-- [Development](./development.md) — building any of it yourself
-- [Commands](./commands.md) — `update`, the in-place upgrade
-- [The state root](./state.md) — the agent bundle, and how a remote host gets one
-- [The menu bar item](./tray.md) — the bundle these sign and notarise
-- [Autobahn Dash](./app.md) — signed on a tag, unsigned on `app-latest`
+- [Installation](../INSTALL.md): Initial setup and the first synchronization
+- [Commands](./commands.md#manage-the-service-and-updates): Service management and updates
+- [Development](./development.md): Local builds and required checks
+- [State](./state.md): Agent bundles, deployment, and compatibility epochs
+- [Menu bar item](./tray.md): The standalone tray app
+- [Autobahn Dash](./app.md#download): Desktop app downloads and release channels.

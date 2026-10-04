@@ -52,9 +52,9 @@ Linked worktrees created via `git worktree add` embed absolute filesystem paths 
 git config worktree.useRelativePaths true
 ```
 
-## See also
+## See Also
 
-- [Ignores](./ignores.md) — how `file:` entries are read, and in what order
-- [Configuration](./configuration.md) — where the group and its ignores are written
-- [Modes](./modes.md) — why a repository wants a two-way mode
-- [Conflicts](./conflicts.md) — what happens when both checkouts move
+- [Ignores](./ignores.md): Pattern syntax, ignore files, and precedence
+- [Configuration](./configuration.md): Group definitions and ignore settings
+- [Modes](./modes.md): Direction and conflict policies for synchronized checkouts
+- [Conflicts](./conflicts.md): How to inspect and resolve competing changes.

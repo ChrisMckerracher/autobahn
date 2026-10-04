@@ -77,10 +77,11 @@ When a Primary syncs concurrently to multiple Replicas, each pair runs an indepe
 
 ---
 
-## See also
+## See Also
 
-- [Configuration](./configuration.md) — where `mode` is set, and what inherits it
-- [Conflicts](./conflicts.md) — settling the collisions a two-way mode reports
-- [Safety](./safety.md) — the safeguards under every mode
-- [Ignores](./ignores.md) — what the directory guard counts
-- [P2P](./p2p.md) — leader failover, dangerously experimental
+- [Configuration](./configuration.md): Default and group-specific mode settings
+- [Conflicts](./conflicts.md): How to inspect and resolve conflicts
+- [Safety](./safety.md): Safeguards for file changes and deletions
+- [Ignores](./ignores.md#interaction-between-ignores-and-deletions): How ignore rules interact with deletions
+- [Limitations](./limitations.md#one-supervisor-per-folder): The one-supervisor requirement for shared folders
+- [P2P](./p2p.md): Experimental leadership failover between hosts.

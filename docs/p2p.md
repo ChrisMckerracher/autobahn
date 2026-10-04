@@ -100,9 +100,10 @@ roots = ["~/Workspace"]
 
 The agent strictly rejects any connection requesting access to paths outside the configured whitelist.
 
-## See also
+## See Also
 
-- [Modes](./modes.md) — the ordinary modes, and how these differ
-- [Configuration](./configuration.md) — where the mode and its timing table are written
-- [Safety](./safety.md) — the safeguards that still apply when the lead moves
-- [Limitations](./limitations.md) — what is supported, and what this is not
+- [Accepted risks](./correctness/accepted-risks.md#6-p2p-trusts-every-machine-in-the-group): Peer trust and unresolved leadership collisions
+- [Modes](./modes.md): Synchronization modes without leadership failover
+- [Configuration](./configuration.md): Mode settings and host access policy
+- [Safety](./safety.md): Synchronization safeguards and the host trust model
+- [Limitations](./limitations.md): Supported environments and operational restrictions.

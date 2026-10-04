@@ -81,8 +81,10 @@ The status tray interface (`apps/tray`) compiles behind the optional `tray` Carg
 - **Desktop Environment Validation:** Verify status icon behaviors across GNOME (via AppIndicator) and KDE Plasma.
 - **Packaging:** Provide a standalone binary build and desktop launcher descriptor (`.desktop`) for user autostart configuration.
 
-## See also
+## See Also
 
-- [Architecture](./architecture.md) — the design these would change
-- [Accepted risks](./correctness/accepted-risks.md) — known gaps, some of which these would close
-- [Limitations](./limitations.md) — what is out of scope rather than merely unbuilt
+- [Architecture](./architecture.md): The current design
+- [Accepted risks](./correctness/accepted-risks.md): Unresolved risks and possible fixes
+- [Limitations](./limitations.md): Current support boundaries
+- [Development](./development.md): Build instructions and validation requirements
+- [Menu bar item](./tray.md#on-linux): Current Linux tray behavior and known problems.

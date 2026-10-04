@@ -64,9 +64,11 @@ A **blocked path** occurs when an endpoint cannot read or write an entry due to 
 - `autobahn issues` prints the root cause and suggested remediation commands (e.g., `chmod` or `chown`).
 - Once filesystem permissions or paths are corrected, the subsequent sync cycle clears the blocked status automatically.
 
-## See also
+## See Also
 
-- [Modes](./modes.md) — which modes report a conflict and which decide it
-- [Commands](./commands.md) — `issues`, `diff` and `resolve` on the command line
-- [Autobahn Dash](./app.md) — the Conflicts pane, with the diff and the three ways to settle
-- [Safety](./safety.md) — the guards that stop a deletion becoming a conflict you never see
+- [Modes](./modes.md): Which changes become conflicts and which propagate automatically
+- [Commands](./commands.md): Session status and conflict commands
+- [Autobahn Dash](./app.md): The Conflicts pane and resolution controls
+- [Terminal interface](./shop.md): Conflict inspection and resolution in a terminal
+- [Alerts](./alerts.md): Notifications for conflicts and blocked paths
+- [Safety](./safety.md): Safeguards against silent overwrites and deletions.
