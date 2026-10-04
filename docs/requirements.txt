@@ -1,0 +1,7 @@
+# The documentation site. Pinned exactly, so a release never reshapes the site
+# without us choosing it — the theme in particular is 0.x.
+#   pip install -r docs/requirements.txt && mkdocs serve
+mkdocs==1.6.1
+mkdocs-shadcn==0.12.1
+mkdocs-callouts==1.17.1
+pymdown-extensions==12.1

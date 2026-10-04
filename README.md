@@ -10,7 +10,7 @@ curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh |
 
 You can also point your coding agent at [INSTALL.md](INSTALL.md) for interactive setup or install [Autobahn Dash](docs/app.md) from its [releases page](https://github.com/fny/autobahn/releases).
 
-<img src="assets/screenshots/groups.png" alt="Autobahn Dash showing three sync groups across four sessions, all synchronized" width="900">
+<img src="docs/assets/screenshots/groups.png" alt="Autobahn Dash showing three sync groups across four sessions, all synchronized" width="900">
 
 > ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3?
 >
