@@ -1,119 +1,149 @@
 # Accepted risks
 
-This document records unresolved risks associated with [the invariants](./invariants.md). Each entry explains the limitation, why it remains, evidence that can justify further work, and a possible fix.
+This document describes unresolved risks that limit [the invariants](./invariants.md). Each section explains what can go wrong, why the risk remains, when to reconsider it, and possible fixes.
 
-## 1. A mount autobahn never saw mounted
+## 1. An unmounted disk can look like deleted files
 
-**Risk.** The guard is keyed on having _seen_ a mount. A scan records the mount boundaries it crosses, in `sessions/<id>/mounts`, and every cycle checks each remembered path: still mounted, or holding content, is fine; hollow where the ancestor recorded children halts the session (`Session::account_for_mounts`). With `ignore_mounts = true` the path stays excluded on both sides instead.
+**Risk.** Autobahn protects against missing mounts only when it previously recorded the path as a mount. If a disk is absent during the first scan, its mount directory looks like an ordinary empty directory.
 
-A path never recorded gets none of that. Unplug the disk before autobahn first runs, and the first scan sees an ordinary empty directory and records it as one. Plug it in and its contents arrive as creations. Unplug it again and they leave as deletions, against an ancestor that now holds them, with nothing in the mount machinery firing — because the path was never in `remembered`.
+The disk can later appear, and autobahn treats its files as creations. If the disk disappears again without the path entering `remembered`, autobahn treats those files as deletions. The mount guard does not intervene.
 
-What is left then is the generic guard, `guard_dir_deletes_over`, which is **off unless set**; a single large file is under any count threshold in any case. The whole-root emptying guard needs two ancestor entries and does not reach a subdirectory. A missing primary is refused separately.
+**Existing safeguards.** A scan records the mount boundaries it crosses in `sessions/<id>/mounts`. Each cycle checks these paths through `Session::account_for_mounts`. A path passes if it is still mounted or contains content.
 
-**Reason retained.** An unseen unmount and a deliberate deletion are the same tree shape — an empty directory where content used to be. Nothing in the result distinguishes them, and a byte threshold would interrupt intentional large deletions while still establishing nothing about mount identity.
+The ancestor records the last state that both endpoints agreed on. If a remembered mount path is empty but the ancestor records children there, autobahn halts the session. With `ignore_mounts = true`, autobahn instead excludes the path on both sides.
 
-**Reason to revisit.** Real losses from a disk absent at first scan, or a deployment that can declare its mounts before synchronizing.
+For a mount that autobahn never recorded, only the general deletion safeguards remain:
 
-**Possible fix.** Expected-mount configuration is the obvious answer and fails open in the worst place: a list written once and never updated omits exactly the mount you later lose. Asking the kernel instead — `statfs`, or comparing `st_dev` against the parent — answers "is this a mount point" for any path, seen before or not, and the scanner already walks these directories. That narrows the hole from "never observed mounted" to "not a mount point at the moment it is looked at", which is as far as anything can go: a disk that is absent at every scan is indistinguishable from an empty directory, and no amount of checking changes that.
+- `guard_dir_deletes_over` limits deletions by entry count, but it is **off unless configured**. A single large file can stay below the count threshold.
+- The guard against an empty root requires at least two ancestor entries. It does not protect an individual subdirectory.
+- Autobahn separately refuses a missing primary.
 
-## 2. A save landing between a check and a replacement
+**Why the risk remains.** An unmounted disk and an intentional deletion can produce the same result: an empty directory where files used to be. The directory contents alone cannot distinguish them. A byte threshold can block intentional large deletions without proving that a mount is missing.
 
-**Risk.** A transition checks an entry against the last scan, then replaces or removes it. Most saves landing in between are now caught and put back (below). These can still be lost:
+**When to reconsider.** Data loss from disks absent during the first scan can justify further work. So can a deployment that can declare its expected mounts before synchronization.
 
-- **Without an atomic exchange.** On FreeBSD and the other BSDs, and on filesystems that refuse an exchange (some network and FUSE volumes), a save landing after a replacement's last check is overwritten. The last check, made just before acting, keeps that window to microseconds.
-- **A program writing into a file it holds open.** It goes on writing to whatever version it opened, so writes after a replacement or removal land in a version being deleted. Linux probes for such a program and leaves the file alone while it holds it open, for up to 30 seconds. Writes made past that, or by a program that opens the file in the microseconds between the probe and the act, are lost. macOS has no such probe, and network filesystems grant no leases, so there it goes undetected.
-- **Creations off Linux and macOS.** `RENAME_NOREPLACE` and `RENAME_EXCL` refuse to create over anything that appeared since the check. Other platforms, and filesystems without those flags, keep the window for creations.
+**Possible fixes.** An expected-mount configuration can identify missing disks, but only if the list stays current. An omitted mount has no protection.
 
-**What closes the rest.** Each replacement or removal (`Transitioner::put_in_place` and `Transitioner::remove_checked_file` in `src/endpoint/local.rs`):
+The scanner can also ask the kernel whether each directory is a mount point, even without a previous mount record. It can use `statfs` or compare `st_dev` with the parent directory. The scanner already visits these directories.
 
-- **Checks the target again just before acting**, on every platform. Preparing new content (copying or verifying a large file) takes seconds, all of it after the first validation. _`a_save_landing_while_the_replacement_is_prepared_is_never_replaced`_
-- **Replaces by exchange**, on Linux (`RENAME_EXCHANGE`) and macOS (`RENAME_SWAP`): the new file is swapped in, and what came out is checked against the version validated. A save that landed after the last check came out instead, and is swapped back, with the replacement refused as a disagreement for the next cycle to reconcile. _`a_save_landing_after_the_last_check_is_swapped_back_not_replaced`_
-- **Removes by moving aside first**, on every platform: the file is renamed out of the way, checked, and only then deleted, or put back. _`a_save_landing_while_a_file_is_removed_is_put_back`_
-- **Leaves a file another program holds open**, on Linux. A write lease is granted only on a file nobody else has open, so one is taken and handed straight back as a probe. _`a_file_another_program_has_open_is_left_for_now_then_replaced`_ and _`a_file_held_open_past_the_grace_is_replaced_anyway`_
+This reduces the risk to mounts that are absent whenever autobahn checks. No scan can distinguish a disk absent at every scan from an ordinary empty directory.
 
-When putting a save back fails, it is kept visibly beside its name, as `<name>.kept`, and reported.
+## 2. A file can change after the last check
 
-**No longer at risk: redirection out of the root.** The same window once let a local process replace a checked directory with a symbolic link and redirect the operation outside the root. Under `--allow-root`, that reached anything the daemon can. A transition now walks to an entry's directory once and holds each directory open by descriptor: `openat2` with `RESOLVE_BENEATH` on Linux, `openat` with `O_NOFOLLOW` elsewhere. It then acts relative to that descriptor, and nothing it does follows a symbolic link (`src/endpoint/dir.rs`). Reading a file, moving one, and opening a delta base go through the same walk. Staging works through the staging directory it checked, held open from the check onward, so one replaced by a link afterwards, as `staging = "inside-root"` allows a local writer to do, redirects nothing.
+**Risk.** Before autobahn replaces or removes an entry, it checks that the entry still matches the last scan. A program can save changes between that check and the operation. Autobahn catches and restores most such saves, but these cases remain:
 
-That rests on the mechanism, not on a test winning the race. `a_held_directory_is_not_redirected_by_a_link_swapped_in_for_it`, `a_parent_replaced_by_a_link_after_resolution_does_not_redirect_a_move` and `a_staging_directory_replaced_by_a_link_after_its_check_does_not_redirect_staging` swap a directory for a link inside the window, and show the operation stays where it was resolved.
+- **Replacement without atomic exchange.** FreeBSD, other BSDs, and some network and FUSE filesystems do not support the required exchange operation. A save after the final check can be overwritten. The check occurs immediately before replacement, so the remaining window is microseconds.
+- **Writes through an open file.** A program can keep a file open while autobahn replaces or removes it. Later writes go to the old version, which autobahn deletes. On Linux, autobahn checks for open files and waits up to 30 seconds. Writes after that limit can be lost. So can writes from a program that opens the file between the check and the operation. macOS has no equivalent check, and network filesystems do not grant the leases that this check requires.
+- **Creation without a no-replace flag.** Linux uses `RENAME_NOREPLACE`, and macOS uses `RENAME_EXCL`, to prevent creation over a file that appeared after the check. Other platforms, and filesystems without these flags, retain this race.
 
-One path is outside it. Supplying content (`open_scanned`) opens a file by name, then compares the opened file's inode and size with the scan, so a redirected open is refused rather than served. On a filesystem that reports no inode numbers only the size is compared.
+**Existing safeguards.** `Transitioner::put_in_place` and `Transitioner::remove_checked_file` in `src/endpoint/local.rs` protect replacements and removals in these ways:
 
-**Reason retained.** What remains needs an atomic compare-and-replace, which no platform offers, or the writing program's cooperation. Each case needs a write landing in a window of microseconds, or a program writing into a file for longer than the grace while it is replaced.
+- **A final check on every platform.** Autobahn checks the target again immediately before the operation. This catches saves made during the seconds that autobahn can spend copying or verifying a large replacement file. Test: `a_save_landing_while_the_replacement_is_prepared_is_never_replaced`.
+- **Atomic exchange on Linux and macOS.** Autobahn swaps the files with `RENAME_EXCHANGE` on Linux or `RENAME_SWAP` on macOS. It then checks the displaced file against the validated version. If the displaced file contains a new save, autobahn swaps it back and rejects the replacement. The next cycle reconciles the disagreement. Test: `a_save_landing_after_the_last_check_is_swapped_back_not_replaced`.
+- **Rename before removal on every platform.** Autobahn moves the file aside and checks it again. It then deletes the file or restores it. Test: `a_save_landing_while_a_file_is_removed_is_put_back`.
+- **A check for open files on Linux.** Autobahn requests a write lease, which succeeds only if no other program has the file open. It immediately releases the lease. If another program holds the file open, autobahn defers replacement for up to 30 seconds. Tests: `a_file_another_program_has_open_is_left_for_now_then_replaced` and `a_file_held_open_past_the_grace_is_replaced_anyway`.
 
-**Reason to revisit.** Saves lost to in-place writers on macOS, or a need for these guarantees on the BSDs.
+If autobahn cannot restore a saved file, it keeps the file beside the original path as `<name>.kept` and reports it.
 
-**Possible fix.** For in-place writers: hold the replaced version for a few seconds, and check it again before deleting it. For supplying content: open it through the walk, as reads and moves are.
+**Resolved risk: symbolic links that redirect operations outside the root.** The old implementation let a local process replace a checked directory with a symbolic link before autobahn acted. This redirected operations outside the synchronization root. With `--allow-root`, the affected paths included anything accessible to the daemon.
 
-## 3. Network filesystems beyond warn-and-document
+Autobahn now resolves the directory once and holds each directory open through a descriptor. On Linux, it uses `openat2` with `RESOLVE_BENEATH`. Elsewhere, it uses `openat` with `O_NOFOLLOW`. Operations use the held descriptor and do not follow symbolic links. This mechanism is in `src/endpoint/dir.rs`.
 
-**Risk.** NFS, SMB/CIFS, and FUSE roots receive a startup warning and best-effort, single-writer support. Attribute caches can hide another client’s writes from scans and destructive-operation checks. NFS defaults can cache attributes for up to 60 seconds. Watcher events can be absent.
+File reads, moves, and delta-base opens use this directory walk. Staging also uses a directory descriptor held open from the initial check. With `staging = "inside-root"`, a local writer can replace the staging directory with a link. That replacement does not redirect staging operations.
 
-**Reason retained.** Fixes depend on the protocol and server. Close-to-open consistency requires reopening on each read path. Lease handling varies, and neither restores local notification semantics.
+These tests deliberately replace directories with links during the vulnerable window. They show that operations stay in the resolved directory:
 
-**Reason to revisit.** Supporting multi-client network mounts requires a broader product commitment. Evidence of common single-writer NFS use can justify narrower hardening.
+- `a_held_directory_is_not_redirected_by_a_link_swapped_in_for_it`
+- `a_parent_replaced_by_a_link_after_resolution_does_not_redirect_a_move`
+- `a_staging_directory_replaced_by_a_link_after_its_check_does_not_redirect_staging`.
 
-**Possible fix.** Start with `fstat` after `open` on destructive paths. Then consider a mount-aware mode without digest reuse. Validate guarantees against a real NFS server before expanding support.
+**Remaining exception: supplying content.** `open_scanned` still opens a file by name, outside this directory walk. It compares the opened file's inode and size with the scan to reject redirected opens. On filesystems without inode numbers, it compares only the size.
 
-## 4. Cross-process overlapping configurations
+**Why the risk remains.** The remaining save races require an atomic compare-and-replace operation or cooperation from the program that writes the file. No platform offers that atomic operation. These races require a write during a microsecond window, or continued writes through an open file beyond the grace period.
 
-**Risk.** The support boundary is one supervisor per folder; see [Limitations](../limitations.md#one-supervisor-per-folder). Nothing enforces it.
+**When to reconsider.** Lost saves from programs that write in place on macOS can justify more protection. So can a requirement for the same guarantees on BSD systems.
 
-Within one configuration the loader refuses nested writable endpoints, and _warns_ about equal ones, because an equal one is fan-out: one source to several destinations, which is a supported topology. The endpoint-pair lock then excludes a second run of the same pair, machine-wide per user, from the real `~/.autobahn` — so `--state-root` and `--state-dir` cannot dodge it. Different machines, users, and `AUTOBAHN_HOME` directories are outside it entirely.
+**Possible fixes.** Autobahn can retain a replaced file for a few seconds and check it again before deletion. This can catch further writes through an open file. Content supply can also use the same directory walk as reads and moves.
 
-What is left is one folder paired with something different in two configurations. Each takes a different pair lock, both run, and each writes the folder from its own ancestor.
+## 3. Network filesystems can hide changes
 
-**Reason retained.** This is not a topology nobody wants. It is the same shape the loader permits inside one configuration, where one supervisor sequences the sessions over a folder. Across processes the shape is unchanged and the coordinator is gone — so refusing it outright would refuse fan-out, and permitting it is what the documented boundary already tells a reader not to do.
+**Risk.** Autobahn warns at startup for NFS, SMB/CIFS, and FUSE roots. Support is best effort and assumes a single writer.
 
-Closing it properly means locking endpoints rather than pairs, on every host involved, agents included. The protocol must then answer stale locks, acquisition order, and supervisor deadlock. Intent records already soften the consequence: two runs tend to produce conflicts rather than silent replacement.
+Attribute caches can hide another client's writes from both scans and checks before destructive operations. NFS defaults can cache attributes for up to 60 seconds. Filesystem watcher events can also be absent.
 
-**Reason to revisit.** Broader agent-protocol changes, or evidence of common multi-machine synchronization into shared storage.
+**Why the risk remains.** Fixes depend on the protocol and server. Close-to-open consistency requires autobahn to reopen files on every read path. Lease handling also varies. Neither approach restores the notification behavior of a local filesystem.
 
-**Possible fix.** Add advisory locks keyed by resolved endpoint identity under the endpoint host’s default state root. Use shared locks for read-only one-way primaries and exclusive locks for writable endpoints. Retain the existing pair lock.
+**When to reconsider.** Support for network mounts with multiple clients requires a broader product commitment. Evidence of common NFS use with a single writer can justify narrower improvements.
 
-## 5. Content changed without its metadata moving
+**Possible fixes.** The first step is `fstat` after `open` on destructive paths. A further option is a mode that accounts for the mount type and disables digest reuse. Tests against a real NFS server are necessary before autobahn expands its support guarantees.
 
-**Risk.** A scan reuses a file's recorded checksum when its modification time, size, inode, and type all match what was recorded (`src/scan/mod.rs`). A rewrite that keeps the length and restores the timestamp, in place, matches all four — so the new content is invisible, to a full scan as much as an incremental one.
+## 4. Separate supervisors can write to the same folder
 
-Three things do this. Reproducible build tooling pins timestamps on purpose, so byte-different output can land looking identical. `touch -r` copies a timestamp across deliberately. And a writer who wants to hide a change can do both.
+**Risk.** Autobahn supports [one supervisor per folder](../limitations.md#one-supervisor-per-folder), but it does not enforce that limit. Two configurations can pair the same folder with different endpoints. Each supervisor then writes to the shared folder using its own ancestor.
 
-The racy-timestamp margin covers accidental same-granule edits. This is the deliberate case, which it does not.
+**Existing safeguards.** Within one configuration, the loader rejects nested writable endpoints and warns about equal endpoints. Equal endpoints support fan-out: one source synchronized to several destinations. One supervisor coordinates those sessions.
 
-**Reason retained.** Reusing metadata is why a scan does not read every byte of every file, which is most of what makes autobahn fast. rsync, Git's index, and Mutagen all make the same trade.
+The endpoint-pair lock prevents a second run of the same pair. It applies across the machine for one user and uses the real `~/.autobahn` directory. Neither `--state-root` nor `--state-dir` bypasses it. Different machines, users, and `AUTOBAHN_HOME` directories are outside its scope.
 
-**Reason to revisit.** Reports of build output that quietly failed to travel, or a deployment whose threat model includes deliberate metadata restoration.
+Different endpoint pairs take different locks, even if they share a folder. As a result, the locks allow the conflicting configurations described here.
 
-**Possible fix.** `autobahn verify` already forces content reads on the next cycle. Run it on a timer rather than when it occurs to you — cron, a systemd timer, or a launchd job:
+**Why the risk remains.** The folder relationships are the same as supported fan-out within one configuration. Separate processes lack the supervisor that coordinates those sessions. Rejecting all shared endpoints also rejects fan-out. Allowing separate supervisors leaves enforcement to the documented restriction.
+
+A full fix requires endpoint locks on every host, including agents. The protocol must handle stale locks, lock acquisition order, and deadlocks between supervisors. Intent records already reduce the consequences: concurrent runs tend to produce conflicts instead of silently replacing files.
+
+**When to reconsider.** Broader changes to the agent protocol can provide an opportunity to add endpoint locks. Evidence of common synchronization from multiple machines into shared storage can also justify the work.
+
+**Possible fix.** Advisory locks can use the resolved endpoint identity under the default state root of the endpoint host. Read-only primaries in one-way synchronization can use shared locks. Writable endpoints require exclusive locks. The existing pair lock can remain.
+
+## 5. Changed content can retain the same metadata
+
+**Risk.** A scan reuses a recorded checksum if the file's modification time, size, inode, and type are unchanged (`src/scan/mod.rs`). A program can rewrite a file in place, keep its length, and restore its timestamp. All four values then match, so both full and incremental scans miss the changed content.
+
+Reproducible build tools deliberately set fixed timestamps. Their output can contain different bytes but appear unchanged to the scanner. `touch -r` also copies timestamps deliberately. A writer can use these techniques to hide changes.
+
+The racy-timestamp margin protects against accidental edits within one timestamp interval. It does not protect against deliberate timestamp restoration.
+
+**Why the risk remains.** Checksum reuse lets scans skip most file contents and accounts for much of autobahn's speed. rsync, Git's index, and Mutagen make the same tradeoff.
+
+**When to reconsider.** Reports of build output that silently fails to synchronize can justify changes. So can a deployment that must detect deliberate metadata restoration.
+
+**Available mitigation.** `autobahn verify` already forces autobahn to read file contents on the next cycle. A regular schedule limits how long a hidden change can remain undetected. For example, cron can request verification each week:
 
 ```
 0 3 * * 0  autobahn verify
 ```
 
-Weekly bounds how long a change can hide. There is nothing to build for this, and a setting to do it internally would only move the schedule inside the configuration.
+A systemd timer or launchd job can do the same. No new feature is necessary. An internal configuration option only moves the schedule into autobahn.
 
-Two things to know before relying on it. `verify` turns off checksum reuse and nothing else: what it finds reconciles as an ordinary change, and nothing marks it as having been hidden. So a verification that discovers a _tampered_ file propagates it to the other side like any edit — containment is a side effect of not having looked. That is a reason to treat this as a correctness measure for build output, and not as tamper detection.
+**Verification does not detect tampering.** `verify` only disables checksum reuse. Autobahn reconciles each discovered change normally and does not identify it as a previously hidden change. If verification finds a tampered file, autobahn propagates it like any other edit. Before verification, the hidden change stays local only because autobahn has not detected it.
+
+Scheduled verification supports correctness for build output. It does not provide tamper detection or containment.
 
 ## 6. P2P trusts every machine in the group
 
-**Risk.** P2P is the one mode the project calls dangerously experimental, and the reason is not reliability. Leadership moves between hosts, which means the replicas talk to each other, which means each one can reach the others.
+**Risk.** P2P is dangerously experimental because its trust model gives every replica access to its peers. This access allows leadership to move between hosts.
 
-By default that reach is a shell. Peer traffic goes over SSH with no restriction on what may be run, so a key that lets one replica hand the lead on also lets whoever holds it run anything on the others as that user. One compromised member of the group is all of them.
+By default, peer traffic uses SSH without command restrictions. A key that allows leadership transfer also allows arbitrary commands on other peers as the SSH user. One compromised member can compromise the rest of the group.
 
-Two settings narrow it, and neither is on by default:
+**Optional safeguards.** Two settings restrict peer access. Both are off by default:
 
-- `manage_keys = true` gives each replica a dedicated key registered against the gate — `restrict,command="…autobahn-gate gate"` — which admits only `agent`, `p2p attach`, and a signed `gate install`. That turns "any command" into three.
-- `~/.autobahn/host.toml` with `roots = [...]` bounds which directory trees an agent will serve, since even a gated agent runs with the user's privileges and would otherwise serve any path asked for.
+- `manage_keys = true` gives each replica a dedicated key with the gate restriction `restrict,command="…autobahn-gate gate"`. The gate allows only `agent`, `p2p attach`, and a signed `gate install`.
+- `roots = [...]` in `~/.autobahn/host.toml` limits the directory trees that an agent serves. Without this restriction, even a gated agent runs with the user's privileges and serves any requested path.
 
-The lease that decides who leads is a file in `~/.autobahn/p2p/lease.json`, renewed once a cycle. Collision handling when two peers believe they lead is open, as `src/config.rs` states beside the mode names.
+**Unresolved leadership collisions.** The leadership lease is a file at `~/.autobahn/p2p/lease.json`. Autobahn renews it once per cycle. Handling collisions between two peers that both believe they lead remains unresolved. `src/config.rs` records this beside the mode names.
 
-**Reason retained.** The mode is marked dangerously experimental in the configuration template, in `docs/p2p.md`, and in the name itself — `p2p-conflict-dangerously-experimental`. It is not reachable by accident: a configuration has to spell that out. The containment exists, it is documented, and it is off by default because turning it on changes what the peers may do to each other.
+**Why the risk remains.** The configuration template and `docs/p2p.md` label the mode dangerously experimental. The mode name itself is `p2p-conflict-dangerously-experimental`, which the configuration must explicitly select.
 
-**Reason to revisit.** Before p2p stops carrying "dangerously experimental" in its name. That rename is the commitment, and this entry is what has to be answered first — restricted keys and a root whitelist on by default rather than available, and the collision question settled.
+The access restrictions exist and are documented. They remain off by default because they change what peers can do to each other.
 
-**Possible fix.** Default `manage_keys` to true, so the gate is the floor rather than an upgrade. Refuse a p2p group whose hosts have no `host.toml`, the way a missing ignore file is refused rather than assumed. See [P2P](../p2p.md#security-boundaries--access-control).
+**When to reconsider.** These issues must be resolved before P2P loses the "dangerously experimental" label. That requires restricted keys and a root whitelist by default, plus a resolution for leadership collisions.
+
+**Possible fixes.** `manage_keys` can default to true so that the gate restricts peer commands by default. If a host lacks `host.toml`, autobahn can refuse the P2P group, as it already refuses a missing ignore file. See [P2P security boundaries and access control](../p2p.md#security-boundaries--access-control).
 
 ## See also
 
-- [Invariants](./invariants.md) — the guarantees these are the limits of
-- [Safety](../safety.md) — the same ground, for a reader who is not auditing
-- [Limitations](../limitations.md) — what is out of scope rather than unresolved
+Related documents cover the guarantees, safeguards, and support limits:
+
+- [Invariants](./invariants.md): The guarantees that these risks limit
+- [Safety](../safety.md): An overview of the safeguards
+- [Limitations](../limitations.md): Behavior outside the supported scope.

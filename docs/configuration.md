@@ -97,7 +97,7 @@ Configurations are validated prior to execution. The supervisor halts or rejects
 
 ### Symbolic links
 
-`raw` copies the link target verbatim, including absolute targets and targets outside the root. Autobahn treats links as entries and never follows one: it refuses a linked parent, and holds each directory open from the check to the write, so a parent replaced by a link in between cannot redirect a write. See [Accepted risks](./correctness/accepted-risks.md#2-a-save-landing-between-a-check-and-a-replacement).
+`raw` copies the link target verbatim, including absolute targets and targets outside the root. Autobahn treats links as entries and never follows one: it refuses a linked parent, and holds each directory open from the check to the write, so a parent replaced by a link in between cannot redirect a write. See [Accepted risks](./correctness/accepted-risks.md#2-a-file-can-change-after-the-last-check).
 
 Other software can follow these links on the destination machine. For trees used by backups, indexers, or builds, consider `symlink_mode = "portable"`. Portable mode requires relative targets that remain inside the root. It reports and excludes invalid links. `ignore` excludes all links.
 

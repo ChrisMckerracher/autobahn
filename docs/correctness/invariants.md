@@ -39,7 +39,7 @@ The transition race test suppresses watchers and pauses a real transition betwee
 
 Mutation checks cover path recording, stale-offer refusal, the serve gate, and post-write announcement. Randomized sweeps found two defects. Independent review found I1-A. All three are fixed.
 
-**Boundary.** Unannounced writes remain invisible until OS event delivery or an audit. Network filesystems can omit events entirely. See [accepted-risks §3](./accepted-risks.md#3-network-filesystems-beyond-warn-and-document).
+**Boundary.** Unannounced writes remain invisible until OS event delivery or an audit. Network filesystems can omit events entirely. See [accepted-risks §3](./accepted-risks.md#3-network-filesystems-can-hide-changes).
 
 ## I2. The ancestor records only acknowledged agreement
 
@@ -108,7 +108,7 @@ Supply also checks alternate paths before serving content under a shared digest.
 
 Disabling the receive digest gate causes the corrupt-frame test to publish corruption and fail.
 
-**Boundary.** Snapshot digests can be reused when metadata matches. Deliberately restored metadata can conceal a rewrite. See [accepted-risks §5](./accepted-risks.md#5-content-changed-without-its-metadata-moving).
+**Boundary.** Snapshot digests can be reused when metadata matches. Deliberately restored metadata can conceal a rewrite. See [accepted-risks §5](./accepted-risks.md#5-changed-content-can-retain-the-same-metadata).
 
 `a_same_granule_rewrite_is_reread_not_trusted` covers accidental timestamp-granule collisions. `a_verified_scan_sees_what_metadata_hides` covers explicit content verification.
 
@@ -136,7 +136,7 @@ I5’s lifecycle harness also exercises transitions.
 
 **Boundary.** Replacements and removals check an entry and then act on it in a separate operation. A save landing in between is put back on Linux and macOS, which can exchange, and by every removal, which moves the file aside first. Elsewhere, a replacement's last check, made just before acting, leaves a window of microseconds. A program writing into a file it holds open is left alone for up to 30 seconds on Linux, and goes undetected on macOS. Creation keeps its gap outside atomic no-replace platforms and in unsupported fallbacks. The directory the entry lives in is held open throughout, so the gap cannot redirect the operation elsewhere.
 
-Linux and macOS provide atomic no-replace rename. FreeBSD and other BSDs do not. Findings I4-A and I4-C clarify this scope. See [accepted-risks §2](./accepted-risks.md#2-a-save-landing-between-a-check-and-a-replacement).
+Linux and macOS provide atomic no-replace rename. FreeBSD and other BSDs do not. Findings I4-A and I4-C clarify this scope. See [accepted-risks §2](./accepted-risks.md#2-a-file-can-change-after-the-last-check).
 
 Validation compares metadata, not live content. Same-length rewrites with restored metadata can pass (I4-B, accepted-risks §5).
 
@@ -184,7 +184,7 @@ Endpoint resolution is frozen through validation, locking, and construction for 
 - `a_second_supervisor_over_the_same_state_root_is_refused`
 - `a_retargeted_root_is_refused_rather_than_bound_to_stale_state`
 
-**Boundary.** Different overlapping configurations in separate processes remain possible. Pair locks do not cross machines, users, or `AUTOBAHN_HOME` roots (I6-B). Canonical paths also miss physical aliases such as bind mounts (I6-D). See [accepted-risks §4](./accepted-risks.md#4-cross-process-overlapping-configurations).
+**Boundary.** Different overlapping configurations in separate processes remain possible. Pair locks do not cross machines, users, or `AUTOBAHN_HOME` roots (I6-B). Canonical paths also miss physical aliases such as bind mounts (I6-D). See [accepted-risks §4](./accepted-risks.md#4-separate-supervisors-can-write-to-the-same-folder).
 
 Identical-root sharing relies on generations and lease validation, rather than exclusive root ownership.
 
@@ -225,7 +225,7 @@ One-way modes retain their direction for missing directories. The optional guard
 
 The reconciliation properties and ignored-entry root guard include mutation checks.
 
-**Boundary.** Unobserved mounts below the optional count threshold can escape protection. See [accepted-risks §1](./accepted-risks.md#1-a-mount-autobahn-never-saw-mounted).
+**Boundary.** Unobserved mounts below the optional count threshold can escape protection. See [accepted-risks §1](./accepted-risks.md#1-an-unmounted-disk-can-look-like-deleted-files).
 
 A root containing one empty directory is not empty because that directory itself synchronizes. Distinguishing that shape from intentional clearing requires a different threshold policy.
 
@@ -357,7 +357,7 @@ Observer caches and status files have no content checksum against torn-sector co
 - `a_traversal_session_fails_its_open_and_touches_nothing`
 - `src/transport/mux.rs`
 
-**Boundary.** Transitions, file reads, moves and staging hold each directory open from the check to the act, so a directory swapped for a symlink in between cannot redirect them. Supplying content still opens by name, guarded by an inode and size comparison with the scan. See [accepted-risks §2](./accepted-risks.md#2-a-save-landing-between-a-check-and-a-replacement).
+**Boundary.** Transitions, file reads, moves and staging hold each directory open from the check to the act, so a directory swapped for a symlink in between cannot redirect them. Supplying content still opens by name, guarded by an inode and size comparison with the scan. See [accepted-risks §2](./accepted-risks.md#2-a-file-can-change-after-the-last-check).
 
 Raw symbolic links synchronize as data, including targets outside the root. Autobahn does not follow them during these operations, but other tools can.
 

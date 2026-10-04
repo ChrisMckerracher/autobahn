@@ -32,7 +32,7 @@ What is enforced, and what is not:
 | One session per _pair_ of folders | Enforced machine-wide per user, by a lock named for the pair and kept in the real `~/.autobahn` so an override cannot dodge it. |
 | One supervisor per _folder_ | **Not enforced.** The pair lock catches the same two folders twice; it does not catch one folder paired with something different. |
 
-The gap is the last row: two configurations that both name `~/Workspace`, each syncing it somewhere else, take different pair locks and both run. See [accepted risks §4](./correctness/accepted-risks.md#4-cross-process-overlapping-configurations).
+The gap is the last row: two configurations that both name `~/Workspace`, each syncing it somewhere else, take different pair locks and both run. See [accepted risks §4](./correctness/accepted-risks.md#4-separate-supervisors-can-write-to-the-same-folder).
 
 ### Timestamp-Preserving File Rewrites
 

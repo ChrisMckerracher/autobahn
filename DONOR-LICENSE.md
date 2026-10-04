@@ -2,8 +2,8 @@
 
 ### 1. How this license works
 
-- **We** are Faraz Yashar (“we” or “us”).
-- This license applies to each person or company named in the file `DONORS.md` in the Autobahn repository at https://github.com/fny/autobahn (the “List”). If you are on the List, “you” means you.
+- The royal **We** is Faraz Yashar ("we" or "us").
+- This license applies to each person or company named in the file `DONORS.md` in the Autobahn repository at https://github.com/fny/autobahn (the "List"). If you are on the List, "you" means you.
 - We add someone to the List after they make a one-time donation to a charity we both agree on. The amount, the charity, and whether to add someone are our decision alone.
 - Your rights start on the date shown in your entry on the List.
 - The "Open Source" license refers to the AGPLv3 license that applies to anyone.
@@ -14,7 +14,7 @@ This license covers only the exact person or company named on the List. It does 
 
 ### 3. What this license covers
 
-This license covers Autobahn (the “Software”): every version we have released and every version we release in the future. Your rights last forever, unless we remove you from the List (see section 9.)
+This license covers Autobahn (the "Software"): every version we have released and every version we release in the future. Your rights last forever, unless we remove you from the List (see section 9.)
 
 ### 4. What you can do
 
@@ -22,11 +22,11 @@ You can:
 
 - use the Software
 - change the Software
-- build the Software into your own products (“Your Products”)
+- build the Software into your own products ("Your Products")
 - give, sell, or license Your Products to customers
 - run the Software as part of Your Products, including as a hosted service.
 
-When you do these things under this license, you do not have to follow the GNU Affero General Public License (the “AGPL”).
+When you do these things under this license, you do not have to follow the GNU Affero General Public License (the "AGPL").
 
 ### 5. What you cannot do
 
@@ -44,7 +44,7 @@ You can keep your changes to the Software private. You do not have to share them
 ### 7. Notices
 
 - Keep our copyright and license notices in the Software’s source code.
-- Put this notice in the third-party or open-source notices of Your Products: “Autobahn, Copyright (c) 2026 Faraz Yashar. Used under the Autobahn Donor's License.”
+- Put this notice in the third-party or open-source notices of Your Products: "Autobahn, Copyright (c) 2026 Faraz Yashar. Used under the Autobahn Donor's License."
 
 ### 8. Your customers
 
