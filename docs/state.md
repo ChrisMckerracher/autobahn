@@ -68,6 +68,6 @@ A _stale bundle_ — an `agents/` binary left over from an older build — is re
 - [Commands](./commands.md): The `clean`, `reset`, and `verify` commands
 - [Configuration](./configuration.md): Configuration files and session settings
 - [Ignores](./ignores.md): Reusable patterns in the `ignores/` directory
-- [Logging and diagnostics](./logging.md): Log files, rotation, and retention
+- [Logging and Diagnostics](./logging.md): Log files, rotation, and retention
 - [Safety](./safety.md): Ancestor recovery and safeguards against data loss
 - [Releases](./releases.md): Agent distribution and upgrade behavior.

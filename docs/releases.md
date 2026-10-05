@@ -129,5 +129,5 @@ Both apps are Apple Silicon only; the command-line binaries cover Intel as well.
 - [Commands](./commands.md#manage-the-service-and-updates): Service management and updates
 - [Development](./development.md): Local builds and required checks
 - [State](./state.md): Agent bundles, deployment, and compatibility epochs
-- [Menu bar item](./tray.md): The standalone tray app
+- [Menu Bar Item](./tray.md): The standalone tray app
 - [Desktop App](./app.md#download): Desktop app downloads and release channels.

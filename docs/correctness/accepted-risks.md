@@ -147,4 +147,4 @@ The access restrictions exist and are documented. They remain off by default bec
 - [Limitations](../limitations.md): Supported environments and operational restrictions
 - [Configuration](../configuration.md): Deletion guards, mount handling, and host access policy
 - [Commands](../commands.md): The `verify` command for forced content reads
-- [P2P security](../p2p.md#security-boundaries--access-control): Restricted SSH keys and directory access controls.
+- [P2P Security](../p2p.md#security-boundaries--access-control): Restricted SSH keys and directory access controls.

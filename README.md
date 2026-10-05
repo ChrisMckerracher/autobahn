@@ -138,7 +138,7 @@ See [Safety](docs/safety.md) for guarantees and the related invariants in [Corre
 In addition to the standard CLI, several user interfaces are available:
 
 - **[Desktop App](docs/app.md):** Experimental desktop window.
-- **[Menu bar item](docs/tray.md):** Status light and a menu without need for the full app.
+- **[Menu Bar Item](docs/tray.md):** Status light and a menu without need for the full app.
 - **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn mi`).
 - **[Alert Hooks](docs/alerts.md):** Event notification script support (`on_alert`).
 
@@ -185,10 +185,10 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 - [Benchmark Results](docs/benchmarks.md)
 - [Full Benchmark Matrix](docs/benchmark-matrix.md)
 - [Invariants](docs/correctness/invariants.md)
-- [Accepted risks](docs/correctness/accepted-risks.md)
+- [Accepted Risks](docs/correctness/accepted-risks.md)
 - [Development Guide](docs/development.md)
 - [Release Process](docs/releases.md)
-- [Roadmap and proposals](docs/wishlist.md)
+- [Roadmap and Proposals](docs/wishlist.md)
 
 ## System Requirements & Limitations
 

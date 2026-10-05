@@ -149,4 +149,4 @@ It uses enum-based trees, sorted copy-on-write children, metadata on nodes, line
 - [Benchmarks](./benchmarks.md): Recorded performance comparisons
 - [Releases](./releases.md): Release builds, signing, and distribution
 - [Desktop App](./app.md): Desktop app behavior
-- [Menu bar item](./tray.md): Tray app behavior and platform limitations.
+- [Menu Bar Item](./tray.md): Tray app behavior and platform limitations.

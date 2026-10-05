@@ -102,7 +102,7 @@ The agent strictly rejects any connection requesting access to paths outside the
 
 ## See Also
 
-- [Accepted risks](./correctness/accepted-risks.md#6-p2p-trusts-every-machine-in-the-group): Peer trust and unresolved leadership collisions
+- [Accepted Risks](./correctness/accepted-risks.md#6-p2p-trusts-every-machine-in-the-group): Peer trust and unresolved leadership collisions
 - [Modes](./modes.md): Synchronization modes without leadership failover
 - [Configuration](./configuration.md): Mode settings and host access policy
 - [Safety](./safety.md): Synchronization safeguards and the host trust model

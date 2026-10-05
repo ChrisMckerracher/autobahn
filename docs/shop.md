@@ -61,5 +61,5 @@ Overlapping selections are deduplicated. Marks clear after resolution and after 
 - [Commands](./commands.md): Session inspection and control from the command line
 - [Conflicts](./conflicts.md): Conflict resolution and blocked-path repair
 - [Desktop App](./app.md): Session monitoring and control in a desktop window
-- [Menu bar item](./tray.md): Session status and controls from the menu bar
-- [Logging and diagnostics](./logging.md): Detailed logs for investigating problems.
+- [Menu Bar Item](./tray.md): Session status and controls from the menu bar
+- [Logging and Diagnostics](./logging.md): Detailed logs for investigating problems.

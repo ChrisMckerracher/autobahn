@@ -76,6 +76,6 @@ Resolution rules:
 ## See Also
 
 - [Configuration](./configuration.md): Default and group-specific ignore settings
-- [Git checkouts](./git.md): Which Git files to synchronize or exclude
+- [Git Checkouts](./git.md): Which Git files to synchronize or exclude
 - [Modes](./modes.md): Deletion policies and directory protection
 - [State](./state.md): The `ignores/` directory and state root locations.

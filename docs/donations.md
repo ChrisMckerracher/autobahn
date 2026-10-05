@@ -27,5 +27,5 @@ Rehabilitative programs like these have been proven to reduce recidivism:
 ## See Also
 
 - [Donor's License](../DONOR-LICENSE.md): License terms for donors
-- [License overview](../README.md#license): The project's available licenses
+- [License Overview](../README.md#license): The project's available licenses
 - [Limitations](./limitations.md): Supported environments and operational restrictions.

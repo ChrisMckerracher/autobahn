@@ -65,7 +65,7 @@ Certain editors (such as Vim or JetBrains IDEs) save files by creating a hidden 
 ## See Also
 
 - [Safety](./safety.md): Guarantees and existing safeguards
-- [Accepted risks](./correctness/accepted-risks.md): Unresolved risks and possible fixes
+- [Accepted Risks](./correctness/accepted-risks.md): Unresolved risks and possible fixes
 - [Architecture](./architecture.md): Design choices behind the support boundaries
 - [P2P](./p2p.md): Experimental failover and its access requirements
 - [Roadmap](./wishlist.md): Proposed features and platform support.

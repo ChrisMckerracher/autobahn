@@ -100,6 +100,6 @@ If you get it working, the exact packages, desktop, and steps are worth reportin
 - [Desktop App](./app.md): The desktop app and its built-in menu bar item
 - [Alerts](./alerts.md): Notification rules and custom hooks
 - [Conflicts](./conflicts.md): Conflict resolution actions available from the menu
-- [Terminal interface](./shop.md): Session monitoring and control in a terminal
+- [Terminal Interface](./shop.md): Session monitoring and control in a terminal
 - [Development](./development.md#the-menu-bar-app-bundle): How to build the tray bundle
 - [Releases](./releases.md#signing-and-notarising-macos): macOS signing and notarization.

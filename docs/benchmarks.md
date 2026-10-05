@@ -66,6 +66,6 @@ Cells used different machine groups. The fan-out result does not show that addin
 
 ## See Also
 
-- [Benchmark matrix](./benchmark-matrix.md): Complete measurements and build details
+- [Benchmark Matrix](./benchmark-matrix.md): Complete measurements and build details
 - [Architecture](./architecture.md): Scanning, change detection, and transfer design
 - [Development](./development.md#the-ab-gate): The benchmark harness and A/B comparisons.

@@ -96,7 +96,7 @@ Dash runs from the `app-latest` archives, including its menu bar item — though
 - [Configuration](./configuration.md): Settings available in the configuration editor
 - [Conflicts](./conflicts.md): Conflict inspection and resolution actions
 - [Alerts](./alerts.md): Notification rules and custom hooks
-- [Menu bar item](./tray.md): The Dash menu bar item and standalone tray app
-- [Terminal interface](./shop.md): Session monitoring and control in a terminal
+- [Menu Bar Item](./tray.md): The Dash menu bar item and standalone tray app
+- [Terminal Interface](./shop.md): Session monitoring and control in a terminal
 - [Development](./development.md#desktop-app-and-shared-text): How to build Dash
 - [Releases](./releases.md#signing-and-notarising-macos): macOS signing and notarization.

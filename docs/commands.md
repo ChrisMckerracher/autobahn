@@ -196,8 +196,8 @@ One-off runs share session state with the supervisor for the same roots. Deletio
 - [Configuration](./configuration.md): Configuration files, groups, and session settings
 - [Conflicts](./conflicts.md): The `issues`, `conflicts`, `diff`, and `resolve` commands
 - [State](./state.md): Session baselines, cleanup, and stored files
-- [Logging and diagnostics](./logging.md): Log locations and verbosity controls
-- [Terminal interface](./shop.md): Interactive session control with `autobahn mi`
+- [Logging and Diagnostics](./logging.md): Log locations and verbosity controls
+- [Terminal Interface](./shop.md): Interactive session control with `autobahn mi`
 - [Desktop App](./app.md): Session control through the desktop app
 - [Alerts](./alerts.md): Notifications and custom hooks
 - [Releases](./releases.md): Updates, release contents, and signature verification.

@@ -90,7 +90,7 @@ Guarantees operate within explicit physical and software constraints:
 ## See Also
 
 - [Invariants](./correctness/invariants.md): Guarantees, implementation references, and tests
-- [Accepted risks](./correctness/accepted-risks.md): Unresolved risks and possible fixes
+- [Accepted Risks](./correctness/accepted-risks.md): Unresolved risks and possible fixes
 - [Limitations](./limitations.md): Supported environments and operational restrictions
 - [Modes](./modes.md): Conflict policies and deletion guards
 - [Conflicts](./conflicts.md): How to inspect and resolve preserved changes

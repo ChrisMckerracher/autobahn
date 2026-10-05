@@ -398,7 +398,7 @@ Extend existing harness operation sets where possible.
 
 ## See Also
 
-- [Accepted risks](./accepted-risks.md): Unresolved risks, current safeguards, and possible fixes
+- [Accepted Risks](./accepted-risks.md): Unresolved risks, current safeguards, and possible fixes
 - [Safety](../safety.md): An overview of the guarantees
 - [Architecture](../architecture.md): The design that enforces the guarantees
 - [Development](../development.md): Test suites and correctness checks
