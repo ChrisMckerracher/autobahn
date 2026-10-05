@@ -22,9 +22,9 @@ When Autobahn installs, it creates a config file in `~/.autobahn/config.toml`. B
 
 First ask the user which folder they want to sync. Once you have that, move on to determining which hosts the sync should target as replicas.
 
-Syncing leverages hosts in `~/.ssh/config`. Make sure there's something that can be a sync target there. If not guide the user to add a host.
+Syncing leverages hosts in `~/.ssh/config` or other hosts the user can log into with their key. Make sure there's something that can be a sync target there. If not guide the user to add a host. Is there a machine they can already SSH into with their key? Is there a new machine we could set up that way? If they have a machine that's behind a NAT, point them to Tailscale.
 
-If hosts already exist, present them to the user and ask which hosts to sync the folder to and what the target directories are.
+If hosts are known, present them to the user and ask which hosts to sync the folder to and what the target directories are.
 
 For sync mode, recommend `two-way-conflict` for editing on both sides. Explain that changes, including deletions, travel both ways, while conflicting edits require a choice. If the user wants a one-way copy, consult [Modes](docs/modes.md) before choosing: a strict mirror can delete destination-only files.
 
