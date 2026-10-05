@@ -6,7 +6,7 @@ This document describes unresolved risks that limit [the invariants](./invariant
 
 Every section below except the last describes a way to lose a change or a file. This table orders them by how likely an ordinary setup is to meet them. The sections follow in the same order and give the details.
 
-| Risk | Cost | Resolution | Limitation |
+| Risk | Cost | Trigger | Limitation |
 | --- | --- | --- | --- |
 | A program writing into a file it holds open ([§1](#1-a-file-can-change-after-the-last-check)) | Writes made after autobahn replaces the file | A long-lived writer on a file the other side changed: a log, a database, streaming build output | Linux waits up to 30 seconds for the writer. macOS has no check because it doesn't support leases. |
 | A save in the last microseconds before a replacement ([§1](#1-a-file-can-change-after-the-last-check)) | That save | FreeBSD, other BSDs, or a network or FUSE filesystem without an atomic exchange | Linux and macOS restore the save. |
@@ -17,7 +17,6 @@ Every section below except the last describes a way to lose a change or a file. 
 | A disk unseen at the first scan ([§5](#5-an-unmounted-disk-can-look-like-deleted-files)) | The other side's copies, deleted when the disk disappears | A mount point empty at the first scan, then mounted, then removed | `guard_dir_deletes_over` |
 
 [§6](#6-p2p-trusts-every-machine-in-the-group) is a security boundary rather than a way to lose a file: P2P lets one compromised peer reach the others.
-
 
 ## 1. A File Can Change After the Last Check
 

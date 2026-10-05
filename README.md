@@ -132,7 +132,7 @@ See [Benchmarks](docs/benchmarks.md) for details.
 
 ## Safety
 
-*Autobahn guarantees data integrity as much as possible.* Programs holding files open, network mounts, and mucking with metadata [can cause problems](docs/correctness/accepted-risks.md). Autobahn will break some programs (i.e. git) not due to correctness but rather due to syncing machine specific files. You can use ignores to prevent these issues, and there are clever ways to keep things like [git in sync](docs/git.md).
+*Autobahn guarantees data integrity as much as possible.* Programs holding files open, network mounts, and mucking with metadata [can cause problems](docs/correctness/accepted-risks.md). Autobahn will break some programs (e.g. git) not due to correctness but rather due to syncing machine specific files. You can use ignores to prevent these issues, and there are clever ways to keep things like [git in sync](docs/git.md).
 
 ### Empirically
 

@@ -34,7 +34,7 @@ The modes behave identically for standard actions: unchanged files remain untouc
 
 ## First Sync
 
-Each of these modes have different behavior on first sync. None are distructive except for `mirror` mode. If you don't want files from the replica to appear on the primary during the first sync, you'll need to delete them yourself before hand.
+Each of these modes has different behavior on first sync. None are destructive except for `mirror` mode. If you don't want files from the replica to appear on the primary during the first sync, you'll need to delete them yourself beforehand.
 
 ### First cycle: empty primary, populated replica
 
@@ -53,17 +53,17 @@ Each of these modes have different behavior on first sync. None are distructive 
 | `two-way-conflict` | Copied to the replica | Copied to the primary | Both sides hold all entries, no conflicts |
 | `two-way-primary` | Same | Same | Same |
 | `two-way-primary-strict` | Same | Same | Same |
-| `one-way-conflict` | Copied to the replica | Kept on the replica, left untracked; nothing flows back | Primary: 1 files. Replica: its own + 1 |
+| `one-way-conflict` | Copied to the replica | Kept on the replica, left untracked; nothing flows back | Primary: 1 file. Replica: its own + 1 |
 | `one-way-primary` (`mirror`) | Copied to the replica | Deleted | Both sides: primary's file |
 
 ### First cycle: the same file on both sides with different content, plus other entries on the replica
 
 | Mode | The conflicting file | Everything else | Result |
 |---|---|---|---|
-| `two-way-conflict` | **Conflict reported.** Each side keeps its own version; nothing is written at that path | Syncs normally in both directions | 1 conflict and both sides hold replicas entries |
+| `two-way-conflict` | **Conflict reported.** Each side keeps its own version; nothing is written at that path | Syncs normally in both directions | 1 conflict, and both sides hold the replica's entries |
 | `two-way-primary` | The primary's version overwrites the replica's, silently | Syncs normally | No conflict; both sides identical |
 | `two-way-primary-strict` | Same | Same | Same |
-| `one-way-conflict` | **Conflict reported.** The replica keeps its version; the primary's is not written over it | Primary → replica only; replica extras kept, untracked | 1 conflict; primary  and replica keeps don't change |
+| `one-way-conflict` | **Conflict reported.** The replica keeps its version; the primary's is not written over it | Primary → replica only; replica extras kept, untracked | 1 conflict; the primary and the replica don't change |
 | `one-way-primary` (`mirror`) | The primary's version overwrites the replica's, silently | Replica extras deleted | No conflict; both sides identical, 3 entries |
 
 ---
