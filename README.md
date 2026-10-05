@@ -40,7 +40,7 @@ Unhinged solution: keep everything in sync so editing local files is practically
 
 ## Desktop App
 
-Autobahn comes with a desktop app and menu bar item which makes managing the supervisor and syncing simple:
+Autobahn comes with an optional desktop app and menu bar item which makes managing the supervisor and syncing simple. Masochists are welcome to use the CLI alone (next section.)
 
 <img src="assets/screenshots/groups.png" alt="App showing three sync groups across four sessions, all synchronized" width="900">
 
@@ -53,7 +53,7 @@ To learn more, see the [application's documentation](docs/app.md).
 
 Make sure you have your [SSH configuration](docs/ssh.md) set up appropriately.
 
-## Getting Started
+## Getting Started with the CLI
 
 Install the CLI by hand or by telling an LLM to read [INSTALL.md](INSTALL.md):
 
