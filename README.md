@@ -2,28 +2,26 @@
 
 *Subsecond sync with German precision.*
 
-Autobahn keeps folders on your machine in sync with remotes faster than you can type. Here's a recorded demo example with a save after each keystroke:
+Autobahn keeps folders on your machine in sync with remotes faster than you can type. Here's a recorded demo with a save after each keystroke:
 
 <img src="assets/autobahn-typing.gif" alt="Typing on a laptop, synced live to a remote host over SSH" width="720">
 
-No cloud or account needed. Everything is mediated over SSH.
+To get started, make sure your remotes are [accessible over SSH with your private key](docs/ssh.md). Then install the [desktop app](#desktop-app) or the [CLI](#getting-started).
 
-To get started, make sure your remotes are [accessible over SSH](docs/ssh.md). Then install the [desktop app](#desktop-app) or the [CLI](#getting-started).
-
-> ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3?
+> ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3? <br />
 > Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
 
 ## The Problem
 
 - Browsing files over SSH or NFS is clunky.
-- Agents that run `--dangerously` should do it in a VM elsewhere, but you can't use your local tools.
+- Agents can't run `--dangerously` on your local files without putting your machine at risk.
 - Some sync tools require gigs of RAM for big trees, or a cloud account, or both.
 
-Solution: keep everything in sync so editing local files is the same as editing remote ones.
+Solution: keep everything in sync so editing local files is practically the same as editing remote ones.
 
 ## Why Autobahn
 
-- **Fast as hell.** Delivers sub-30ms propagation times for small-file updates across trees containing hundreds of thousands of files.
+- **Fast as hell.** Delivers sub-30ms propagation times for updates across trees containing hundreds of thousands of files.
 - **Lightweight.** Employs immutable shared-tree structures in memory, requiring significantly less RAM and idle CPU than conventional sync daemons.
 - **Safe.** Choose a sync policy per group that matches your risk profile backed by tests and bounded formal models. See [Safety](docs/safety.md) for the guarantees and their limits.
 - **Reviewed to death.** GLM 5.3, KIMI 3, Astra, and Fable were used to perform correctness and security reviews.
@@ -31,9 +29,9 @@ Solution: keep everything in sync so editing local files is the same as editing 
 
 ## Desktop App
 
-Autobahn comes with a desktop app which makes managing the supervisor and syncing simple:
+Autobahn comes with a desktop app and menu bar item which makes managing the supervisor and syncing simple:
 
-<img src="assets/screenshots/groups.png" alt="Dash showing three sync groups across four sessions, all synchronized" width="900">
+<img src="assets/screenshots/groups.png" alt="App showing three sync groups across four sessions, all synchronized" width="900">
 
 Install the latest version of the from the [releases page](https://github.com/fny/autobahn/releases).
 
@@ -79,12 +77,9 @@ primary = "~/Workspace"
 replicas = ["/Volumes/Backup/Workspace"]    #  - local paths work too
 ```
 
-```sh
-autobahn watch              # keep syncing in this terminal until Ctrl-C
-autobahn install            # or install as a login service
-```
+Finally, run `autobahn install` to install the login service or run `autobahn watch` to keep a sync running until Ctrl-C.
 
-Make sure you have your [SSH configuration](docs/ssh.md) set up appropriately too!
+Make sure you can connect to your remotes with your [SSH configuration](docs/ssh.md) too!
 
 ## Sync Modes
 
@@ -203,4 +198,4 @@ This project was heavily vibe coded, and with great vibe coding comes great resp
 Autobahn is dual licensed: `AGPL-3.0-or-later OR LicenseRef-Commercial`.
 
 - **[AGPL-3.0-or-later](LICENSE)**: free for any use with copyleft caveats
-- **[Donor's](DONOR-LICENSE.md)** [donate to Justice-in-Education](docs/donations.md) to use Autobahn free of the AGPL
+- **[Donate to Justice-in-Education](docs/donations.md)** to use Autobahn free of the AGPL
