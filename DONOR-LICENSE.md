@@ -3,7 +3,7 @@
 ### 1. How This License Works
 
 - The royal **We** is Faraz Yashar ("we" or "us").
-- This license applies to each person or company named in the file `DONORS.md` in the Autobahn repository at https://github.com/fny/autobahn (the "List"). If you are on the List, "you" means you.
+- This license applies to each person or company whose entry in the file `DONORS.md` in the Autobahn repository at https://github.com/fny/autobahn shows a license date (the "List"). A name in that file with no license date is not on the List. If you are on the List, "you" means you.
 - We add someone to the List after they make a one-time donation to a charity we both agree on. The amount, the charity, and whether to add someone are our decision alone.
 - Your rights start on the date shown in your entry on the List.
 - The "Open Source" license refers to the AGPLv3 license that applies to anyone.

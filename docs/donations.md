@@ -1,15 +1,14 @@
 # Donations
 
-Autobahn comes with a strict copyleft license: if you choose to embed it in your software you need to release your software under the same license.
+I help you sync files. You buy books for people who need a second chance.
 
-To free yourself of that requirement, make a one-time donation to [Justice-in-Education](https://justiceineducation.columbia.edu/get-involved/donate/) at Columbia.
+Please direct your donations to [Justice-in-Education](https://justiceineducation.columbia.edu/get-involved/donate/).
 
-- If you're an individual, donate at least $50
-- If you're a business, donate at least $200
+File an issue with your name and a copy of the receipt, and I'll add you to the [`DONORS.md`](../DONORS.md) file!
 
-Afterwards, file an issue with a copy of the receipt, and I'll add you or your company to the `DONORS.md` file and to the README. This grants you Autobahn's source code under the [Donor's License](../DONOR-LICENSE.md).
+To sweeten the deal: Autobahn is AGPL, so normally building it into your software means your software has to be AGPL too. Donate at least $50 as an individual or $200 as a business, and you're free of that. You get Autobahn under the [Donor's License](../DONOR-LICENSE.md) instead.
 
-If total donations surpass $10K I will gladly relicense Autobahn under the MIT License.
+If total donations surpass $10K, I pledge to relicense Autobahn under the MIT License.
 
 ## About Justice-in-Education
 
@@ -26,6 +25,6 @@ Rehabilitative programs like these have been proven to reduce recidivism:
 
 ## See Also
 
+- [Donors](../DONORS.md): Everyone who has donated, and who holds the license
 - [Donor's License](../DONOR-LICENSE.md): License terms for donors
 - [License Overview](../README.md#license): The project's available licenses
-- [Limitations](./limitations.md): Supported environments and operational restrictions
