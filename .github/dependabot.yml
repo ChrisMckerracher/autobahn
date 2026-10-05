@@ -11,6 +11,16 @@ updates:
     groups:
       cargo-minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # notify 7 and 8 subscribe to every file open under a watched root
+      # on Linux, with no way to turn it off: each read, autobahn's own
+      # included, becomes an event, so a scan wakes the next one and a
+      # burst of opens can overflow the kernel queue into a full walk.
+      # notify 9 lets the event kinds be chosen. Take it when it ships,
+      # and set them to EventKindMask::CORE | EventKindMask::ACCESS_CLOSE,
+      # which is the set notify 6 watches.
+      - dependency-name: notify
+        versions: ["7.x", "8.x"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
