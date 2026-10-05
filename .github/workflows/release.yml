@@ -78,7 +78,7 @@ jobs:
               --jq '.jobs[] | select(.conclusion == "success") | .name' || exit 1
           done) || exit 1
           missing=
-          for job in linux linux-arm mac spec; do
+          for job in linux linux-arm mac spec features-app features-tray; do
             printf '%s\n' "$passed" | grep -qx -- "$job" || missing="$missing $job"
           done
           if [ -n "$missing" ]; then
@@ -88,7 +88,7 @@ jobs:
             echo "and, once it is green, re-run this workflow or push the tag again." >&2
             exit 1
           fi
-          echo "CI passed on $sha: linux, linux-arm, mac and spec"
+          echo "CI passed on $sha: linux, linux-arm, mac, spec, features-app and features-tray"
 
   linux:
     needs: version

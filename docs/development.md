@@ -31,9 +31,11 @@ The macOS job runs the suite and builds an ad-hoc-signed tray app. Release certi
 
 Every job runs on every push that reaches them; nothing is opt-in. The macOS job waits for Linux and is the longest at about fifteen minutes, but linux, linux-arm and spec are all done around eight whether it runs or not, and runner time is free on a public repository — so skipping it would buy a green tick sooner and nothing else.
 
+The library is also tested under the `app` and the `tray` features, one job each (`features-app`, `features-tray`), since no other job turns either on. They run alongside the rest, on Linux, with the system libraries the app links against.
+
 The app build is a separate workflow on its own path filter, eight minutes across three runners in parallel, finishing inside the time CI takes anyway.
 
-A release needs `linux`, `linux-arm`, `mac` and `spec` to have passed on the tagged commit. Since they all run on every push to main, tagging a commit that is green is enough; `release.yml` names the recovery when it is not.
+A release needs `linux`, `linux-arm`, `mac`, `spec`, `features-app` and `features-tray` to have passed on the tagged commit. Since they all run on every push to main, tagging a commit that is green is enough; `release.yml` names the recovery when it is not.
 
 ## Targeted Tests
 
