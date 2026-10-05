@@ -219,7 +219,7 @@ jobs:
           # never mixes this build's files with the last one's.
           gh release delete app-latest --yes --cleanup-tag 2>/dev/null || true
           gh release create app-latest ./* \
-            --title "Dash (latest build)" \
+            --title "Desktop App (latest build)" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             --prerelease \
             --target "$GITHUB_SHA"

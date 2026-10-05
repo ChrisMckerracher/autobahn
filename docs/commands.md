@@ -155,7 +155,7 @@ Version 3 added `config_notice`, present while the supervisor rejects a configur
 
 `--filter` applies to JSON. `--depth` affects the list display only.
 
-Session alerts receive this same document. Configuration-refusal alerts receive the notice object described in [Alerts](./alerts.md). The [terminal interface](./shop.md), [Dash](./app.md) and [the menu bar item](./tray.md) use status data.
+Session alerts receive this same document. Configuration-refusal alerts receive the notice object described in [Alerts](./alerts.md). The [terminal interface](./shop.md), [Desktop App](./app.md) and [the menu bar item](./tray.md) use status data.
 
 ## One-off Syncs and Scripting
 

@@ -59,19 +59,19 @@ CARGO_TARGET_DIR=target/tray cargo build --release --locked --features tray
 
 ## Desktop App and Shared Text
 
-Dash is a separate binary behind `--features app`, built with GPUI Kit and the configuration schema. `apps/app/build.sh` and `.github/workflows/app.yml` specify Rust 1.98.0:
+The Desktop App is a separate binary behind `--features app`, built with GPUI Kit and the configuration schema. `apps/app/build.sh` and `.github/workflows/app.yml` specify Rust 1.98.0:
 
 ```sh
 cargo +1.98.0 build --release --locked --features app --bin autobahn-app --target-dir target/app
 ```
 
-Build the CLI separately and place it beside Dash or in a supported installation path.
+Build the CLI separately and place it beside the desktop app or in a supported installation path.
 
 On macOS, `apps/app/build.sh` creates an ad-hoc-signed bundle. No copy of `autobahn` goes inside it: the window finds the command beside itself first, so a bundled one would override the installed copy the supervisor is actually running. A release replaces the ad-hoc signature with a Developer ID one — see [Releases](./releases.md#signing-and-notarising-macos).
 
 Linux build packages appear in `.github/workflows/app.yml`. Runtime also requires a display server and Vulkan driver. See [Desktop App](./app.md).
 
-Ordinary CI covers the CLI, library, and macOS tray. Dash has a separate workflow, so ordinary CI success does not establish that Dash builds.
+Ordinary CI covers the CLI, library, and macOS tray. The Desktop App has a separate workflow, so ordinary CI success does not establish that the Desktop App builds.
 
 Shared strings live in `assets/words/en.toml` and load through `src/words.rs`. Catalog tests check interface usage. `src/surface.rs` contains the shared UI model and configuration editor.
 
