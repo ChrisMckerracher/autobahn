@@ -198,6 +198,6 @@ One-off runs share session state with the supervisor for the same roots. Deletio
 - [State](./state.md): Session baselines, cleanup, and stored files
 - [Logging and diagnostics](./logging.md): Log locations and verbosity controls
 - [Terminal interface](./shop.md): Interactive session control with `autobahn mi`
-- [Dash](./app.md): Session control through the desktop app
+- [Desktop App](./app.md): Session control through the desktop app
 - [Alerts](./alerts.md): Notifications and custom hooks
 - [Releases](./releases.md): Updates, release contents, and signature verification.

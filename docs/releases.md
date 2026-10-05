@@ -130,4 +130,4 @@ Both apps are Apple Silicon only; the command-line binaries cover Intel as well.
 - [Development](./development.md): Local builds and required checks
 - [State](./state.md): Agent bundles, deployment, and compatibility epochs
 - [Menu bar item](./tray.md): The standalone tray app
-- [Dash](./app.md#download): Desktop app downloads and release channels.
+- [Desktop App](./app.md#download): Desktop app downloads and release channels.

@@ -1,4 +1,4 @@
-# App
+# Desktop App
 
 Dash is Autobahn's desktop app, and it ships as `Autobahn.app`. It is an easy-to-use way to manage your sync sessions. If you don't already have the supervisor installed, the app will offer to install it for you.
 

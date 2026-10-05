@@ -59,6 +59,6 @@ Ask: **“Should Autobahn keep syncing automatically at login, or only when you 
 - **In a terminal:** `autobahn watch` keeps syncing until Ctrl-C. Run it in the user's terminal or a persistent session.
 - **On demand:** use `autobahn sync` for each pass.
 
-Stop any foreground watcher before starting the service. Check `autobahn status` afterward. Again offer [Dash](docs/app.md) or the [menu bar item](docs/tray.md) only if the user wants a desktop interface.
+Stop any foreground watcher before starting the service. Check `autobahn status` afterward. Again offer the [Desktop App](docs/app.md) or the [menu bar item](docs/tray.md) only if the user wants a desktop interface.
 
 Finish with a short handoff: the configuration path, synced folders, mode, verification result, and whether syncing is running. For a service, mention `autobahn stop` to stop it and `autobahn start` to resume.

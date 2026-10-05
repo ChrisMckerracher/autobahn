@@ -27,7 +27,7 @@ Choices are queued rather than run where you click. They go to a worker thread i
 
 ## Two Ways to Have One
 
-**Inside [Dash](./app.md).** Dash includes the item and runs it in the same process. Choose _Menu Bar_ in its Service pane for the item alone, or _Both_ for the item and the window. This is the easier route if you already want Dash.
+**Inside the [Desktop App](./app.md).** The Desktop App includes the item and runs it in the same process. Choose _Menu Bar_ in its Service pane for the item alone, or _Both_ for the item and the window. This is the easier route if you already want Dash.
 
 **The standalone app.** The `autobahn` binary with `--features tray` and nothing else — no window, no GPUI, no graphics stack. Worth it on a machine where you want a status light and not an application. On macOS, build it from the repository:
 
@@ -97,7 +97,7 @@ If you get it working, the exact packages, desktop, and steps are worth reportin
 
 ## See Also
 
-- [Dash](./app.md): The desktop app and its built-in menu bar item
+- [Desktop App](./app.md): The desktop app and its built-in menu bar item
 - [Alerts](./alerts.md): Notification rules and custom hooks
 - [Conflicts](./conflicts.md): Conflict resolution actions available from the menu
 - [Terminal interface](./shop.md): Session monitoring and control in a terminal

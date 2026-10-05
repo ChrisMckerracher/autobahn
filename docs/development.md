@@ -69,7 +69,7 @@ Build the CLI separately and place it beside Dash or in a supported installation
 
 On macOS, `apps/app/build.sh` creates an ad-hoc-signed bundle. No copy of `autobahn` goes inside it: the window finds the command beside itself first, so a bundled one would override the installed copy the supervisor is actually running. A release replaces the ad-hoc signature with a Developer ID one — see [Releases](./releases.md#signing-and-notarising-macos).
 
-Linux build packages appear in `.github/workflows/app.yml`. Runtime also requires a display server and Vulkan driver. See [Dash](./app.md).
+Linux build packages appear in `.github/workflows/app.yml`. Runtime also requires a display server and Vulkan driver. See [Desktop App](./app.md).
 
 Ordinary CI covers the CLI, library, and macOS tray. Dash has a separate workflow, so ordinary CI success does not establish that Dash builds.
 
@@ -148,5 +148,5 @@ It uses enum-based trees, sorted copy-on-write children, metadata on nodes, line
 - [Specification](../spec/README.md): Formal models and implementation replay
 - [Benchmarks](./benchmarks.md): Recorded performance comparisons
 - [Releases](./releases.md): Release builds, signing, and distribution
-- [Dash](./app.md): Desktop app behavior
+- [Desktop App](./app.md): Desktop app behavior
 - [Menu bar item](./tray.md): Tray app behavior and platform limitations.

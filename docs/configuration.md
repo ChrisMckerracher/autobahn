@@ -126,4 +126,4 @@ roots = ["~/Workspace", "/srv/repositories"]
 - [Alerts](./alerts.md): The `on_alert` hook and notification timing
 - [Commands](./commands.md): Configuration creation and session control
 - [State](./state.md): Configuration locations and stored session data
-- [Dash](./app.md#editing-configuration): The configuration editor.
+- [Desktop App](./app.md#editing-configuration): The configuration editor.
