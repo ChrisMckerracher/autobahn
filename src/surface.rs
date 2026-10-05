@@ -894,7 +894,12 @@ pub(crate) fn ask(
         // The window's own config and state root, not the defaults: a
         // service watching a different file than this form edits would
         // look like the form doing nothing.
-        Order::Install => crate::service::install(config, Some(state_root)),
+        // The command's path, not this program's: the service runs
+        // `autobahn watch`, and this program is autobahn-app.
+        Order::Install => match found() {
+            Some(command) => crate::service::install(&command, config, Some(state_root)),
+            None => Err(anyhow::anyhow!("the autobahn command is not installed")),
+        },
         Order::Uninstall => crate::service::uninstall(),
     };
     match done {
@@ -1169,6 +1174,63 @@ pub(crate) fn install(state_root: &std::path::Path) -> Result<PathBuf, String> {
             ))
         }
     }
+}
+
+/// Registers and starts the login service once the installer has put the
+/// command at `command`, and says how the whole install went: one press
+/// on the welcome pane ends with a supervisor running, rather than with a
+/// command and a page that says there is no supervisor.
+///
+/// Only over a configuration the supervisor would start on. A fresh
+/// install's describes no sessions, and a service registered over that
+/// exits at once and is started again every ten seconds until someone
+/// adds a group; `autobahn start` refuses the same file for the same
+/// reason. What happened goes to `install.log` as well.
+pub(crate) fn serve_after_install(
+    command: &std::path::Path,
+    config: Option<&std::path::Path>,
+    state_root: &std::path::Path,
+) -> String {
+    use std::io::Write;
+    let path = tilde(&command.display().to_string());
+    let registered = (|| -> anyhow::Result<bool> {
+        let file = match config {
+            Some(file) => file.to_path_buf(),
+            None => crate::paths::default_config_path()?,
+        };
+        let loaded = crate::supervisor::reload::load(&file)?;
+        if loaded.plans.is_empty() {
+            return Ok(false);
+        }
+        crate::config::OwnState::new(state_root, Some(&file)).check_plans(&loaded.plans)?;
+        crate::service::install(command, config, Some(state_root))?;
+        Ok(true)
+    })();
+    let (line, said) = match registered {
+        Ok(true) => (
+            "installed and started the login service".to_owned(),
+            fill("welcome.serving", &[("path", &path)]),
+        ),
+        Ok(false) => (
+            "the configuration describes no sessions, so no login service was installed"
+                .to_owned(),
+            fill("welcome.no_sessions", &[("path", &path)]),
+        ),
+        Err(error) => {
+            let error = first_line(&format!("{error:#}"));
+            (
+                format!("the login service was not installed: {error}"),
+                fill("welcome.not_serving", &[("path", &path), ("error", &error)]),
+            )
+        }
+    };
+    if let Ok(mut note) = std::fs::OpenOptions::new()
+        .append(true)
+        .open(install_log(state_root))
+    {
+        let _ = writeln!(note, "{line}");
+    }
+    said
 }
 
 /// Runs one of the command's own subcommands and says what it said.

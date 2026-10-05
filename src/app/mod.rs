@@ -2832,22 +2832,26 @@ impl AutobahnApp {
         }
         self.installing = true;
         let state_root = self.state_root.clone();
+        let config = self.config.clone();
         cx.spawn(async move |this, cx| {
             // The window's own poll loop asks for a frame while this
             // runs, which is what keeps the line under the button up to
             // date without a second timer here.
             let done = cx
                 .background_executor()
-                .spawn(async move { surface::install(&state_root) })
+                .spawn(async move {
+                    // The command, and then the service that runs it:
+                    // the button says Install Service.
+                    surface::install(&state_root).map(|command| {
+                        surface::serve_after_install(&command, config.as_deref(), &state_root)
+                    })
+                })
                 .await;
             this.update(cx, |this, cx| {
                 this.installing = false;
                 this.ready = surface::installed();
                 this.said = Some(match done {
-                    Ok(command) => fill(
-                        "welcome.installed",
-                        &[("path", &tilde(&command.display().to_string()))],
-                    ),
+                    Ok(said) => said,
                     Err(why) => why,
                 });
                 // Everything the other panes show came back empty while
