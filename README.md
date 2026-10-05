@@ -13,6 +13,15 @@ To get started, make sure your remotes are [accessible over SSH with your privat
 > ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3? <br />
 > Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
 
+## Donors
+
+These people bought books for someone who needs a second chance. Thank you!
+
+<a href="https://github.com/ChrisMckerracher"><img src="https://github.com/ChrisMckerracher.png?size=96" width="40" height="40" alt="Christopher Mckerracher" title="Christopher Mckerracher" align="middle"></a> &nbsp;[Christopher Mckerracher](https://github.com/ChrisMckerracher)
+
+**$50 of $10,000** on the [road to MIT](DONORS.md#the-road-to-mit). See [all donors](DONORS.md), or [become one](docs/donations.md).
+
+
 ## The Problem
 
 - Browsing files over SSH or NFS is clunky.
@@ -149,7 +158,7 @@ None of this has undergone nearly the same level of testing as `autobahn` itself
 
 ## AI Disclaimer
 
-This project was heavily vibe coded, and with great vibe coding comes great responsibility. So I have: scanned every line in this repo, run extensive soak testing, used Autobahn myself for weeks, had guardrail-free models run security scans, and put it through thousands of benchmark runs. Most of the internal documentation was first drafted by LLMs. Please forgive the lingering Claudeisms.
+This project was heavily vibe coded, and with great vibe coding comes great responsibility. As such, I have scanned every line in this repo, run extensive soak testing, used Autobahn myself for weeks, had guardrail-free models run security scans, and put it through thousands of benchmark runs. While all of the documentation was drafted by LLMs, I've rewritten much of it. Please forgive any lingering Claudeisms.
 
 ## Contributing
 
