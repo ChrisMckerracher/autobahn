@@ -426,10 +426,27 @@ mod tests {
         deadline: Duration,
         during: impl FnOnce(),
     ) -> bool {
-        let stop = AtomicBool::new(false);
+        watched_until(
+            reloader,
+            state_root,
+            deadline,
+            &AtomicBool::new(false),
+            during,
+        )
+    }
+
+    /// [`watched`], with a stop the caller holds too, so a test can end the
+    /// watch from inside it rather than a poll later.
+    fn watched_until(
+        reloader: &Reloader,
+        state_root: &Path,
+        deadline: Duration,
+        stop: &AtomicBool,
+        during: impl FnOnce(),
+    ) -> bool {
         let alerts = crate::alerts::AlertPlan::default();
         std::thread::scope(|scope| {
-            let watcher = scope.spawn(|| reloader.watch(state_root, &alerts, &stop));
+            let watcher = scope.spawn(|| reloader.watch(state_root, &alerts, stop));
             during();
             let started = std::time::Instant::now();
             while !reloader.is_pending() && started.elapsed() < deadline {
@@ -543,16 +560,29 @@ mod tests {
             other.display(),
             root.path().join("more-mirror").display()
         );
+        // The write also stops the watch. Left running until this thread
+        // noticed the edit, the watch could read the three groups twice
+        // more and load them over the two: the newest edit wins, as it
+        // should, and this test would be asking which thread woke first.
+        let stop = std::sync::Arc::new(AtomicBool::new(false));
         {
             let path = path.clone();
             let three = three.clone();
+            let stop = stop.clone();
             *reloader.after_read.lock().expect("unpoisoned") = Some(Box::new(move || {
                 std::fs::write(&path, &three).expect("written");
+                stop.store(true, Ordering::Relaxed);
             }));
         }
-        let pending = watched(&reloader, &state_root, Duration::from_secs(5), || {
-            std::fs::write(&path, &two).expect("written");
-        });
+        let pending = watched_until(
+            &reloader,
+            &state_root,
+            Duration::from_secs(5),
+            &stop,
+            || {
+                std::fs::write(&path, &two).expect("written");
+            },
+        );
         assert!(pending);
         *reloader.after_read.lock().expect("unpoisoned") = None;
         let loaded = reloader.take().expect("the edit is pending");

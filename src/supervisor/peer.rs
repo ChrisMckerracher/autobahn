@@ -652,6 +652,14 @@ mod tests {
                     attached.lock().unwrap().push(name)
                 })
             });
+            // Stops the server however this thread leaves: a failed
+            // assertion that left it serving was a test that never ended,
+            // and never printed what had failed.
+            let _guard = StopGuard(&stop);
+            // The silent connection's deadline runs from when the server
+            // accepts it, which is after this. Timed from after the sleep
+            // below, a sleep that ran long made the wait look short.
+            let dialed = std::time::Instant::now();
             let mut silent = UnixStream::connect(&socket).expect("connects");
             std::thread::sleep(Duration::from_millis(100));
             let started = std::time::Instant::now();
@@ -669,9 +677,19 @@ mod tests {
                 .set_read_timeout(Some(Duration::from_secs(10)))
                 .unwrap();
             assert_eq!(silent.read(&mut [0u8; 1]).expect("closed, not failed"), 0);
-            assert!(started.elapsed() >= timeout - Duration::from_millis(200));
-            stop.store(true, Ordering::Relaxed);
+            assert!(
+                dialed.elapsed() >= timeout,
+                "the silent connection was closed before its greeting timed out"
+            );
         });
+    }
+
+    struct StopGuard<'a>(&'a AtomicBool);
+
+    impl Drop for StopGuard<'_> {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::Relaxed);
+        }
     }
 
     /// A greeting is a short line naming the primary: an endless one and a
