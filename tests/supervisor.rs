@@ -1559,6 +1559,22 @@ fn watch_mode_observes_remote_changes_through_the_agent() {
     // No heartbeat within the test window: propagation must ride the
     // agent-side watcher through the AwaitChanges protocol.
     plans[0].interval = Duration::from_secs(3600);
+    let plan = plans[0].clone();
+    // What the session last recorded, in a line.
+    let recorded = || {
+        match world.status(&plan) {
+        Some(status) => format!(
+            "{} after {} cycle(s), {} change(s) to the primary in the last, error {:?}, blocked {:?}, recorded at {}",
+            status.state,
+            status.cycles,
+            status.last_primary_transitions,
+            status.error,
+            status.blocked,
+            status.updated_at
+        ),
+        None => "nothing".to_owned(),
+    }
+    };
 
     let stop = AtomicBool::new(false);
     std::thread::scope(|scope| {
@@ -1572,13 +1588,34 @@ fn watch_mode_observes_remote_changes_through_the_agent() {
             "initial content should synchronize"
         );
         // A change on the *remote* side propagates back without a heartbeat.
+        let before = recorded();
         write(&remote, "from-remote.txt", "remote change");
-        assert!(
-            wait_until(Duration::from_secs(15), || {
-                primary.join("from-remote.txt").exists()
-            }),
-            "remote changes should be observed through the agent"
-        );
+        let arrived = || primary.join("from-remote.txt").exists();
+        if !wait_until(Duration::from_secs(15), arrived) {
+            // This has failed on the macOS runner about one run in ten and
+            // in no run anywhere it could be studied, so the failure says
+            // what it can. The cycle counts tell a session that never woke
+            // from one that woke and carried nothing; the second write
+            // tells a watch that lost one event from a watch that is not
+            // there.
+            let after = recorded();
+            write(&remote, "second.txt", "a second remote change");
+            let woken = wait_until(Duration::from_secs(10), arrived);
+            panic!(
+                "remote changes should be observed through the agent\n\
+                 the session recorded, before the write: {before}\n\
+                 15 seconds after it: {after}\n\
+                 10 seconds after a second write: {last}\n\
+                 the second write {carried} the first across, and itself {second}",
+                last = recorded(),
+                carried = if woken { "carried" } else { "did not carry" },
+                second = if primary.join("second.txt").exists() {
+                    "arrived"
+                } else {
+                    "did not arrive"
+                },
+            );
+        }
 
         stop.store(true, Ordering::Relaxed);
         watcher
