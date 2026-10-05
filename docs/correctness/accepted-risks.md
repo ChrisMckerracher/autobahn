@@ -2,33 +2,27 @@
 
 This document describes unresolved risks that limit [the invariants](./invariants.md). Each section explains what can go wrong, why the risk remains, when to reconsider it, and possible fixes.
 
-## 1. An Unmounted Disk Can Look Like Deleted Files
+## Where a File Can Be Lost
 
-**Risk.** Autobahn protects against missing mounts only when it previously recorded the path as a mount. If a disk is absent during the first scan, its mount directory looks like an ordinary empty directory.
+Every section below except the last describes a way to lose a change or a file. This table orders them by how likely an ordinary setup is to meet them. The sections follow in the same order and give the details.
 
-The disk can later appear, and autobahn treats its files as creations. If the disk disappears again without the path entering `remembered`, autobahn treats those files as deletions. The mount guard does not intervene.
+| Risk | What is lost | What it takes | What limits it |
+| --- | --- | --- | --- |
+| A program writing into a file it holds open ([§1](#1-a-file-can-change-after-the-last-check)) | Writes made after autobahn replaces the file | A long-lived writer on a file the other side changed: a log, a database, streaming build output | Linux waits up to 30 seconds for the writer. macOS has no check. |
+| A save in the last microseconds before a replacement ([§1](#1-a-file-can-change-after-the-last-check)) | That save | FreeBSD, other BSDs, or a network or FUSE filesystem without an atomic exchange | Linux and macOS restore the save. |
+| Changed content with restored metadata ([§2](#2-changed-content-can-retain-the-same-metadata)) | The change never propagates. A later edit on the other side overwrites it. | A tool that rewrites bytes but keeps the size and timestamp: reproducible builds, `touch -r` | A scheduled `autobahn verify` |
+| A live multi-file database ([Limitations](../limitations.md#live-multi-file-databases-eg-sqlite-wal)) | A copy whose files disagree with each other | SQLite with WAL, or similar, written during synchronization | Synchronize backups, not open databases. |
+| Network filesystem caches ([§3](#3-network-filesystems-can-hide-changes)) | A newer write from another client, overwritten or deleted | NFS, SMB, or FUSE with more than one writer | Single-writer use |
+| Two supervisors on one folder ([§4](#4-separate-supervisors-can-write-to-the-same-folder)) | One supervisor's changes, overwritten by the other | Two configurations that pair one folder with different partners | Intent records usually produce conflicts instead. |
+| A disk unseen at the first scan ([§5](#5-an-unmounted-disk-can-look-like-deleted-files)) | The other side's copies, deleted when the disk disappears | A mount point empty at the first scan, then mounted, then removed | `guard_dir_deletes_over` |
 
-**Existing safeguards.** A scan records the mount boundaries it crosses in `sessions/<id>/mounts`. Each cycle checks these paths through `Session::account_for_mounts`. A path passes if it is still mounted or contains content.
+Two outcomes do not occur. Autobahn never leaves a torn or partial file: it writes content to a temporary file, verifies the checksum, and swaps the file into place atomically. An ordinary editor save during synchronization, written to a temporary file and renamed over the original, is never overwritten on Linux or macOS: the swap detects it and puts it back.
 
-The ancestor records the last state that both endpoints agreed on. If a remembered mount path is empty but the ancestor records children there, autobahn halts the session. With `ignore_mounts = true`, autobahn instead excludes the path on both sides.
+The mode does not change this list. A conflict mode protects every change that a scan sees. These risks are changes that a scan cannot see, or cannot see in time. Platform mechanisms and `verify` close them where they can be closed.
 
-For a mount that autobahn never recorded, only the general deletion safeguards remain:
+[§6](#6-p2p-trusts-every-machine-in-the-group) is a security boundary rather than a way to lose a file: P2P lets one compromised peer reach the others.
 
-- `guard_dir_deletes_over` limits deletions by entry count, but it is **off unless configured**. A single large file can stay below the count threshold.
-- The guard against an empty root requires at least two ancestor entries. It does not protect an individual subdirectory.
-- Autobahn separately refuses a missing primary.
-
-**Why the risk remains.** An unmounted disk and an intentional deletion can produce the same result: an empty directory where files used to be. The directory contents alone cannot distinguish them. A byte threshold can block intentional large deletions without proving that a mount is missing.
-
-**When to reconsider.** Data loss from disks absent during the first scan can justify further work. So can a deployment that can declare its expected mounts before synchronization.
-
-**Possible fixes.** An expected-mount configuration can identify missing disks, but only if the list stays current. An omitted mount has no protection.
-
-The scanner can also ask the kernel whether each directory is a mount point, even without a previous mount record. It can use `statfs` or compare `st_dev` with the parent directory. The scanner already visits these directories.
-
-This reduces the risk to mounts that are absent whenever autobahn checks. No scan can distinguish a disk absent at every scan from an ordinary empty directory.
-
-## 2. A File Can Change After the Last Check
+## 1. A File Can Change After the Last Check
 
 **Risk.** Before autobahn replaces or removes an entry, it checks that the entry still matches the last scan. A program can save changes between that check and the operation. Autobahn catches and restores most such saves, but these cases remain:
 
@@ -65,6 +59,30 @@ These tests deliberately replace directories with links during the vulnerable wi
 
 **Possible fixes.** Autobahn can retain a replaced file for a few seconds and check it again before deletion. This can catch further writes through an open file. Content supply can also use the same directory walk as reads and moves.
 
+## 2. Changed Content Can Retain the Same Metadata
+
+**Risk.** A scan reuses a recorded checksum if the file's modification time, size, inode, and type are unchanged (`src/scan/mod.rs`). A program can rewrite a file in place, keep its length, and restore its timestamp. All four values then match, so both full and incremental scans miss the changed content.
+
+Reproducible build tools deliberately set fixed timestamps. Their output can contain different bytes but appear unchanged to the scanner. `touch -r` also copies timestamps deliberately. A writer can use these techniques to hide changes.
+
+The racy-timestamp margin protects against accidental edits within one timestamp interval. It does not protect against deliberate timestamp restoration.
+
+**Why the risk remains.** Checksum reuse lets scans skip most file contents and accounts for much of autobahn's speed. rsync, Git's index, and Mutagen make the same tradeoff.
+
+**When to reconsider.** Reports of build output that silently fails to synchronize can justify changes. So can a deployment that must detect deliberate metadata restoration.
+
+**Available mitigation.** `autobahn verify` already forces autobahn to read file contents on the next cycle. A regular schedule limits how long a hidden change can remain undetected. For example, cron can request verification each week:
+
+```
+0 3 * * 0  autobahn verify
+```
+
+A systemd timer or launchd job can do the same. No new feature is necessary. An internal configuration option only moves the schedule into autobahn.
+
+**Verification does not detect tampering.** `verify` only disables checksum reuse. Autobahn reconciles each discovered change normally and does not identify it as a previously hidden change. If verification finds a tampered file, autobahn propagates it like any other edit. Before verification, the hidden change stays local only because autobahn has not detected it.
+
+Scheduled verification supports correctness for build output. It does not provide tamper detection or containment.
+
 ## 3. Network Filesystems Can Hide Changes
 
 **Risk.** Autobahn warns at startup for NFS, SMB/CIFS, and FUSE roots. Support is best effort and assumes a single writer.
@@ -95,29 +113,31 @@ A full fix requires endpoint locks on every host, including agents. The protocol
 
 **Possible fix.** Advisory locks can use the resolved endpoint identity under the default state root of the endpoint host. Read-only primaries in one-way synchronization can use shared locks. Writable endpoints require exclusive locks. The existing pair lock can remain.
 
-## 5. Changed Content Can Retain the Same Metadata
+## 5. An Unmounted Disk Can Look Like Deleted Files
 
-**Risk.** A scan reuses a recorded checksum if the file's modification time, size, inode, and type are unchanged (`src/scan/mod.rs`). A program can rewrite a file in place, keep its length, and restore its timestamp. All four values then match, so both full and incremental scans miss the changed content.
+**Risk.** Autobahn protects against missing mounts only when it previously recorded the path as a mount. If a disk is absent during the first scan, its mount directory looks like an ordinary empty directory.
 
-Reproducible build tools deliberately set fixed timestamps. Their output can contain different bytes but appear unchanged to the scanner. `touch -r` also copies timestamps deliberately. A writer can use these techniques to hide changes.
+The disk can later appear, and autobahn treats its files as creations. If the disk disappears again without the path entering `remembered`, autobahn treats those files as deletions. The mount guard does not intervene.
 
-The racy-timestamp margin protects against accidental edits within one timestamp interval. It does not protect against deliberate timestamp restoration.
+**Existing safeguards.** A scan records the mount boundaries it crosses in `sessions/<id>/mounts`. Each cycle checks these paths through `Session::account_for_mounts`. A path passes if it is still mounted or contains content.
 
-**Why the risk remains.** Checksum reuse lets scans skip most file contents and accounts for much of autobahn's speed. rsync, Git's index, and Mutagen make the same tradeoff.
+The ancestor records the last state that both endpoints agreed on. If a remembered mount path is empty but the ancestor records children there, autobahn halts the session. With `ignore_mounts = true`, autobahn instead excludes the path on both sides.
 
-**When to reconsider.** Reports of build output that silently fails to synchronize can justify changes. So can a deployment that must detect deliberate metadata restoration.
+For a mount that autobahn never recorded, only the general deletion safeguards remain:
 
-**Available mitigation.** `autobahn verify` already forces autobahn to read file contents on the next cycle. A regular schedule limits how long a hidden change can remain undetected. For example, cron can request verification each week:
+- `guard_dir_deletes_over` limits deletions by entry count, but it is **off unless configured**. A single large file can stay below the count threshold.
+- The guard against an empty root requires at least two ancestor entries. It does not protect an individual subdirectory.
+- Autobahn separately refuses a missing primary.
 
-```
-0 3 * * 0  autobahn verify
-```
+**Why the risk remains.** An unmounted disk and an intentional deletion can produce the same result: an empty directory where files used to be. The directory contents alone cannot distinguish them. A byte threshold can block intentional large deletions without proving that a mount is missing.
 
-A systemd timer or launchd job can do the same. No new feature is necessary. An internal configuration option only moves the schedule into autobahn.
+**When to reconsider.** Data loss from disks absent during the first scan can justify further work. So can a deployment that can declare its expected mounts before synchronization.
 
-**Verification does not detect tampering.** `verify` only disables checksum reuse. Autobahn reconciles each discovered change normally and does not identify it as a previously hidden change. If verification finds a tampered file, autobahn propagates it like any other edit. Before verification, the hidden change stays local only because autobahn has not detected it.
+**Possible fixes.** An expected-mount configuration can identify missing disks, but only if the list stays current. An omitted mount has no protection.
 
-Scheduled verification supports correctness for build output. It does not provide tamper detection or containment.
+The scanner can also ask the kernel whether each directory is a mount point, even without a previous mount record. It can use `statfs` or compare `st_dev` with the parent directory. The scanner already visits these directories.
+
+This reduces the risk to mounts that are absent whenever autobahn checks. No scan can distinguish a disk absent at every scan from an ordinary empty directory.
 
 ## 6. P2P Trusts Every Machine in the Group
 
