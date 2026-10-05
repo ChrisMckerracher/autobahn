@@ -1,20 +1,12 @@
 # Autobahn <picture><source media="(prefers-color-scheme: dark)" srcset="assets/sign-readme-white.svg"><img src="assets/sign-readme.svg" alt="" height="23"></picture>
 
-_Subsecond sync with German precision._
+*Subsecond sync with German precision.*
 
-Autobahn keeps your files in sync as fast as you (or an agent) edit them across a fleet.
+Autobahn keeps folders on your machine in sync with remotes faster than you can type. Here's a recorded demo example with a save after each keystroke:
 
-<img src="assets/screenshots/groups.png" alt="Dash showing three sync groups across four sessions, all synchronized" width="900">
+No cloud or account needed. Everything is mediated over SSH.
 
-Install the latest version of the [app](docs/app.md) from its [releases page](https://github.com/fny/autobahn/releases) or as a standalone CLI service:
-
-```sh
-curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh | sh
-```
-
-```
-For AI: Follow the instructions here https://github.com/fny/autobahn/blob/main/INSTALL.md to drive an interactive setup of Autobahn.
-```
+To get started, make sure your remotes are [accessible over SSH](docs/ssh.md). Then install the [desktop app](#desktop-app) or the [CLI](#getting-started).
 
 > ✨ Want to support Autobahn? Want to use Autobahn free of AGPLv3?
 > Simply donate to the [Justice-in-Education Initiative](docs/donations.md).
@@ -35,18 +27,41 @@ Solution: keep everything in sync so editing local files is the same as editing 
 - **Reviewed to death.** GLM 5.3, KIMI 3, Astra, and Fable were used to perform correctness and security reviews.
 - **Privacy first.** No cloud service, no account, no third party.
 
-## Quick Start
+## Desktop App
 
-After you [install Autobahn](INSTALL.md) you need to set up your configuration. By default, the configuration is written to `~/.autobahn/config.toml`. You can edit it by hand or use [Dash](docs/app.md).
+Autobahn comes with a desktop app which makes managing the supervisor and syncing simple:
 
-Each group connects one root, the primary, to one or more destinations, the replicas. Sync can be one-way, bidirectional, or P2P (experimental).
+<img src="assets/screenshots/groups.png" alt="Dash showing three sync groups across four sessions, all synchronized" width="900">
+
+Install the latest version of the from the [releases page](https://github.com/fny/autobahn/releases).
+
+- **macOS** — open `Autobahn.app`
+- **Linux** — extract the archive and run `./autobahn-app`. You need a graphical session (Wayland or X11), a Vulkan driver, and the desktop libraries the workflow lists.
+
+To learn more, see the [application's documentation](docs/app.md).
+
+Make sure you have your [SSH configuration](docs/ssh.md) set up appropriatelu.
+
+## Getting Started
+
+Install the CLI by hand or by telling an LLM to read [INSTALL.md](INSTALL.md):
+
+```sh
+curl -fsSL https://github.com/fny/autobahn/releases/latest/download/install.sh | sh
+```
+
+Afterwards, you need to set up your configuration. By default, the configuration is written to `~/.autobahn/config.toml`. You can edit it by hand or use the [desktop app](docs/app.md).
+
+Each group connects one root, the primary, to one or more destinations, the replicas. Sync can be one-way, bidirectional (see [Sync Modes](#sync-modes) below.) For full configuration details, read see [Configuration](docs/configuration.md).
 
 ```toml
 # ~/.autobahn/config.toml
 
 [defaults]
 mode = "two-way-conflict"                   # sync modes explained below
-ignores = ["file:Essential.gitignore"]      # written by `autobahn init`
+ignores = ["file:Essential.gitignore"]      # you can include ignores by file
+                                            # or written explicitly
+                                            # this one is from ~/.autobahn/ignores/
 
 [groups.work]
 primary = "~/Workspace"
@@ -66,6 +81,8 @@ replicas = ["/Volumes/Backup/Workspace"]    #  - local paths work too
 autobahn watch              # keep syncing in this terminal until Ctrl-C
 autobahn install            # or install as a login service
 ```
+
+Make sure you have your [SSH configuration](docs/ssh.md) set up appropriately too!
 
 ## Sync Modes
 
@@ -120,7 +137,7 @@ See [Safety](docs/safety.md) for guarantees and the related invariants in [Corre
 
 In addition to the standard CLI, several user interfaces are available:
 
-- **[Dash](docs/app.md):** Experimental desktop window.
+- **[Desktop App](docs/app.md):** Experimental desktop window.
 - **[Menu bar item](docs/tray.md):** Status light and a menu without need for the full app.
 - **[Terminal UI](docs/shop.md):** Interactive curses-based console monitor (`autobahn mi`).
 - **[Alert Hooks](docs/alerts.md):** Event notification script support (`on_alert`).
