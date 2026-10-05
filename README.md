@@ -4,6 +4,8 @@
 
 Autobahn keeps folders on your machine in sync with remotes faster than you can type. Here's a recorded demo example with a save after each keystroke:
 
+<img src="assets/autobahn-typing.gif" alt="Typing on a laptop, synced live to a remote host over SSH" width="720">
+
 No cloud or account needed. Everything is mediated over SSH.
 
 To get started, make sure your remotes are [accessible over SSH](docs/ssh.md). Then install the [desktop app](#desktop-app) or the [CLI](#getting-started).
