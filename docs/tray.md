@@ -11,7 +11,7 @@ Autobahn Tray is a tray (menu bar) item that shows you the real-time health of y
 | **Red** | Session halted or unreachable |
 | **Struck through (no dot)** | No supervisor/sessions running |
 
-Icon state updates automatically on the supervisor's next polling cycle.
+The icon updates on its next poll of the supervisor.
 
 ## Menu Controls & Actions
 
@@ -28,14 +28,14 @@ Clicking the tray item provides visibility into your sync topology and allows di
 
 The [Desktop App](./app.md) includes the menu bar item in the same unified process.
 
-1. Open **Settings → Service**.
+1. Open the **Service** pane.
 2. Select **Menu Bar** (runs only the menu icon) or **Both** (runs the menu icon alongside the desktop window).
 
 *Recommended if you already use the desktop app.*
 
 ### 2. Standalone Binary
 
-For head-only systems or minimal environments where you only want a status light without a GUI framework (GPUI) or graphics overhead, compile the standalone `autobahn` binary with the `tray` flag.
+If you only want a status light, without the desktop app's GUI framework (GPUI) or graphics overhead, compile the standalone `autobahn` binary with the `tray` flag.
 
 #### macOS Application Bundle
 
@@ -76,7 +76,7 @@ Notifications respect the following precedence rules:
 
 ## Linux Support
 
-While the desktop apps's tray integration is packaged with standard `app-latest` Linux archives, the **standalone tray executable on Linux is experimental**:
+While the desktop app's menu bar item comes with the Linux app on the releases page, the **standalone tray executable on Linux is experimental**:
 
 > [!WARNING]
 > **Use at your own risk.** Standalone Linux tray binaries are not distributed in official release tags, nor are they continuously verified in CI. Build failures or runtime regressions may occur without notice.
@@ -117,4 +117,4 @@ CARGO_TARGET_DIR=target/tray cargo build --release --locked --features tray
 - [Conflicts](./conflicts.md): Conflict resolution actions available from the menu
 - [Terminal Interface](./shop.md): Session monitoring and control in a terminal
 - [Development](./development.md#the-menu-bar-app-bundle): How to build the tray bundle
-- [Releases](./releases.md#signing-and-notarising-macos): macOS signing and notarization.
+- [Releases](./releases.md#signing-and-notarising-macos): macOS signing and notarization

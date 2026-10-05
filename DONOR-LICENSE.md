@@ -14,7 +14,7 @@ This license covers only the exact person or company named on the List. It does 
 
 ### 3. What This License Covers
 
-This license covers Autobahn (the "Software"): every version we have released and every version we release in the future. Your rights last forever, unless we remove you from the List (see section 9.)
+This license covers Autobahn (the "Software"): every version we have released and every version we release in the future. Your rights last forever, unless we remove you from the List (see section 9).
 
 ### 4. What You Can Do
 
@@ -35,7 +35,8 @@ You cannot let others use the Software apart from as part of Your Products. In p
 - give or publish the Software on its own, in any form, including source code, a compiled program, a library, a package, or a container image
 - give the Software to others under another name
 - make a library, SDK, plugin, or wrapper that lets other developers build on the Software (you can only do this under the Open Source license)
-- If you are unsure whether something is allowed, ask us in writing. You can rely on our written answer.
+
+If you are unsure whether something is allowed, ask us in writing. You can rely on our written answer.
 
 ### 6. Your Changes
 

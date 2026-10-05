@@ -49,7 +49,7 @@ Some mutagen patch runs skipped many ticks. Slower completion reduced their achi
 
 ## Memory, CPU, and First Sync
 
-Controller memory depends on workload and topology. The Chromium small-file cell used 479 MiB. The later ten-destination Chromium patch cell used about 2.14 GiB.
+Controller memory depends on workload and topology. The Chromium small-file cell used 479 MiB. The later ten-destination Chromium patch cell used about 2.04 GiB.
 
 Neither figure defines a universal per-file cost. The matrix reports idle and workload resources for each host.
 
@@ -68,4 +68,4 @@ Cells used different machine groups. The fan-out result does not show that addin
 
 - [Benchmark Matrix](./benchmark-matrix.md): Complete measurements and build details
 - [Architecture](./architecture.md): Scanning, change detection, and transfer design
-- [Development](./development.md#the-ab-gate): The benchmark harness and A/B comparisons.
+- [Development](./development.md#the-ab-gate): The benchmark harness and A/B comparisons

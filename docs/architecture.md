@@ -66,4 +66,4 @@ Synchronization sessions execute within dedicated worker threads coordinated by 
 - [Invariants](./correctness/invariants.md): Guarantees, implementation references, and tests
 - [State](./state.md): Stored configuration, session baselines, and agent bundles
 - [Benchmarks](./benchmarks.md): Measured latency and resource use
-- [Development](./development.md): Build instructions, tests, and performance checks.
+- [Development](./development.md): Build instructions, tests, and performance checks

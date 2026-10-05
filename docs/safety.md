@@ -94,4 +94,4 @@ Guarantees operate within explicit physical and software constraints:
 - [Limitations](./limitations.md): Supported environments and operational restrictions
 - [Modes](./modes.md): Conflict policies and deletion guards
 - [Conflicts](./conflicts.md): How to inspect and resolve preserved changes
-- [State](./state.md): Ancestor baselines and stored session data.
+- [State](./state.md): Ancestor baselines and stored session data

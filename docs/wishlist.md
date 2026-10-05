@@ -87,4 +87,4 @@ The status tray interface (`apps/tray`) compiles behind the optional `tray` Carg
 - [Accepted Risks](./correctness/accepted-risks.md): Unresolved risks and possible fixes
 - [Limitations](./limitations.md): Current support boundaries
 - [Development](./development.md): Build instructions and validation requirements
-- [Menu Bar Item](./tray.md#on-linux): Current Linux tray behavior and known problems.
+- [Menu Bar Item](./tray.md#linux-support): Current Linux tray behavior and known problems

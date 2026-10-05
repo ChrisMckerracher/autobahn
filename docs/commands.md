@@ -75,12 +75,11 @@ autobahn uninstall         # stop it and unregister it
 A running supervisor performs the same checks on configuration edits. With live reload enabled, edits require no restart. An upgrade requires a restart.
 
 ```sh
-
 autobahn update            # install the latest release over this one
 autobahn update --dry-run  # ...or just say what it would install
 ```
 
-See [Configuration](./configuration.md) for service installation and [Releases](./releases.md) for updates.
+See [Releases](./releases.md) for how updates work.
 
 ## What `status` Shows
 
@@ -200,4 +199,4 @@ One-off runs share session state with the supervisor for the same roots. Deletio
 - [Terminal Interface](./shop.md): Interactive session control with `autobahn mi`
 - [Desktop App](./app.md): Session control through the desktop app
 - [Alerts](./alerts.md): Notifications and custom hooks
-- [Releases](./releases.md): Updates, release contents, and signature verification.
+- [Releases](./releases.md): Updates, release contents, and signature verification

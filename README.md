@@ -33,14 +33,14 @@ Autobahn comes with a desktop app and menu bar item which makes managing the sup
 
 <img src="assets/screenshots/groups.png" alt="App showing three sync groups across four sessions, all synchronized" width="900">
 
-Install the latest version of the from the [releases page](https://github.com/fny/autobahn/releases).
+Install the latest version from the [releases page](https://github.com/fny/autobahn/releases).
 
 - **macOS** — open `Autobahn.app`
 - **Linux** — extract the archive and run `./autobahn-app`. You need a graphical session (Wayland or X11), a Vulkan driver, and the desktop libraries the workflow lists.
 
 To learn more, see the [application's documentation](docs/app.md).
 
-Make sure you have your [SSH configuration](docs/ssh.md) set up appropriatelu.
+Make sure you have your [SSH configuration](docs/ssh.md) set up appropriately.
 
 ## Getting Started
 

@@ -71,4 +71,4 @@ A **blocked path** occurs when an endpoint cannot read or write an entry due to 
 - [Desktop App](./app.md): The Conflicts pane and resolution controls
 - [Terminal Interface](./shop.md): Conflict inspection and resolution in a terminal
 - [Alerts](./alerts.md): Notifications for conflicts and blocked paths
-- [Safety](./safety.md): Safeguards against silent overwrites and deletions.
+- [Safety](./safety.md): Safeguards against silent overwrites and deletions

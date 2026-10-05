@@ -4,7 +4,7 @@
 
 - **Operating Systems:**
   - **Linux:** `x86_64` and `aarch64` (glibc and musl).
-  - **macOS:** Apple Silicon (`aarch64`). APFS case-folding, Unicode normalization forms, and atomic rename flags are natively handled.
+  - **macOS:** Apple Silicon (`aarch64`) and Intel (`x86_64`). The desktop apps are Apple Silicon only. APFS case-folding, Unicode normalization forms, and atomic rename flags are natively handled.
 - **Transport Mechanism:** Standard SSH (`OpenSSH`) or standard input/output subprocesses. No external daemon or port exposure required.
 - **Root Geometry:** Synchronization roots must resolve to directories. Individual files cannot serve as root endpoints (synchronize the parent directory and ignore surrounding files).
 
@@ -50,7 +50,7 @@ Active transactional databases frequently update multiple files concurrently (`.
 
 Large directory hierarchies on Linux require one `inotify` watch descriptor per directory.
 
-- If `fs.inotify.max_user_watches` is exhausted, Autobahn logs a warning and automatically falls back to interval polling every 30 seconds until the limit is increased via `sysctl`:
+- If `fs.inotify.max_user_watches` is exhausted, Autobahn logs a warning and falls back to polling at the group's `interval`. It retries the watch every 30 seconds, so raising the limit with `sysctl` takes effect without a restart:
   ```sh
   sudo sysctl -w fs.inotify.max_user_watches=524288
   ```
@@ -68,4 +68,4 @@ Certain editors (such as Vim or JetBrains IDEs) save files by creating a hidden 
 - [Accepted Risks](./correctness/accepted-risks.md): Unresolved risks and possible fixes
 - [Architecture](./architecture.md): Design choices behind the support boundaries
 - [P2P](./p2p.md): Experimental failover and its access requirements
-- [Roadmap](./wishlist.md): Proposed features and platform support.
+- [Roadmap](./wishlist.md): Proposed features and platform support

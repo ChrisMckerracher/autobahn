@@ -4,13 +4,15 @@ This document describes the distribution architecture, release validation pipeli
 
 ## Distributed Artifact Components
 
-A standard release publishes three independent artifacts:
+A standard release publishes these artifacts:
 
 | Artifact | Source Target | Destination Path |
 | :-- | :-- | :-- |
 | **Controller Executable** | `cargo build --profile dist` | `~/.local/bin/autobahn` |
 | **Remote Agents Bundle** | `scripts/build-agents.sh` | `~/.autobahn/agents/` |
 | **macOS Menu Bar App** | `apps/tray/build.sh` | `/Applications/Autobahn Tray.app` |
+| **macOS Desktop App** | `apps/app/build.sh` | `/Applications/Autobahn.app` |
+| **Linux Desktop App** | `cargo build --features app` | wherever you extract it |
 
 ## Release Pipeline Architecture
 
@@ -132,4 +134,4 @@ On macOS, both apps are Apple Silicon only; the command-line binaries cover Inte
 - [Development](./development.md): Local builds and required checks
 - [State](./state.md): Agent bundles, deployment, and compatibility epochs
 - [Menu Bar Item](./tray.md): The standalone tray app
-- [Desktop App](./app.md#download): Desktop app downloads and release channels.
+- [Desktop App](./app.md#download): Desktop app downloads

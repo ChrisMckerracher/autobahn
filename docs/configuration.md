@@ -41,7 +41,7 @@ disabled = true             # turns the whole group off
 
 ### Endpoint Syntax
 
-Autobahn uses SSH key-based authentication, s you need to have your target machines in your `~/.ssh/config`.
+Autobahn connects to remote machines over SSH with your key. See [SSH Setup](./ssh.md).
 
 - **Local Endpoints:** Paths beginning with `/`, `~`, or `./`.
 - **Remote Endpoints:** Standard SSH syntax (`[user@]host[:path]`). If `:path` is omitted, the endpoint defaults to the same path as `primary` evaluated within the remote user's home directory.
@@ -126,4 +126,4 @@ roots = ["~/Workspace", "/srv/repositories"]
 - [Alerts](./alerts.md): The `on_alert` hook and notification timing
 - [Commands](./commands.md): Configuration creation and session control
 - [State](./state.md): Configuration locations and stored session data
-- [Desktop App](./app.md#editing-configuration): The configuration editor.
+- [Desktop App](./app.md#editing-configuration): The configuration editor

@@ -70,4 +70,4 @@ A _stale bundle_ — an `agents/` binary left over from an older build — is re
 - [Ignores](./ignores.md): Reusable patterns in the `ignores/` directory
 - [Logging and Diagnostics](./logging.md): Log files, rotation, and retention
 - [Safety](./safety.md): Ancestor recovery and safeguards against data loss
-- [Releases](./releases.md): Agent distribution and upgrade behavior.
+- [Releases](./releases.md): Agent distribution and upgrade behavior
