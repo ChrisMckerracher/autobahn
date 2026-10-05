@@ -15,7 +15,7 @@ To get started, make sure your remotes are [accessible over SSH with your privat
 
 ## Donors
 
-These people bought books for someone who needs a second chance. Thank you!
+These people bought books for people who need a second chance. Thank you!
 
 <a href="https://github.com/ChrisMckerracher"><img src="https://github.com/ChrisMckerracher.png?size=96" width="40" height="40" alt="Christopher Mckerracher" title="Christopher Mckerracher" align="middle"></a> &nbsp;[Christopher Mckerracher](https://github.com/ChrisMckerracher)
 
