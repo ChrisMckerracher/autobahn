@@ -1,5 +1,7 @@
 # Autobahn <picture><source media="(prefers-color-scheme: dark)" srcset="assets/sign-readme-white.svg"><img src="assets/sign-readme.svg" alt="" height="23"></picture>
 
+[![Release](https://img.shields.io/github/v/release/fny/autobahn)](https://github.com/fny/autobahn/releases) [![CI](https://github.com/fny/autobahn/actions/workflows/ci.yml/badge.svg)](https://github.com/fny/autobahn/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/license-AGPL--3.0%20or%20Donor%27s-blue)](#license) [![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)](#system-requirements--limitations) [![Donate](https://img.shields.io/badge/donate-Justice--in--Education-ff69b4)](docs/donations.md)
+
 *Subsecond sync with German precision.*
 
 Autobahn keeps folders on your machine in sync with remotes faster than you can type. Here's a recorded demo with a save after each keystroke:
