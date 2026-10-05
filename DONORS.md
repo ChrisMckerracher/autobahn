@@ -45,4 +45,5 @@ Avatar sizes: No Speed Limit 40, Fast Lane 28, Cruising 20.
 
 On-Ramp is one line of names, separated by " · ".
 Then update the total under "The Road to MIT". One block is $500.
+Then update the Donors section in README.md too: the picture and the total.
 -->
