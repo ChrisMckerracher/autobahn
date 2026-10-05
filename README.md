@@ -28,7 +28,7 @@ These people bought books for people who need a second chance. Thank you!
 - Agents can't run `--dangerously` on your local files without putting your machine at risk.
 - Some sync tools require gigs of RAM for big trees, or a cloud account, or both.
 
-Solution: keep everything in sync so editing local files is practically the same as editing remote ones.
+Unhinged solution: keep everything in sync so editing local files is practically the same as editing remote ones.
 
 ## Why Autobahn
 
