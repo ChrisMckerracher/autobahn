@@ -7,11 +7,11 @@ Autobahn Tray is a tray (menu bar) item that shows you the real-time health of y
 | Status Icon | Meaning |
 | :--- | :--- |
 | **Green** | All sessions synchronized |
-| **Amber** | Active conflict detected |
-| **Red** | Session halted or unreachable |
-| **Struck through (no dot)** | No supervisor/sessions running |
+| **Amber** | A conflict or blocked path needs you |
+| **Red** | A session is halted, unreachable, or erroring |
+| **Struck through (no dot)** | The supervisor isn't running |
 
-The icon updates on its next poll of the supervisor.
+The icon updates within 3 seconds.
 
 ## Menu Controls & Actions
 
