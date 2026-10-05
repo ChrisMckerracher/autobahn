@@ -380,13 +380,26 @@ thread_local! {
     pub(crate) static EXCHANGE_WITHHELD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
-/// Whether some other open file has `file` open too, where Linux can say:
-/// a write lease is granted only on a file nobody else has open, so taking
-/// one and handing it straight back answers without waiting on anyone.
-/// Every open counts, this process's other ones included. `None` where the
-/// question cannot be asked: not Linux, a filesystem without leases, or a
-/// file this process neither owns nor may lease.
-pub(crate) fn opened_elsewhere(file: &File) -> Option<bool> {
+/// Whether something has `file` open for writing, where Linux can say: a
+/// read lease is refused while the file is open for writing anywhere, so
+/// taking one and handing it straight back answers without waiting on
+/// anyone. `file` must be open read-only.
+///
+/// Readers do not count, and must not. A reader loses nothing when the
+/// file is replaced, and readers are everywhere: a scan or a delta base in
+/// this process, a viewer, an index. So is a copy no one is using: a child
+/// process holds every descriptor its parent had from fork until exec, so
+/// a file this process closed a moment ago can still be open in one. A
+/// write lease, refused for any open at all, deferred replacements over
+/// both. A copy of a write descriptor lingers the same way: this process's
+/// own, on the temporary that becomes the target, or a program's on a save
+/// it has just closed. Each is closed before the file is next probed, a
+/// cycle later rather than an instant, so at worst a replacement waits one
+/// cycle.
+///
+/// `None` where the question cannot be asked: not Linux, a filesystem
+/// without leases, or a file this process neither owns nor may lease.
+pub(crate) fn written_elsewhere(file: &File) -> Option<bool> {
     /// `F_SETSIG`, which the libc crate does not export: 10 in Linux's
     /// generic `fcntl.h`, which x86-64 and AArch64 use.
     #[cfg(target_os = "linux")]
@@ -397,7 +410,7 @@ pub(crate) fn opened_elsewhere(file: &File) -> Option<bool> {
         let fd = file.as_raw_fd();
         // rustix has no lease calls, so these go through libc.
         //
-        // An open by anyone while the lease is held breaks it, and the
+        // An open for writing while the lease is held breaks it, and the
         // kernel tells the holder with a signal: SIGIO unless told
         // otherwise, whose default is to terminate the process. It is
         // pointed at SIGURG instead, whose default is to be ignored, so a
@@ -409,7 +422,7 @@ pub(crate) fn opened_elsewhere(file: &File) -> Option<bool> {
             if libc::fcntl(fd, F_SETSIG, libc::SIGURG) != 0 {
                 return None;
             }
-            if libc::fcntl(fd, libc::F_SETLEASE, libc::F_WRLCK) == 0 {
+            if libc::fcntl(fd, libc::F_SETLEASE, libc::F_RDLCK) == 0 {
                 libc::fcntl(fd, libc::F_SETLEASE, libc::F_UNLCK);
                 return Some(false);
             }

@@ -41,6 +41,9 @@ struct Harness {
     transport: Transport,
     ignores: Vec<String>,
     session_counter: u32,
+    /// The last cycle's report, for the message when the trees differ:
+    /// a refusal or a deferral is noted there, not raised.
+    last_report: Option<String>,
 }
 
 impl Harness {
@@ -61,6 +64,7 @@ impl Harness {
             transport,
             ignores: Vec::new(),
             session_counter: 0,
+            last_report: None,
         }
     }
 
@@ -72,7 +76,9 @@ impl Harness {
     /// Runs one synchronization cycle through a freshly constructed session
     /// (proving that all cross-cycle state lives in persisted form).
     fn cycle(&mut self) -> anyhow::Result<CycleReport> {
-        self.session()?.run_cycle()
+        let report = self.session()?.run_cycle();
+        self.last_report = report.as_ref().ok().map(|report| format!("{report:#?}"));
+        report
     }
 
     /// Runs one cycle with `action` performed at `point` of it — the seam
@@ -88,7 +94,9 @@ impl Harness {
                 action();
             }
         }));
-        session.run_cycle()
+        let report = session.run_cycle();
+        self.last_report = report.as_ref().ok().map(|report| format!("{report:#?}"));
+        report
     }
 
     /// Cycles until a cycle changes nothing, and returns how many it took.
@@ -195,8 +203,10 @@ impl Harness {
         let primary = hash_tree(&self.primary);
         let replica = hash_tree(&self.replica);
         assert_eq!(
-            primary, replica,
-            "{context}: primary and replica trees differ"
+            primary,
+            replica,
+            "{context}: primary and replica trees differ; the last cycle: {}",
+            self.last_report.as_deref().unwrap_or("none")
         );
     }
 }

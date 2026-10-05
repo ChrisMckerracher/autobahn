@@ -3616,18 +3616,18 @@ impl<'a> Transitioner<'a> {
     }
 
     /// Whether to leave `path` for now because another program has the
-    /// file open, where that can be asked (Linux, see
-    /// [`dir::opened_elsewhere`]). A program writing into a file it holds
+    /// file open for writing, where that can be asked (Linux, see
+    /// [`dir::written_elsewhere`]). A program writing into a file it holds
     /// open writes to whatever the name held when it opened it, so
     /// replacing or removing the file under it loses what it writes next.
-    /// The wait is bounded: a file something keeps open for good — a
-    /// viewer, an index, another session reading it — goes ahead after
-    /// [`HELD_OPEN_GRACE`].
+    /// A reader loses nothing, and is not waited for. The wait is bounded:
+    /// a file something keeps open for writing for good — a log — goes
+    /// ahead after [`HELD_OPEN_GRACE`].
     fn left_open(&mut self, path: &str, parent: &Dir, name: &str) -> bool {
         let opened = parent
             .open_file(name, OFlags::RDONLY | OFlags::NONBLOCK, 0)
             .ok();
-        let elsewhere = opened.as_ref().and_then(dir::opened_elsewhere);
+        let elsewhere = opened.as_ref().and_then(dir::written_elsewhere);
         drop(opened);
         let mut waiting = self.held_open.lock().unwrap_or_else(|e| e.into_inner());
         if elsewhere != Some(true) {
@@ -3642,7 +3642,7 @@ impl<'a> Transitioner<'a> {
         drop(waiting);
         self.problem(
             path,
-            "left for now: another program has this file open; it will be retried",
+            "left for now: another program has this file open for writing; it will be retried",
         );
         true
     }
@@ -5005,8 +5005,8 @@ mod tests {
         assert!(leftovers.is_empty(), "{leftovers:?}");
     }
 
-    /// A file another program has open is left for now, on Linux, where a
-    /// lease probe can tell: something writing into it would go on writing
+    /// A file another program has open for writing is left for now, on
+    /// Linux, where a lease probe can tell: the program would go on writing
     /// to the version replaced. Released, it is replaced.
     #[cfg(target_os = "linux")]
     #[test]
@@ -5019,7 +5019,7 @@ mod tests {
             .open(&target)
             .expect("opens");
         let probe = File::open(&target).expect("opens");
-        if dir::opened_elsewhere(&probe) != Some(true) {
+        if dir::written_elsewhere(&probe) != Some(true) {
             eprintln!("this filesystem grants no leases; nothing to check");
             return;
         }
@@ -5032,7 +5032,7 @@ mod tests {
         assert!(
             outcome.problems.iter().any(|problem| problem
                 .message
-                .contains("another program has this file open")),
+                .contains("another program has this file open for writing")),
             "{:?}",
             outcome.problems
         );
@@ -5047,7 +5047,27 @@ mod tests {
         );
     }
 
-    /// A file something keeps open for good — a viewer, an index — is not
+    /// A file only read elsewhere is replaced at once: a reader loses
+    /// nothing. Readers include this process's own scans and delta bases,
+    /// and a child process's inherited copy of a descriptor this process
+    /// has already closed, which a write lease counted, and which deferred
+    /// replacements whenever another thread was starting a process.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_file_only_read_elsewhere_is_replaced_at_once() {
+        let mut fixture = Fixture::new();
+        let transitions = staged_replacement(&mut fixture);
+        let target = fixture.replica_root.join("file.txt");
+        let _viewer = File::open(&target).expect("opens");
+        let outcome = fixture.replica.transition(transitions).expect("runs");
+        assert!(outcome.problems.is_empty(), "{:?}", outcome.problems);
+        assert_eq!(
+            read(&fixture.replica_root, "file.txt"),
+            "v2 from the primary"
+        );
+    }
+
+    /// A file something keeps open for writing for good — a log — is not
     /// held back for good: past the grace, the replacement goes ahead.
     #[cfg(target_os = "linux")]
     #[test]
@@ -5055,7 +5075,10 @@ mod tests {
         let mut fixture = Fixture::new();
         let transitions = staged_replacement(&mut fixture);
         let target = fixture.replica_root.join("file.txt");
-        let _viewer = File::open(&target).expect("opens");
+        let _log = OpenOptions::new()
+            .append(true)
+            .open(&target)
+            .expect("opens");
         let since = std::time::Instant::now()
             .checked_sub(HELD_OPEN_GRACE + std::time::Duration::from_secs(1))
             .expect("the clock has run past the grace");

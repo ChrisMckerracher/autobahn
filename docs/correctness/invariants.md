@@ -132,6 +132,7 @@ Refusals that establish stale observation invalidate the baseline. Predictable r
   - `a_save_landing_while_the_replacement_is_prepared_is_never_replaced`
   - `a_save_landing_while_a_file_is_removed_is_put_back`
   - `a_file_another_program_has_open_is_left_for_now_then_replaced`
+  - `a_file_only_read_elsewhere_is_replaced_at_once`
   - `a_retargeted_symbolic_link_is_not_removed`
   - `transition_folds_achieved_results_into_the_snapshot`
 
