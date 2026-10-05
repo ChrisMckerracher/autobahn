@@ -6,9 +6,9 @@ This document describes unresolved risks that limit [the invariants](./invariant
 
 Every section below except the last describes a way to lose a change or a file. This table orders them by how likely an ordinary setup is to meet them. The sections follow in the same order and give the details.
 
-| Risk | What is lost | What it takes | What limits it |
+| Risk | Cost | Resolution | Limitation |
 | --- | --- | --- | --- |
-| A program writing into a file it holds open ([§1](#1-a-file-can-change-after-the-last-check)) | Writes made after autobahn replaces the file | A long-lived writer on a file the other side changed: a log, a database, streaming build output | Linux waits up to 30 seconds for the writer. macOS has no check. |
+| A program writing into a file it holds open ([§1](#1-a-file-can-change-after-the-last-check)) | Writes made after autobahn replaces the file | A long-lived writer on a file the other side changed: a log, a database, streaming build output | Linux waits up to 30 seconds for the writer. macOS has no check because it doesn't support leases. |
 | A save in the last microseconds before a replacement ([§1](#1-a-file-can-change-after-the-last-check)) | That save | FreeBSD, other BSDs, or a network or FUSE filesystem without an atomic exchange | Linux and macOS restore the save. |
 | Changed content with restored metadata ([§2](#2-changed-content-can-retain-the-same-metadata)) | The change never propagates. A later edit on the other side overwrites it. | A tool that rewrites bytes but keeps the size and timestamp: reproducible builds, `touch -r` | A scheduled `autobahn verify` |
 | A live multi-file database ([Limitations](../limitations.md#live-multi-file-databases-eg-sqlite-wal)) | A copy whose files disagree with each other | SQLite with WAL, or similar, written during synchronization | Synchronize backups, not open databases. |
@@ -16,11 +16,8 @@ Every section below except the last describes a way to lose a change or a file. 
 | Two supervisors on one folder ([§4](#4-separate-supervisors-can-write-to-the-same-folder)) | One supervisor's changes, overwritten by the other | Two configurations that pair one folder with different partners | Intent records usually produce conflicts instead. |
 | A disk unseen at the first scan ([§5](#5-an-unmounted-disk-can-look-like-deleted-files)) | The other side's copies, deleted when the disk disappears | A mount point empty at the first scan, then mounted, then removed | `guard_dir_deletes_over` |
 
-Two outcomes do not occur. Autobahn never leaves a torn or partial file: it writes content to a temporary file, verifies the checksum, and swaps the file into place atomically. An ordinary editor save during synchronization, written to a temporary file and renamed over the original, is never overwritten on Linux or macOS: the swap detects it and puts it back.
-
-The mode does not change this list. A conflict mode protects every change that a scan sees. These risks are changes that a scan cannot see, or cannot see in time. Platform mechanisms and `verify` close them where they can be closed.
-
 [§6](#6-p2p-trusts-every-machine-in-the-group) is a security boundary rather than a way to lose a file: P2P lets one compromised peer reach the others.
+
 
 ## 1. A File Can Change After the Last Check
 

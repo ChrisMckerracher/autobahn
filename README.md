@@ -1,6 +1,6 @@
 # Autobahn <picture><source media="(prefers-color-scheme: dark)" srcset="assets/sign-readme-white.svg"><img src="assets/sign-readme.svg" alt="" height="23"></picture>
 
-[![Release](https://img.shields.io/github/v/release/fny/autobahn)](https://github.com/fny/autobahn/releases) [![CI](https://github.com/fny/autobahn/actions/workflows/ci.yml/badge.svg)](https://github.com/fny/autobahn/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/license-AGPL--3.0%20or%20Donor%27s-blue)](#license) [![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)](#system-requirements--limitations) [![Donate](https://img.shields.io/badge/donate-Justice--in--Education-ff69b4)](docs/donations.md)
+[![Release](https://img.shields.io/github/v/release/fny/autobahn)](https://github.com/fny/autobahn/releases) [![CI](https://github.com/fny/autobahn/actions/workflows/ci.yml/badge.svg)](https://github.com/fny/autobahn/actions/workflows/ci.yml) [![License](https://img.shields.io/badge/license-AGPL--3.0%20or%20Donor-blue)](#license) [![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)](#system-requirements--limitations) [![Donate](https://img.shields.io/badge/donate-Justice--in--Education-ff69b4)](docs/donations.md)
 
 *Subsecond sync with German precision.*
 
@@ -111,6 +111,11 @@ For mode details, see [Modes](docs/modes.md) and [Conflict Resolution](docs/conf
 
 Read [P2P](docs/p2p.md) before P2P use.
 
+> [!CAUTION]
+> If your primary is *empty* and you sync in `mirror` mode you will erase your replicas.
+
+All other sync modes are not destructive on a first pass. To learn more, see [First Sync](docs/modes.md#first-sync).
+
 ## Benchmarks
 
 Autobahn began as an effort to reduce the memory use of [Mutagen](https://mutagen.io/) which offers similar sync features, and then I got carried away.
@@ -126,6 +131,8 @@ Autobahn began as an effort to reduce the memory use of [Mutagen](https://mutage
 See [Benchmarks](docs/benchmarks.md) for details.
 
 ## Safety
+
+*Autobahn guarantees data integrity as much as possible.* Programs holding files open, network mounts, and mucking with metadata [can cause problems](docs/correctness/accepted-risks.md). Autobahn will break some programs (i.e. git) not due to correctness but rather due to syncing machine specific files. You can use ignores to prevent these issues, and there are clever ways to keep things like [git in sync](docs/git.md).
 
 ### Empirically
 
